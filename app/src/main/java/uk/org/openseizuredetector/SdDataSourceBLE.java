@@ -39,11 +39,6 @@ import android.preference.PreferenceManager;
 import android.text.format.Time;
 import android.util.Log;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -57,7 +52,6 @@ public class SdDataSourceBLE extends SdDataSource {
     private String TAG = "SdDataSourceBLE";
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
-    private String mBluetoothDeviceAddress;
     private BluetoothGatt mBluetoothGatt;
     private int mConnectionState = STATE_DISCONNECTED;
 
@@ -91,7 +85,6 @@ public class SdDataSourceBLE extends SdDataSource {
     public static String CHAR_OSD_BATT_DATA = "000085eb-0000-1000-8000-00805f9b34fb";
 
     public final static UUID UUID_HEART_RATE_MEASUREMENT = UUID.fromString(CHAR_HEART_RATE_MEASUREMENT);
-    private BluetoothGatt mGatt;
     private BluetoothGattCharacteristic mBattChar;
     private BluetoothGattCharacteristic mOsdChar;
 
@@ -165,7 +158,7 @@ public class SdDataSourceBLE extends SdDataSource {
             // parameter to false.
             mBluetoothGatt = device.connectGatt(mContext, true, mGattCallback);
             Log.d(TAG, "bleConnect(): Trying to create a new connection.");
-            mBluetoothDeviceAddress = mBleDeviceAddr;
+            String mBluetoothDeviceAddress = mBleDeviceAddr;
             mConnectionState = STATE_CONNECTING;
         }
     }
@@ -222,11 +215,7 @@ public class SdDataSourceBLE extends SdDataSource {
                 Log.i(TAG, "onConnectionStateChange(): Disconnected from GATT server - reconnecting after delay...");
                 //bleDisconnect();  // Tidy up connections
                 // Wait 2 seconds to give the server chance to shutdown, then re-start it
-                mHandler.postDelayed(new Runnable() {
-                    public void run() {
-                        bleConnect();
-                    }
-                }, 2000);
+                mHandler.postDelayed(() -> bleConnect(), 2000);
             }
         }
 
@@ -271,16 +260,11 @@ public class SdDataSourceBLE extends SdDataSource {
                     }
                 }
                 if (foundOsdService) {
-                    mGatt = gatt;
                 } else {
                     Log.v(TAG, "device is not offering the OSD Gatt Service - re-trying connection");
                     bleDisconnect();
                     // Wait 1 second to give the server chance to shutdown, then re-start it
-                    mHandler.postDelayed(new Runnable() {
-                        public void run() {
-                            bleConnect();
-                        }
-                    }, 1000);
+                    mHandler.postDelayed(() -> bleConnect(), 1000);
                 }
             } else {
                 Log.w(TAG, "onServicesDiscovered received: " + status);
@@ -385,11 +369,9 @@ public class SdDataSourceBLE extends SdDataSource {
             // Apparently if you try to write multiple descriptors too quickly then only
             // one is processed, hence why this waiting logic is necessary
             Log.w(TAG, "waitForDescriptor " + characteristic.getUuid());
-            mHandler.postDelayed(new Runnable() {
-                public void run() {
-                    Log.w(TAG, "delayed");
-                    setCharacteristicNotification(characteristic, enabled);
-                }
+            mHandler.postDelayed(() -> {
+                Log.w(TAG, "delayed");
+                setCharacteristicNotification(characteristic, enabled);
             }, 500);
             return;
         }

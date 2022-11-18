@@ -25,6 +25,7 @@
 
 package uk.org.openseizuredetector;
 
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -65,17 +66,15 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
+import android.os.Build;
 
 //MPAndroidChart
 
 public class MainActivity extends AppCompatActivity {
+    public int Flag_Intend =  PendingIntent.FLAG_UPDATE_CURRENT;
+
+
     static final String TAG = "MainActivity";
-    private int okColour = Color.BLUE;
-    private int warnColour = Color.MAGENTA;
-    private int alarmColour = Color.RED;
-    private int okTextColour = Color.WHITE;
-    private int warnTextColour = Color.WHITE;
-    private int alarmTextColour = Color.BLACK;
     private OsdUtil mUtil;
     private SdServiceConnection mConnection;
     private Menu mOptionsMenu;
@@ -108,6 +107,9 @@ public class MainActivity extends AppCompatActivity {
         mUtil.writeToSysLogFile("* MainActivity Started     *");
         mUtil.writeToSysLogFile("MainActivity.onCreate()");
         mContext = this;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            Flag_Intend = PendingIntent.FLAG_IMMUTABLE;
+        }
 
         // Initialise the User Interface
         setContentView(R.layout.main);
@@ -136,65 +138,59 @@ public class MainActivity extends AppCompatActivity {
 
         // Deal with the 'AcceptAlarm Button'
         Button button = (Button) findViewById(R.id.acceptAlarmButton);
-        button.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                Log.v(TAG, "acceptAlarmButton.onClick()");
-                if (mConnection.mBound) {
-                    if ((mConnection.mSdServer.mSmsTimer != null)
-                            && (mConnection.mSdServer.mSmsTimer.mTimeLeft > 0)) {
-                        Log.i(TAG, "acceptAlarmButton.onClick() - Stopping SMS Timer");
-                        mUtil.showToast(getString(R.string.SMSAlarmCancelledMsg));
-                        mConnection.mSdServer.stopSmsTimer();
-                    } else {
-                        Log.v(TAG, "acceptAlarmButton.onClick() - Accepting Alarm");
-                        mConnection.mSdServer.acceptAlarm();
-                    }
+        button.setOnClickListener(v -> {
+            Log.v(TAG, "acceptAlarmButton.onClick()");
+            if (mConnection.mBound) {
+                if ((mConnection.mSdServer.mSmsTimer != null)
+                        && (mConnection.mSdServer.mSmsTimer.mTimeLeft > 0)) {
+                    Log.i(TAG, "acceptAlarmButton.onClick() - Stopping SMS Timer");
+                    mUtil.showToast(getString(R.string.SMSAlarmCancelledMsg));
+                    mConnection.mSdServer.stopSmsTimer();
+                } else {
+                    Log.v(TAG, "acceptAlarmButton.onClick() - Accepting Alarm");
+                    mConnection.mSdServer.acceptAlarm();
                 }
             }
         });
 
         // Deal with the 'Cancel Audible Button'
         button = (Button) findViewById(R.id.cancelAudibleButton);
-        button.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                Log.v(TAG, "cancelAudibleButton.onClick()");
-                if (mConnection.mBound) {
-                    mConnection.mSdServer.cancelAudible();
-                }
+        button.setOnClickListener(v -> {
+            Log.v(TAG, "cancelAudibleButton.onClick()");
+            if (mConnection.mBound) {
+                mConnection.mSdServer.cancelAudible();
             }
         });
 
         // Deal with the 'Raise Alarm'
         button = (Button) findViewById(R.id.manualAlarmButton);
-        button.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                Log.v(TAG, "manualAlarmButton.onClick()");
-                // Confirmation dialog based on: https://stackoverflow.com/a/12213536/2104584
-                //AlertDialog.Builder builder = new AlertDialog.Builder(getBaseContext());
-                //builder.setTitle("Raise Alarm");
-                //builder.setMessage(String.format("Raise a Seizure Detected Alarm NOW?"));
-                //builder.setPositiveButton("YES", new DialogInterface.OnClickListener() {
-                //    @Override
-                //    public void onClick(DialogInterface dialog, int which) {
-                if (mConnection.mBound) {
-                    mConnection.mSdServer.raiseManualAlarm();
-                }
-                //        dialog.dismiss();
-                //    }
-                //});
-                //builder.setNegativeButton("NO", new DialogInterface.OnClickListener() {
-                //    @Override
-                //    public void onClick(DialogInterface dialog, int which) {
-                //        dialog.dismiss();
-                //    }
-                //});
-                //AlertDialog alert = builder.create();
-                //if (!(this).isFinishing()) {
-                //    alert.show();
-                //}
-
-
+        button.setOnClickListener(v -> {
+            Log.v(TAG, "manualAlarmButton.onClick()");
+            // Confirmation dialog based on: https://stackoverflow.com/a/12213536/2104584
+            //AlertDialog.Builder builder = new AlertDialog.Builder(getBaseContext());
+            //builder.setTitle("Raise Alarm");
+            //builder.setMessage(String.format("Raise a Seizure Detected Alarm NOW?"));
+            //builder.setPositiveButton("YES", new DialogInterface.OnClickListener() {
+            //    @Override
+            //    public void onClick(DialogInterface dialog, int which) {
+            if (mConnection.mBound) {
+                mConnection.mSdServer.raiseManualAlarm();
             }
+            //        dialog.dismiss();
+            //    }
+            //});
+            //builder.setNegativeButton("NO", new DialogInterface.OnClickListener() {
+            //    @Override
+            //    public void onClick(DialogInterface dialog, int which) {
+            //        dialog.dismiss();
+            //    }
+            //});
+            //AlertDialog alert = builder.create();
+            //if (!(this).isFinishing()) {
+            //    alert.show();
+            //}
+
+
         });
         // The background service might ask us to show the data sharing dialog if data sharing is not working correctly
         String actionStr = getIntent().getAction();
@@ -211,6 +207,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
         String actionStr;
         Log.i(TAG, "onNewIntent");
         Bundle extras = intent.getExtras();
@@ -227,7 +224,7 @@ public class MainActivity extends AppCompatActivity {
                 if (actionStr.equals("showDataSharingDialog")) {
                     showDataSharingDialog();
                 }
-                Log.i(TAG, "onNewIntent - extra actionstr is "+actionStr);
+                Log.i(TAG, "onNewIntent - extra actionstr is " + actionStr);
             } else {
                 Log.i(TAG, "onNewIntent - extra actionstr is null - starting normally");
             }
@@ -501,6 +498,10 @@ public class MainActivity extends AppCompatActivity {
             Log.v(TAG, "serverStatusRunnable()");
 
             TextView tv;
+            int warnTextColour = Color.WHITE;
+            int okTextColour = Color.WHITE;
+            int warnColour = Color.MAGENTA;
+            int okColour = Color.BLUE;
             if (mUtil.isServerRunning()) {
                 tv = (TextView) findViewById(R.id.serverStatusTv);
                 if (mConnection.mBound)
@@ -531,6 +532,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
 
+            int alarmColour = Color.RED;
             try {
                 if (mConnection.mBound) {
                     tv = (TextView) findViewById(R.id.alarmTv);
@@ -553,6 +555,7 @@ public class MainActivity extends AppCompatActivity {
                         tv.setBackgroundColor(warnColour);
                         tv.setTextColor(warnTextColour);
                     }
+                    int alarmTextColour = Color.BLACK;
                     if (mConnection.mSdServer.mSdData.alarmStanding) {
                         tv.setText(R.string.Alarm);
                         tv.setBackgroundColor(alarmColour);
@@ -876,8 +879,8 @@ public class MainActivity extends AppCompatActivity {
             mChart.setDescription("");
 
             // X and Y Values
-            ArrayList<String> xVals = new ArrayList<String>();
-            ArrayList<BarEntry> yBarVals = new ArrayList<BarEntry>();
+            ArrayList<String> xVals = new ArrayList<>();
+            ArrayList<BarEntry> yBarVals = new ArrayList<>();
             for (int i = 0; i < 10; i++) {
                 xVals.add(i + "-" + (i + 1) + " Hz");
                 if (mConnection.mSdServer != null) {
@@ -906,12 +909,9 @@ public class MainActivity extends AppCompatActivity {
             barDataSet.setBarSpacePercent(20f);
             barDataSet.setBarShadowColor(Color.WHITE);
             BarData barData = new BarData(xVals, barDataSet);
-            barData.setValueFormatter(new ValueFormatter() {
-                @Override
-                public String getFormattedValue(float v) {
-                    DecimalFormat format = new DecimalFormat("####");
-                    return format.format(v);
-                }
+            barData.setValueFormatter(v -> {
+                DecimalFormat format = new DecimalFormat("####");
+                return format.format(v);
             });
             mChart.setData(barData);
 
@@ -932,12 +932,9 @@ public class MainActivity extends AppCompatActivity {
             yAxis.setDrawGridLines(true);
             yAxis.setDrawLabels(true);
             yAxis.setTextColor(Color.WHITE);
-            yAxis.setValueFormatter(new ValueFormatter() {
-                @Override
-                public String getFormattedValue(float v) {
-                    DecimalFormat format = new DecimalFormat("#####");
-                    return format.format(v);
-                }
+            yAxis.setValueFormatter(v -> {
+                DecimalFormat format = new DecimalFormat("#####");
+                return format.format(v);
             });
 
             YAxis yAxis2 = mChart.getAxisRight();
@@ -977,30 +974,22 @@ public class MainActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setIcon(R.drawable.icon_24x24);
         builder.setTitle("OpenSeizureDetector V" + versionName);
-        builder.setNeutralButton(getString(R.string.closeBtnTxt), new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int id) {
-                dialog.cancel();
-            }
+        builder.setNeutralButton(getString(R.string.closeBtnTxt), (dialog, id) -> dialog.cancel());
+        builder.setPositiveButton("Privacy Policy", (dialog, id) -> {
+            dialog.cancel();
+            String url = OsdUtil.PRIVACY_POLICY_URL;
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setData(Uri.parse(url));
+            startActivity(i);
+            dialog.cancel();
         });
-        builder.setPositiveButton("Privacy Policy", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
-                        String url = OsdUtil.PRIVACY_POLICY_URL;
-                        Intent i = new Intent(Intent.ACTION_VIEW);
-                        i.setData(Uri.parse(url));
-                        startActivity(i);
-                        dialog.cancel();
-                    }
-                });
-        builder.setNegativeButton("Data Sharing", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
-                        String url = OsdUtil.DATA_SHARING_URL;
-                        Intent i = new Intent(Intent.ACTION_VIEW);
-                        i.setData(Uri.parse(url));
-                        startActivity(i);
-                        dialog.cancel();
-                    }
+        builder.setNegativeButton("Data Sharing", (dialog, id) -> {
+            dialog.cancel();
+            String url = OsdUtil.DATA_SHARING_URL;
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setData(Uri.parse(url));
+            startActivity(i);
+            dialog.cancel();
         });
         builder.setView(aboutView);
         builder.create();
@@ -1014,20 +1003,17 @@ public class MainActivity extends AppCompatActivity {
         builder.setIcon(R.drawable.datasharing_fault_24x24);
         builder.setTitle("OpenSeizureDetector Data Sharing");
         builder.setNegativeButton(getString(R.string.cancel), null);
-        builder.setPositiveButton(getString(R.string.login), new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                Log.i(TAG, "dataSharingDialog.positiveButton.onClick()");
-                try {
-                    Intent i = new Intent(
-                            MainActivity.this,
-                            AuthenticateActivity.class);
-                    mContext.startActivity(i);
-                } catch (Exception ex) {
-                    Log.i(TAG, "exception starting activity " + ex.toString());
-                }
-
+        builder.setPositiveButton(getString(R.string.login), (dialog, which) -> {
+            Log.i(TAG, "dataSharingDialog.positiveButton.onClick()");
+            try {
+                Intent i = new Intent(
+                        MainActivity.this,
+                        AuthenticateActivity.class);
+                mContext.startActivity(i);
+            } catch (Exception ex) {
+                Log.i(TAG, "exception starting activity " + ex.toString());
             }
+
         });
         builder.setView(aboutView);
         builder.create();

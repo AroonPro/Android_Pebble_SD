@@ -403,7 +403,7 @@ public class SdData implements Parcelable {
         //fMax = in.readInt();
     }
 
-    public static final Parcelable.Creator<SdData> CREATOR = new Parcelable.Creator<SdData>() {
+    public static final Parcelable.Creator<SdData> CREATOR = new Parcelable.Creator<>() {
         public SdData createFromParcel(Parcel in) {
             return new SdData(in);
         }

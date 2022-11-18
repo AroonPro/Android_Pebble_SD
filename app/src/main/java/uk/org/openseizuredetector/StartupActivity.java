@@ -25,6 +25,7 @@
 package uk.org.openseizuredetector;
 
 import android.Manifest;
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -52,7 +53,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-import androidx.core.text.HtmlCompat;
 
 import com.rohitss.uceh.UCEHandler;
 
@@ -66,12 +66,8 @@ import java.util.TimerTask;
  */
 public class StartupActivity extends AppCompatActivity {
     private static String TAG = "StartupActivity";
-    private int okColour = Color.BLUE;
     private int warnColour = Color.MAGENTA;
-    private int alarmColour = Color.RED;
-    private int okTextColour = Color.WHITE;
     private int warnTextColour = Color.BLACK;
-    private int alarmTextColour = Color.BLACK;
 
 
     private OsdUtil mUtil;
@@ -112,7 +108,6 @@ public class StartupActivity extends AppCompatActivity {
 
 
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -149,33 +144,27 @@ public class StartupActivity extends AppCompatActivity {
         Button b;
 
         b = (Button) findViewById(R.id.settingsButton);
-        b.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Log.v(TAG, "settings button clicked");
-                try {
-                    mUtil.writeToSysLogFile("Starting Settings Activity");
-                    Intent intent = new Intent(
-                            StartupActivity.this,
-                            PrefActivity.class);
-                    startActivity(intent);
-                } catch (Exception ex) {
-                    Log.v(TAG, "exception starting settings activity " + ex.toString());
-                    mUtil.writeToSysLogFile("ERROR Starting Settings Activity");
-                }
-
+        b.setOnClickListener(view -> {
+            Log.v(TAG, "settings button clicked");
+            try {
+                mUtil.writeToSysLogFile("Starting Settings Activity");
+                Intent intent = new Intent(
+                        StartupActivity.this,
+                        PrefActivity.class);
+                startActivity(intent);
+            } catch (Exception ex) {
+                Log.v(TAG, "exception starting settings activity " + ex.toString());
+                mUtil.writeToSysLogFile("ERROR Starting Settings Activity");
             }
+
         });
 
 
         b = (Button) findViewById(R.id.installOsdAppButton);
-        b.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Log.v(TAG, "install Osd Watch App button clicked");
-                mUtil.writeToSysLogFile("Installing Watch App");
-                mConnection.mSdServer.mSdDataSource.installWatchApp();
-            }
+        b.setOnClickListener(view -> {
+            Log.v(TAG, "install Osd Watch App button clicked");
+            mUtil.writeToSysLogFile("Installing Watch App");
+            mConnection.mSdServer.mSdDataSource.installWatchApp();
         });
 
         mConnection = new SdServiceConnection(getApplicationContext());
@@ -209,16 +198,14 @@ public class StartupActivity extends AppCompatActivity {
             Log.i(TAG, "onStart() - server not running - isServerRunning="+mUtil.isServerRunning());
         }
         // Wait 0.1 second to give the server chance to shutdown in case we have just shut it down below, then start it
-        mHandler.postDelayed(new Runnable() {
-            public void run() {
-                mUtil.writeToSysLogFile("StartupActivity.onStart() - starting server after delay - isServerRunning="+mUtil.isServerRunning());
-                Log.i(TAG, "onStart() - starting server after delay -isServerRunning="+mUtil.isServerRunning());
-                mUtil.startServer();
-                // Bind to the service.
-                Log.i(TAG, "onStart() - binding to server");
-                mUtil.writeToSysLogFile("StartupActivity.onStart() - binding to server");
-                mUtil.bindToServer(getApplicationContext(), mConnection);
-            }
+        mHandler.postDelayed(() -> {
+            mUtil.writeToSysLogFile("StartupActivity.onStart() - starting server after delay - isServerRunning="+mUtil.isServerRunning());
+            Log.i(TAG, "onStart() - starting server after delay -isServerRunning="+mUtil.isServerRunning());
+            mUtil.startServer();
+            // Bind to the service.
+            Log.i(TAG, "onStart() - binding to server");
+            mUtil.writeToSysLogFile("StartupActivity.onStart() - binding to server");
+            mUtil.bindToServer(getApplicationContext(), mConnection);
         }, 100);
 
         // Check power management settings
@@ -267,7 +254,7 @@ public class StartupActivity extends AppCompatActivity {
      */
     final Runnable serverStatusRunnable = new Runnable() {
         public void run() {
-            Boolean allOk = true;
+            boolean allOk = true;
             TextView tv;
             ProgressBar pb;
             boolean smsAlarmsActive = true;
@@ -292,6 +279,10 @@ public class StartupActivity extends AppCompatActivity {
             // Settings ok
             tv = (TextView) findViewById(R.id.textItem1);
             pb = (ProgressBar) findViewById(R.id.progressBar1);
+            int alarmTextColour = Color.BLACK;
+            int okTextColour = Color.WHITE;
+            int alarmColour = Color.RED;
+            int okColour = Color.BLUE;
             if (arePermissionsOK()) {
                 if (smsAlarmsActive && !areSMSPermissions1OK()) {
                     Log.i(TAG,"SMS permissions NOT OK");
@@ -490,36 +481,30 @@ public class StartupActivity extends AppCompatActivity {
                     .setTitle(getString(R.string.FirstRunDlgTitle))
                     .setMessage(Html.fromHtml(s))
                     .setCancelable(false)
-                    .setNeutralButton(getString(R.string.closeBtnTxt), new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                            mDialogDisplayed = false;
-                            //MainActivity.this.finish();
-                        }
+                    .setNeutralButton(getString(R.string.closeBtnTxt), (dialog, id) -> {
+                        dialog.cancel();
+                        mDialogDisplayed = false;
+                        //MainActivity.this.finish();
                     })
-                    .setPositiveButton("Privacy Policy", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                            mDialogDisplayed = false;
-                            String url = OsdUtil.PRIVACY_POLICY_URL;
-                            Intent i = new Intent(Intent.ACTION_VIEW);
-                            i.setData(Uri.parse(url));
-                            startActivity(i);
-                            dialog.cancel();
-                            mDialogDisplayed = false;
-                        }
+                    .setPositiveButton("Privacy Policy", (dialog, id) -> {
+                        dialog.cancel();
+                        mDialogDisplayed = false;
+                        String url = OsdUtil.PRIVACY_POLICY_URL;
+                        Intent i = new Intent(Intent.ACTION_VIEW);
+                        i.setData(Uri.parse(url));
+                        startActivity(i);
+                        dialog.cancel();
+                        mDialogDisplayed = false;
                     })
-                    .setNegativeButton("Data Sharing", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                            mDialogDisplayed = false;
-                            String url = OsdUtil.DATA_SHARING_URL;
-                            Intent i = new Intent(Intent.ACTION_VIEW);
-                            i.setData(Uri.parse(url));
-                            startActivity(i);
-                            dialog.cancel();
-                            mDialogDisplayed = false;
-                        }
+                    .setNegativeButton("Data Sharing", (dialog, id) -> {
+                        dialog.cancel();
+                        mDialogDisplayed = false;
+                        String url = OsdUtil.DATA_SHARING_URL;
+                        Intent i = new Intent(Intent.ACTION_VIEW);
+                        i.setData(Uri.parse(url));
+                        startActivity(i);
+                        dialog.cancel();
+                        mDialogDisplayed = false;
                     })
             ;
             FirstRunDialog = alertDialogBuilder.create();
@@ -538,36 +523,30 @@ public class StartupActivity extends AppCompatActivity {
                     .setTitle(getString(R.string.UpdateDialogTitleTxt))
                     .setMessage(Html.fromHtml(s))
                     .setCancelable(false)
-                    .setNeutralButton(getString(R.string.closeBtnTxt), new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                            mDialogDisplayed = false;
-                            //MainActivity.this.finish();
-                        }
+                    .setNeutralButton(getString(R.string.closeBtnTxt), (dialog, id) -> {
+                        dialog.cancel();
+                        mDialogDisplayed = false;
+                        //MainActivity.this.finish();
                     })
-                    .setPositiveButton("Privacy Policy", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                            mDialogDisplayed = false;
-                            String url = OsdUtil.PRIVACY_POLICY_URL;
-                            Intent i = new Intent(Intent.ACTION_VIEW);
-                            i.setData(Uri.parse(url));
-                            startActivity(i);
-                            dialog.cancel();
-                            mDialogDisplayed = false;
-                        }
+                    .setPositiveButton("Privacy Policy", (dialog, id) -> {
+                        dialog.cancel();
+                        mDialogDisplayed = false;
+                        String url = OsdUtil.PRIVACY_POLICY_URL;
+                        Intent i = new Intent(Intent.ACTION_VIEW);
+                        i.setData(Uri.parse(url));
+                        startActivity(i);
+                        dialog.cancel();
+                        mDialogDisplayed = false;
                     })
-                    .setNegativeButton("Data Sharing", new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                            mDialogDisplayed = false;
-                            String url = OsdUtil.DATA_SHARING_URL;
-                            Intent i = new Intent(Intent.ACTION_VIEW);
-                            i.setData(Uri.parse(url));
-                            startActivity(i);
-                            dialog.cancel();
-                            mDialogDisplayed = false;
-                        }
+                    .setNegativeButton("Data Sharing", (dialog, id) -> {
+                        dialog.cancel();
+                        mDialogDisplayed = false;
+                        String url = OsdUtil.DATA_SHARING_URL;
+                        Intent i = new Intent(Intent.ACTION_VIEW);
+                        i.setData(Uri.parse(url));
+                        startActivity(i);
+                        dialog.cancel();
+                        mDialogDisplayed = false;
                     });
             UpdateDialog = alertDialogBuilder.create();
             Log.i(TAG, "Displaying Update Dialog");
@@ -592,11 +571,9 @@ public class StartupActivity extends AppCompatActivity {
                 .setTitle(R.string.battery_usage_optimisation_dialog_title)
                 .setMessage(s)
                 .setCancelable(false)
-                .setPositiveButton(getString(R.string.okBtnTxt), new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int id) {
-                        dialog.cancel();
-                        mBatteryOptDialogDisplayed = false;
-                    }
+                .setPositiveButton(getString(R.string.okBtnTxt), (dialog, id) -> {
+                    dialog.cancel();
+                    mBatteryOptDialogDisplayed = false;
                 });
         mBatteryOptDialog = alertDialogBuilder.create();
         Log.i(TAG, "Displaying Update Dialog");
@@ -688,20 +665,14 @@ public class StartupActivity extends AppCompatActivity {
                     .setTitle(R.string.permissions_required)
                     .setMessage(R.string.sms_permissions_rationale_1)
                     .setCancelable(false)
-                    .setPositiveButton(getString(R.string.okBtnTxt), new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                            Log.i(TAG,"requestSMSPermissions(): Launching ActivityCompat.requestPermissions()");
-                            ActivityCompat.requestPermissions(StartupActivity.this,
-                                    SMS_PERMISSIONS_1,
-                                    45);
-                        }
+                    .setPositiveButton(getString(R.string.okBtnTxt), (dialog, id) -> {
+                        dialog.cancel();
+                        Log.i(TAG,"requestSMSPermissions(): Launching ActivityCompat.requestPermissions()");
+                        ActivityCompat.requestPermissions(StartupActivity.this,
+                                SMS_PERMISSIONS_1,
+                                45);
                     })
-                    .setNegativeButton(getString(R.string.cancelBtnTxt), new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                        }
-                    }).create().show();
+                    .setNegativeButton(getString(R.string.cancelBtnTxt), (dialog, id) -> dialog.cancel()).create().show();
         }
     }
 
@@ -718,20 +689,14 @@ public class StartupActivity extends AppCompatActivity {
                     .setTitle(R.string.permissions_required)
                     .setMessage(R.string.location_permissions_rationale_1)
                     .setCancelable(false)
-                    .setPositiveButton(getString(R.string.okBtnTxt), new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                            Log.i(TAG, "requestLocationPermissions1(): Launching ActivityCompat.requestPermissions()");
-                            ActivityCompat.requestPermissions(StartupActivity.this,
-                                    LOCATION_PERMISSIONS_1,
-                                    43);
-                        }
+                    .setPositiveButton(getString(R.string.okBtnTxt), (dialog, id) -> {
+                        dialog.cancel();
+                        Log.i(TAG, "requestLocationPermissions1(): Launching ActivityCompat.requestPermissions()");
+                        ActivityCompat.requestPermissions(StartupActivity.this,
+                                LOCATION_PERMISSIONS_1,
+                                43);
                     })
-                    .setNegativeButton(getString(R.string.cancelBtnTxt), new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int id) {
-                                dialog.cancel();
-                            }
-                    })
+                    .setNegativeButton(getString(R.string.cancelBtnTxt), (dialog, id) -> dialog.cancel())
                     .create().show();
         }
     }
@@ -749,20 +714,14 @@ public class StartupActivity extends AppCompatActivity {
                     .setTitle(R.string.permissions_required)
                     .setMessage(R.string.location_permissions_2_rationale)
                     .setCancelable(false)
-                    .setPositiveButton(getString(R.string.okBtnTxt), new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                            Log.i(TAG,"requestSMSPermissions(): Launching ActivityCompat.requestPermissions()");
-                            ActivityCompat.requestPermissions(StartupActivity.this,
-                                    LOCATION_PERMISSIONS_2,
-                                    44);
-                        }
+                    .setPositiveButton(getString(R.string.okBtnTxt), (dialog, id) -> {
+                        dialog.cancel();
+                        Log.i(TAG,"requestSMSPermissions(): Launching ActivityCompat.requestPermissions()");
+                        ActivityCompat.requestPermissions(StartupActivity.this,
+                                LOCATION_PERMISSIONS_2,
+                                44);
                     })
-                    .setNegativeButton(getString(R.string.cancelBtnTxt), new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                        }
-                    }).create().show();
+                    .setNegativeButton(getString(R.string.cancelBtnTxt), (dialog, id) -> dialog.cancel()).create().show();
         }
     }
 

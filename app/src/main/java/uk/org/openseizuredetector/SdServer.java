@@ -25,7 +25,6 @@
 
 
 package uk.org.openseizuredetector;
-
 import android.app.ActivityManager;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -86,9 +85,7 @@ public class SdServer extends Service implements SdDataReceiver {
     private final int NOTIFICATION_ID = 1;
     private final int EVENT_NOTIFICATION_ID = 2;
     private final int DATASHARE_NOTIFICATION_ID = 3;
-    private String mNotChId = "OSD Notification Channel";
     private CharSequence mNotChName = "OSD Notification Channel";
-    private String mNotChDesc = "OSD Notification Channel Description";
     private String mEventNotChId = "OSD Event Notification Channel";
     private CharSequence mEventNotChName = "OSD Event Notification Channel";
     private String mEventNotChDesc = "OSD Event Notification Channel Description";
@@ -100,7 +97,6 @@ public class SdServer extends Service implements SdDataReceiver {
     private final static String TAG = "SdServer";
     private Timer dataLogTimer = null;
     private CancelAudibleTimer mCancelAudibleTimer = null;
-    private int mCancelAudiblePeriod = 10;  // Cancel Audible Period in minutes
     private long mCancelAudibleTimeRemaining = 0;
     private FaultTimer mFaultTimer = null;
     private CheckEventsTimer mEventsTimer = null;
@@ -135,14 +131,12 @@ public class SdServer extends Service implements SdDataReceiver {
     public boolean mLogDataRemote = false;
     public boolean mLogDataRemoteMobile = false;
     private String mAuthToken = null;
-    private long mEventsTimerPeriod = 60; // Number of seconds between checks to see if there are unvalidated remote events.
+    private final long mEventsTimerPeriod = 60; // Number of seconds between checks to see if there are unvalidated remote events.
     private long mEventDuration = 120;   // event duration in seconds - uploads datapoints that cover this time range centred on the event time.
     public long mDataRetentionPeriod = 1; // Prunes the local db so it only retains data younger than this duration (in days)
-    private long mRemoteLogPeriod = 6; // Period in seconds between uploads to the remote server.
-    private long mAutoPrunePeriod = 3600;  // Prune the database every hour
+    private final long mRemoteLogPeriod = 6; // Period in seconds between uploads to the remote server.
+    private final long mAutoPrunePeriod = 3600;  // Prune the database every hour
     private boolean mAutoPruneDb;
-
-    private String mOSDUrl = "";
 
     private OsdUtil mUtil;
     private Handler mHandler;
@@ -153,6 +147,10 @@ public class SdServer extends Service implements SdDataReceiver {
     private final IBinder mBinder = new SdBinder();
 
     public LogManager mLm;
+
+    public int Flag_Intend =  PendingIntent.FLAG_UPDATE_CURRENT;
+
+
 
     /**
      * class to handle binding the MainApp activity to this service
@@ -212,6 +210,13 @@ public class SdServer extends Service implements SdDataReceiver {
         PowerManager powerManager = (PowerManager) getSystemService(POWER_SERVICE);
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                 "OSD:WakeLock");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Flag_Intend = PendingIntent.FLAG_IMMUTABLE;
+        }
+        else
+        {
+            Flag_Intend = PendingIntent.FLAG_UPDATE_CURRENT;
+        }
     }
 
     /**
@@ -285,11 +290,13 @@ public class SdServer extends Service implements SdDataReceiver {
         // Initialise Notification channel for API level 26 and over
         // from https://stackoverflow.com/questions/44443690/notificationcompat-with-api-26
         mNM = (NotificationManager) this.getSystemService(Context.NOTIFICATION_SERVICE);
+        String mNotChId = "OSD Notification Channel";
         mNotificationBuilder = new NotificationCompat.Builder(this, mNotChId);
-        if (Build.VERSION.SDK_INT >= 26) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             NotificationChannel channel = new NotificationChannel(mNotChId,
                     mNotChName,
                     NotificationManager.IMPORTANCE_DEFAULT);
+            String mNotChDesc = "OSD Notification Channel Description";
             channel.setDescription(mNotChDesc);
             mNM.createNotificationChannel(channel);
         }
@@ -297,7 +304,8 @@ public class SdServer extends Service implements SdDataReceiver {
 
         // Display a notification icon in the status bar of the phone to
         // show the service is running.
-        if (Build.VERSION.SDK_INT >= 26) {
+        //if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (true) {
             Log.v(TAG, "showing Notification and calling startForeground (Android 8 and higher)");
             mUtil.writeToSysLogFile("SdServer.onStartCommand() - showing Notification and calling startForeground (Android 8 and higher)");
             showNotification(0);
@@ -342,7 +350,7 @@ public class SdServer extends Service implements SdDataReceiver {
 
         // Apply the wake-lock to prevent CPU sleeping (very battery intensive!)
         if (mWakeLock != null) {
-            mWakeLock.acquire();
+            mWakeLock.acquire(24*60*60*1000L /*1 day*/);
             Log.v(TAG, "Applied Wake Lock to prevent device sleeping");
             mUtil.writeToSysLogFile("SdServer.onStartCommand() - applying wake lock");
         } else {
@@ -493,7 +501,6 @@ public class SdServer extends Service implements SdDataReceiver {
                 break;
             default:
                 iconId = R.drawable.star_of_life_24x24;
-                soundUri = null;
                 titleStr = getString(R.string.okBtnTxt);
         }
 
@@ -504,9 +511,18 @@ public class SdServer extends Service implements SdDataReceiver {
 
         Intent i = new Intent(getApplicationContext(), MainActivity.class);
         i.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
-        PendingIntent contentIntent =
+        int Flag_Intend;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            Flag_Intend = PendingIntent.FLAG_IMMUTABLE;
+        }
+        else
+        {
+            Flag_Intend = PendingIntent.FLAG_UPDATE_CURRENT;
+        }
+            PendingIntent contentIntent =
                 PendingIntent.getActivity(this,
-                        0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+                        0, i, Flag_Intend );
         String smsStr;
         if (mSMSAlarm) {
             smsStr = getString(R.string.sms_location_alarm_active);
@@ -918,20 +934,17 @@ public class SdServer extends Service implements SdDataReceiver {
      * smsCanelClickListener - onClickListener for the SMS cancel dialog box.   If the
      * negative button is pressed, it cancels the SMS timer to prevent the SMS being sent.
      */
-    DialogInterface.OnClickListener smsCancelClickListener = new DialogInterface.OnClickListener() {
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-            switch (which) {
-                case DialogInterface.BUTTON_POSITIVE:
-                    Log.v(TAG, "smsCancelClickListener - Positive button");
-                    //Yes button clicked
-                    break;
+    DialogInterface.OnClickListener smsCancelClickListener = (dialog, which) -> {
+        switch (which) {
+            case DialogInterface.BUTTON_POSITIVE:
+                Log.v(TAG, "smsCancelClickListener - Positive button");
+                //Yes button clicked
+                break;
 
-                case DialogInterface.BUTTON_NEGATIVE:
-                    Log.v(TAG, "smsCancelClickListener - Negative button");
-                    //No button clicked
-                    break;
-            }
+            case DialogInterface.BUTTON_NEGATIVE:
+                Log.v(TAG, "smsCancelClickListener - Negative button");
+                //No button clicked
+                break;
         }
     };
 
@@ -946,12 +959,10 @@ public class SdServer extends Service implements SdDataReceiver {
             mSmsTimer = null;
         }
         Log.v(TAG, "startSmsTimer() - starting SmsTimer");
-        runOnUiThread(new Runnable() {
-            public void run() {
-                mSmsTimer =
-                        new SmsTimer(10 * 1000, 1000);
-                mSmsTimer.start();
-            }
+        runOnUiThread(() -> {
+            mSmsTimer =
+                    new SmsTimer(10 * 1000, 1000);
+            mSmsTimer.start();
         });
     }
 
@@ -981,7 +992,7 @@ public class SdServer extends Service implements SdDataReceiver {
             Log.v(TAG, "startLatchTimer() - starting alarm latch release timer to time out in " + mLatchAlarmPeriod + " sec");
             // set timer to timeout after mLatchAlarmPeriod, and Tick() function to be called every second.
             mLatchAlarmTimer =
-                    new LatchAlarmTimer(mLatchAlarmPeriod * 1000, 1000);
+                    new LatchAlarmTimer((long) mLatchAlarmPeriod * 1000L, 1000);
             mLatchAlarmTimer.start();
         } else {
             Log.v(TAG, "startLatchTimer() - Latch Alarms disabled - not doing anything");
@@ -1022,9 +1033,11 @@ public class SdServer extends Service implements SdDataReceiver {
         } else {
             Log.i(TAG, "cancelAudible(): starting cancel audible timer");
             mCancelAudible = true;
+            // Cancel Audible Period in minutes
+            int mCancelAudiblePeriod = 10;
             mCancelAudibleTimer =
                     // conver to ms.
-                    new CancelAudibleTimer(mCancelAudiblePeriod * 60 * 1000, 1000);
+                    new CancelAudibleTimer((long) mCancelAudiblePeriod * 60 * 1000, 1000);
             mCancelAudibleTimer.start();
         }
     }
@@ -1257,7 +1270,7 @@ public class SdServer extends Service implements SdDataReceiver {
             //Log.v(TAG, "updatePrefs() - mOSDPasswd = " + mOSDPasswd);
             //mOSDWearerId = Integer.parseInt(SP.getString("OSDWearerId", "0"));
             //Log.v(TAG, "updatePrefs() - mOSDWearerId = " + mOSDWearerId);
-            mOSDUrl = SP.getString("OSDUrl", "http://openseizuredetector.org.uk/webApi");
+            String mOSDUrl = SP.getString("OSDUrl", "http://openseizuredetector.org.uk/webApi");
             Log.v(TAG, "updatePrefs() - mOSDUrl = " + mOSDUrl);
             mUtil.writeToSysLogFile("updatePrefs() - mOSDUrl = " + mOSDUrl);
         } catch (Exception ex) {
@@ -1269,8 +1282,8 @@ public class SdServer extends Service implements SdDataReceiver {
 
 
     public void sendPhoneAlarm() {
-        /**
-         * Use the separate OpenSeizureDetector Dialler app to generate a phone call alarm to the numbers selected for SMS Alarms.
+        /*
+          Use the separate OpenSeizureDetector Dialler app to generate a phone call alarm to the numbers selected for SMS Alarms.
          */
         Log.v(TAG, "sendPhoneAlarm() - sending broadcast intent");
         Intent intent = new Intent();
@@ -1469,14 +1482,12 @@ public class SdServer extends Service implements SdDataReceiver {
         } else {
             Log.v(TAG, "startFaultTimer(): starting fault timer.");
             mUtil.writeToSysLogFile("startFaultTimer() - starting fault timer");
-            runOnUiThread(new Runnable() {
-                public void run() {
-                    mFaultTimerCompleted = false;
-                    mFaultTimer =
-                            // convert to ms.
-                            new FaultTimer(mFaultTimerPeriod * 1000, 1000);
-                    mFaultTimer.start();
-                }
+            runOnUiThread(() -> {
+                mFaultTimerCompleted = false;
+                mFaultTimer =
+                        // convert to ms.
+                        new FaultTimer(mFaultTimerPeriod * 1000, 1000);
+                mFaultTimer.start();
             });
         }
     }
@@ -1532,14 +1543,12 @@ public class SdServer extends Service implements SdDataReceiver {
         } else {
             Log.v(TAG, "startEventsTimer(): starting timer.");
             mUtil.writeToSysLogFile("startEventsTimer() - starting timer");
-            runOnUiThread(new Runnable() {
-                public void run() {
-                    mEventsTimer =
-                            // Run every 10 sec (convert to ms.)
-                            new CheckEventsTimer(mEventsTimerPeriod * 1000, 1000);
-                    mEventsTimer.mIsRunning = true;
-                    mEventsTimer.start();
-                }
+            runOnUiThread(() -> {
+                mEventsTimer =
+                        // Run every 10 sec (convert to ms.)
+                        new CheckEventsTimer(mEventsTimerPeriod * 1000, 1000);
+                mEventsTimer.mIsRunning = true;
+                mEventsTimer.start();
             });
         }
     }
@@ -1561,7 +1570,7 @@ public class SdServer extends Service implements SdDataReceiver {
         // Retrieve events from remote database
         if (mLm.mWac.getEvents((JSONObject remoteEventsObj) -> {
             Log.v(TAG, "checkEvents.getEvents.Callback()");
-            Boolean haveUnvalidatedEvent = false;
+            boolean haveUnvalidatedEvent = false;
             if (remoteEventsObj == null) {
                 Log.e(TAG, "checkEvents.getEvents.Callback():  Error Retrieving events");
             } else {
@@ -1659,7 +1668,7 @@ public class SdServer extends Service implements SdDataReceiver {
         i.setAction("None");
         PendingIntent contentIntent =
                 PendingIntent.getActivity(getApplicationContext(),
-                        0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+                        0, i, Flag_Intend);
         String contentStr = getString(R.string.please_confirm_seizure_events);
 
         Notification notification = notificationBuilder.setContentIntent(contentIntent)
@@ -1704,12 +1713,12 @@ public class SdServer extends Service implements SdDataReceiver {
         i.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent contentIntent =
                 PendingIntent.getActivity(getApplicationContext(),
-                        0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+                        0, i, Flag_Intend);
         Intent loginIntent = new Intent(getApplicationContext(), AuthenticateActivity.class);
         loginIntent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         PendingIntent loginPendingIntent =
                 PendingIntent.getActivity(getApplicationContext(),
-                        0, loginIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                        0, loginIntent, Flag_Intend);
 
         String contentStr = getString(R.string.datasharing_notification_text);
         Notification notification = notificationBuilder

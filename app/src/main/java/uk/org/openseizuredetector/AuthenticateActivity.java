@@ -22,7 +22,6 @@ import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.auth.FirebaseAuth;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -37,7 +36,6 @@ public class AuthenticateActivity extends AppCompatActivity {
     private SdServiceConnection mConnection;
     final Handler serverStatusHandler = new Handler();
     private WebApiConnection mWac;
-    private LogManager mLm;
     private static final String TOKEN_ID = "webApiAuthToken";
 
 
@@ -81,28 +79,22 @@ public class AuthenticateActivity extends AppCompatActivity {
 
         Button aboutDataSharingBtn = (Button) findViewById(R.id.aboutDataSharingBtn);
         aboutDataSharingBtn.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        Log.v(TAG,"aboutDataSharingBtn.onClick()");
-                        String url = OsdUtil.DATA_SHARING_URL;
-                        Intent i = new Intent(Intent.ACTION_VIEW);
-                        i.setData(Uri.parse(url));
-                        startActivity(i);
-                    }
+                view -> {
+                    Log.v(TAG,"aboutDataSharingBtn.onClick()");
+                    String url = OsdUtil.DATA_SHARING_URL;
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setData(Uri.parse(url));
+                    startActivity(i);
                 }
         );
         Button privacyPolicyBtn = (Button) findViewById(R.id.privacyPolicyBtn);
         privacyPolicyBtn.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        Log.v(TAG,"privacyPolicyBtn.onClick()");
-                        String url = OsdUtil.PRIVACY_POLICY_URL;
-                        Intent i = new Intent(Intent.ACTION_VIEW);
-                        i.setData(Uri.parse(url));
-                        startActivity(i);
-                    }
+                view -> {
+                    Log.v(TAG,"privacyPolicyBtn.onClick()");
+                    String url = OsdUtil.PRIVACY_POLICY_URL;
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setData(Uri.parse(url));
+                    startActivity(i);
                 }
         );
 
@@ -140,18 +132,13 @@ public class AuthenticateActivity extends AppCompatActivity {
             initialiseServiceConnection();
         } else {
             Log.v(TAG, "waitForConnection - waiting...");
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    waitForConnection();
-                }
-            }, 100);
+            new Handler().postDelayed(() -> waitForConnection(), 100);
         }
     }
 
     private void initialiseServiceConnection() {
         Log.v(TAG,"initialiseServiceConnection()");
-        mLm = mConnection.mSdServer.mLm;
+        LogManager mLm = mConnection.mSdServer.mLm;
         mWac = mConnection.mSdServer.mLm.mWac;
         updateUi();
     }
@@ -212,13 +199,10 @@ public class AuthenticateActivity extends AppCompatActivity {
     }
 
     View.OnClickListener onCancel =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Log.v(TAG, "onCancel");
-                    //m_status=false;
-                    finish();
-                }
+            view -> {
+                Log.v(TAG, "onCancel");
+                //m_status=false;
+                finish();
             };
 
     View.OnClickListener onLogin =
@@ -250,19 +234,16 @@ public class AuthenticateActivity extends AppCompatActivity {
                         String uname = mUnameEt.getText().toString();
                         String passwd = mPasswdEt.getText().toString();
                         Log.v(TAG,"onOK() - uname="+uname+", passwd="+passwd);
-                        mWac.authenticate(uname, passwd, new WebApiConnection.StringCallback() {
-                            @Override
-                            public void accept(String retVal) {
-                                if (retVal != null) {
-                                    Log.d(TAG,"Authentication Success - token is "+retVal);
-                                    mUtil.showToast("Login Successful");
-                                    saveAuthToken(retVal);
-                                    updateUi();
-                                } else {
-                                    Log.e(TAG,"onOk: Authentication failure for "+uname+", "+passwd);
-                                    mUtil.showToast("ERROR: Authentication Failed - Please Try Again");
-                                    mUtil.writeToSysLogFile("AuthActivity - Authorisation failed for "+uname+", "+passwd);
-                                }
+                        mWac.authenticate(uname, passwd, retVal -> {
+                            if (retVal != null) {
+                                Log.d(TAG,"Authentication Success - token is "+retVal);
+                                mUtil.showToast("Login Successful");
+                                saveAuthToken(retVal);
+                                updateUi();
+                            } else {
+                                Log.e(TAG,"onOk: Authentication failure for "+uname+", "+passwd);
+                                mUtil.showToast("ERROR: Authentication Failed - Please Try Again");
+                                mUtil.writeToSysLogFile("AuthActivity - Authorisation failed for "+uname+", "+passwd);
                             }
                         });
                     }
@@ -276,11 +257,9 @@ public class AuthenticateActivity extends AppCompatActivity {
                 if (LogManager.USE_FIREBASE_BACKEND) {
                     AuthUI.getInstance()
                             .signOut(getApplicationContext())
-                            .addOnCompleteListener(new OnCompleteListener<Void>() {
-                                public void onComplete(@NonNull Task<Void> task) {
-                                    // user is now signed out
-                                    updateUi();
-                                }
+                            .addOnCompleteListener(task -> {
+                                // user is now signed out
+                                updateUi();
                             });
                 } else {
                     if (mWac != null) {
@@ -295,35 +274,29 @@ public class AuthenticateActivity extends AppCompatActivity {
         };
 
     View.OnClickListener onRegister =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Log.d(TAG, "onRegisterBtn");
-                    //Intent i;
-                    //i = new Intent(getApplicationContext(), RemoteDbActivity.class);
-                    //i.putExtra("url", "https://osdapi.ddns.net/static/register.html");
-                    //startActivity(i);
-                    String url = "https://osdapi.ddns.net/static/register.html";
-                    Intent i = new Intent(Intent.ACTION_VIEW);
-                    i.setData(Uri.parse(url));
-                    startActivity(i);
-                }
+            view -> {
+                Log.d(TAG, "onRegisterBtn");
+                //Intent i;
+                //i = new Intent(getApplicationContext(), RemoteDbActivity.class);
+                //i.putExtra("url", "https://osdapi.ddns.net/static/register.html");
+                //startActivity(i);
+                String url = "https://osdapi.ddns.net/static/register.html";
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setData(Uri.parse(url));
+                startActivity(i);
             };
 
     View.OnClickListener onResetPassword =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Log.d(TAG, "onResetPasswordBtn");
-                    //Intent i;
-                    //i = new Intent(getApplicationContext(), RemoteDbActivity.class);
-                    //i.putExtra("url", "https://osdapi.ddns.net/static/register.html");
-                    //startActivity(i);
-                    String url = "https://osdapi.ddns.net/static/request_password_reset.html";
-                    Intent i = new Intent(Intent.ACTION_VIEW);
-                    i.setData(Uri.parse(url));
-                    startActivity(i);
-                }
+            view -> {
+                Log.d(TAG, "onResetPasswordBtn");
+                //Intent i;
+                //i = new Intent(getApplicationContext(), RemoteDbActivity.class);
+                //i.putExtra("url", "https://osdapi.ddns.net/static/register.html");
+                //startActivity(i);
+                String url = "https://osdapi.ddns.net/static/request_password_reset.html";
+                Intent i = new Intent(Intent.ACTION_VIEW);
+                i.setData(Uri.parse(url));
+                startActivity(i);
             };
 
 

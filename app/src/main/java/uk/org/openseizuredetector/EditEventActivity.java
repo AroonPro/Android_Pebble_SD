@@ -15,7 +15,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -27,7 +26,6 @@ public class EditEventActivity extends AppCompatActivity {
     private String TAG = "EditEventActivity";
     private Context mContext;
     private WebApiConnection mWac;
-    private LogManager mLm;
     private SdServiceConnection mConnection;
     final Handler serverStatusHandler = new Handler();
     private OsdUtil mUtil;
@@ -106,69 +104,58 @@ public class EditEventActivity extends AppCompatActivity {
             initialiseServiceConnection();
         } else {
             Log.v(TAG, "waitForConnection - waiting...");
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    waitForConnection();
-                }
-            }, 100);
+            new Handler().postDelayed(() -> waitForConnection(), 100);
         }
     }
 
     private void initialiseServiceConnection() {
-        mLm = mConnection.mSdServer.mLm;
+        LogManager mLm = mConnection.mSdServer.mLm;
         mWac = mConnection.mSdServer.mLm.mWac;
 
         // Retrieve the JSONObject containing the standard event types.
         // Note this obscure syntax is to avoid having to create another interface, so it is worth it :)
         // See https://medium.com/@pra4mesh/callback-function-in-java-20fa48b27797
-        mWac.getEventTypes(new WebApiConnection.JSONObjectCallback() {
-            @Override
-            public void accept(JSONObject eventTypesObj) {
-                Log.v(TAG, "initialiseServiceConnection().onEventTypesReceived");
-                if (eventTypesObj == null) {
-                    Log.e(TAG, "initialiseServiceConnection().getEventTypes Callback:  Error Retrieving event types");
-                    mUtil.showToast("Error Retrieving Event Types from Server - Please Try Again Later!");
-                } else {
-                    Iterator<String> keys = eventTypesObj.keys();
-                    mEventTypesList = new ArrayList<String>();
-                    mEventSubTypesHashMap = new HashMap<String, ArrayList<String>>();
-                    while (keys.hasNext()) {
-                        String key = keys.next();
-                        Log.v(TAG, "initialiseServiceConnection().getEventTypes Callback: key=" + key);
-                        mEventTypesList.add(key);
-                        try {
-                            JSONArray eventSubTypes = eventTypesObj.getJSONArray(key);
-                            ArrayList<String> eventSubtypesList = new ArrayList<String>();
-                            for (int i = 0; i < eventSubTypes.length(); i++) {
-                                eventSubtypesList.add(eventSubTypes.getString(i));
-                            }
-                            mEventSubTypesHashMap.put(key, eventSubtypesList);
-                            mEventTypesListChanged = true;
-                        } catch (JSONException e) {
-                            Log.e(TAG, "initialiseServiceConnection().getEventTypes Callback: Error parsing JSONObject" + e.getMessage() + e.toString());
+        mWac.getEventTypes(eventTypesObj -> {
+            Log.v(TAG, "initialiseServiceConnection().onEventTypesReceived");
+            if (eventTypesObj == null) {
+                Log.e(TAG, "initialiseServiceConnection().getEventTypes Callback:  Error Retrieving event types");
+                mUtil.showToast("Error Retrieving Event Types from Server - Please Try Again Later!");
+            } else {
+                Iterator<String> keys = eventTypesObj.keys();
+                mEventTypesList = new ArrayList<String>();
+                mEventSubTypesHashMap = new HashMap<String, ArrayList<String>>();
+                while (keys.hasNext()) {
+                    String key = keys.next();
+                    Log.v(TAG, "initialiseServiceConnection().getEventTypes Callback: key=" + key);
+                    mEventTypesList.add(key);
+                    try {
+                        JSONArray eventSubTypes = eventTypesObj.getJSONArray(key);
+                        ArrayList<String> eventSubtypesList = new ArrayList<String>();
+                        for (int i = 0; i < eventSubTypes.length(); i++) {
+                            eventSubtypesList.add(eventSubTypes.getString(i));
                         }
+                        mEventSubTypesHashMap.put(key, eventSubtypesList);
+                        mEventTypesListChanged = true;
+                    } catch (JSONException e) {
+                        Log.e(TAG, "initialiseServiceConnection().getEventTypes Callback: Error parsing JSONObject" + e.getMessage() + e.toString());
                     }
-                    updateUi();
                 }
+                updateUi();
             }
         });
 
         // Retrieve the event data to edit
         try {
-            mWac.getEvent(mEventId, new WebApiConnection.JSONObjectCallback() {
-                @Override
-                public void accept(JSONObject eventObj) {
-                    Log.v(TAG, "initialiseServiceConnection.getEvent");
-                    if (eventObj != null) {
-                        mEventObj = eventObj;
-                        Log.v(TAG, "initialiseServiceConnection.getEvent:  eventObj=" + eventObj.toString());
-                        updateUi();
-                        // FIXME: modify updateUi to use mEventObj
-                    } else {
-                        mUtil.showToast("Failed to Retrieve Event from Remote Database");
-                        finish();
-                    }
+            mWac.getEvent(mEventId, eventObj -> {
+                Log.v(TAG, "initialiseServiceConnection.getEvent");
+                if (eventObj != null) {
+                    mEventObj = eventObj;
+                    Log.v(TAG, "initialiseServiceConnection.getEvent:  eventObj=" + eventObj.toString());
+                    updateUi();
+                    // FIXME: modify updateUi to use mEventObj
+                } else {
+                    mUtil.showToast("Failed to Retrieve Event from Remote Database");
+                    finish();
                 }
             });
         } catch (Exception e) {
@@ -273,13 +260,10 @@ public class EditEventActivity extends AppCompatActivity {
     }  // updateUi()
 
     View.OnClickListener onCancel =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Log.v(TAG, "onCancel");
-                    //m_status=false;
-                    finish();
-                }
+            view -> {
+                Log.v(TAG, "onCancel");
+                //m_status=false;
+                finish();
             };
 
     View.OnClickListener onOK =
@@ -297,20 +281,17 @@ public class EditEventActivity extends AppCompatActivity {
                     Log.v(TAG, "onOK() - eventObj="+mEventObj.toString());
 
                     try {
-                        mWac.updateEvent(mEventObj, new WebApiConnection.JSONObjectCallback() {
-                            @Override
-                            public void accept(JSONObject eventObj) {
-                                Log.v(TAG, "onOk.updateEvent");
-                                //mEventObj = eventObj;
-                                if (eventObj != null) {
-                                    Log.v(TAG, "onOk.getEvent:  eventObj=" + eventObj.toString());
-                                    mUtil.showToast("Event Updated OK");
-                                    finish();
-                                } else {
-                                    Log.e(TAG, "onOk.updateEvent - Error - returned NULL");
-                                    mUtil.showToast("Error Updating Event");
-                                    updateUi();
-                                }
+                        mWac.updateEvent(mEventObj, eventObj -> {
+                            Log.v(TAG, "onOk.updateEvent");
+                            //mEventObj = eventObj;
+                            if (eventObj != null) {
+                                Log.v(TAG, "onOk.getEvent:  eventObj=" + eventObj.toString());
+                                mUtil.showToast("Event Updated OK");
+                                finish();
+                            } else {
+                                Log.e(TAG, "onOk.updateEvent - Error - returned NULL");
+                                mUtil.showToast("Error Updating Event");
+                                updateUi();
                             }
                         });
                     } catch (Exception e) {

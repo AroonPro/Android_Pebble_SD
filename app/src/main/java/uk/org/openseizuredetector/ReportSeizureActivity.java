@@ -26,7 +26,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -44,10 +43,8 @@ public class ReportSeizureActivity extends AppCompatActivity {
     private Context mContext;
     private UiTimer mUiTimer;
     private LogManager mLm;
-    private WebApiConnection mWac;
 
     private int mYear, mMonth, mDay, mHour, mMinute;
-    private String mMsg = "Messages";
     private SdServiceConnection mConnection;
     private OsdUtil mUtil;
     final Handler serverStatusHandler = new Handler();
@@ -60,7 +57,6 @@ public class ReportSeizureActivity extends AppCompatActivity {
     private boolean mRedrawEventSubTypesList = false;
     private boolean mRedrawEventTypesList = false;
     private RadioGroup mEventSubTypeRg;
-    private boolean mEventSubTypesListChanged = false;
 
 
     @Override
@@ -143,54 +139,46 @@ public class ReportSeizureActivity extends AppCompatActivity {
             initialiseServiceConnection();
         } else {
             Log.v(TAG, "waitForConnection - waiting...");
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    waitForConnection();
-                }
-            }, 100);
+            new Handler().postDelayed(() -> waitForConnection(), 100);
         }
     }
 
     private void initialiseServiceConnection() {
         mLm = mConnection.mSdServer.mLm;
-        mWac = mConnection.mSdServer.mLm.mWac;
+        WebApiConnection mWac = mConnection.mSdServer.mLm.mWac;
 
         if (mWac.isLoggedIn()) {
 
             // Retrieve the JSONObject containing the standard event types.
             // Note this obscure syntax is to avoid having to create another interface, so it is worth it :)
             // See https://medium.com/@pra4mesh/callback-function-in-java-20fa48b27797
-            mWac.getEventTypes(new WebApiConnection.JSONObjectCallback() {
-                @Override
-                public void accept(JSONObject eventTypesObj) {
-                    Log.v(TAG, "initialiseServiceConnection().onEventTypesReceived");
-                    if (eventTypesObj == null) {
-                        Log.e(TAG, "initialiseServiceConnection().getEventTypes Callback:  Error Retrieving event types");
-                        mUtil.showToast("Error Retrieving Event Types from Server - Please Try Again Later!");
-                    } else {
-                        Iterator<String> keys = eventTypesObj.keys();
-                        mEventTypesList = new ArrayList<String>();
-                        mEventSubTypesHashMap = new HashMap<String, ArrayList<String>>();
-                        while (keys.hasNext()) {
-                            String key = keys.next();
-                            Log.v(TAG, "initialiseServiceConnection().getEventTypes Callback: key=" + key);
-                            mEventTypesList.add(key);
-                            try {
-                                JSONArray eventSubTypes = eventTypesObj.getJSONArray(key);
-                                ArrayList<String> eventSubtypesList = new ArrayList<String>();
-                                for (int i = 0; i < eventSubTypes.length(); i++) {
-                                    eventSubtypesList.add(eventSubTypes.getString(i));
-                                }
-                                mEventSubTypesHashMap.put(key, eventSubtypesList);
-                                mRedrawEventSubTypesList = true;
-                            } catch (JSONException e) {
-                                Log.e(TAG, "initialiseServiceConnection().getEventTypes Callback: Error parsing JSONObject" + e.getMessage() + e.toString());
+            mWac.getEventTypes(eventTypesObj -> {
+                Log.v(TAG, "initialiseServiceConnection().onEventTypesReceived");
+                if (eventTypesObj == null) {
+                    Log.e(TAG, "initialiseServiceConnection().getEventTypes Callback:  Error Retrieving event types");
+                    mUtil.showToast("Error Retrieving Event Types from Server - Please Try Again Later!");
+                } else {
+                    Iterator<String> keys = eventTypesObj.keys();
+                    mEventTypesList = new ArrayList<String>();
+                    mEventSubTypesHashMap = new HashMap<String, ArrayList<String>>();
+                    while (keys.hasNext()) {
+                        String key = keys.next();
+                        Log.v(TAG, "initialiseServiceConnection().getEventTypes Callback: key=" + key);
+                        mEventTypesList.add(key);
+                        try {
+                            JSONArray eventSubTypes = eventTypesObj.getJSONArray(key);
+                            ArrayList<String> eventSubtypesList = new ArrayList<String>();
+                            for (int i = 0; i < eventSubTypes.length(); i++) {
+                                eventSubtypesList.add(eventSubTypes.getString(i));
                             }
+                            mEventSubTypesHashMap.put(key, eventSubtypesList);
+                            mRedrawEventSubTypesList = true;
+                        } catch (JSONException e) {
+                            Log.e(TAG, "initialiseServiceConnection().getEventTypes Callback: Error parsing JSONObject" + e.getMessage() + e.toString());
                         }
-                        mRedrawEventTypesList = true;
-                        updateUi();
                     }
+                    mRedrawEventTypesList = true;
+                    updateUi();
                 }
             });
         } else {
@@ -198,11 +186,7 @@ public class ReportSeizureActivity extends AppCompatActivity {
                     .setTitle(R.string.not_logged_in_dialog_title)
                     .setMessage(R.string.not_logged_in_dialog_message)
                     .setIcon(android.R.drawable.ic_dialog_alert)
-                    .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int whichButton) {
-                            finish();
-                        }
-                    })
+                    .setPositiveButton(android.R.string.ok, (dialog, whichButton) -> finish())
                     .show();
 
         }
@@ -227,6 +211,7 @@ public class ReportSeizureActivity extends AppCompatActivity {
         tv = (TextView)findViewById(R.id.time_mm_tv);
         tv.setText(String.format("%02d",mMinute));
         tv = (TextView)findViewById(R.id.msg_tv);
+        String mMsg = "Messages";
         tv.setText(mMsg);
 
         // Populate event type button group if necessary
@@ -253,7 +238,8 @@ public class ReportSeizureActivity extends AppCompatActivity {
         Log.i(TAG,"updateUi - SeizureType="+seizureTypeStr);
 
         // Populate the event sub-types radio button list.
-        Log.v(TAG,"updateUi() - meventsubtypeshashmap="+mEventSubTypesHashMap+", mEventSubtypesListChanged="+mEventSubTypesListChanged);
+        boolean mEventSubTypesListChanged = false;
+        Log.v(TAG,"updateUi() - meventsubtypeshashmap="+mEventSubTypesHashMap+", mEventSubtypesListChanged="+ mEventSubTypesListChanged);
         if (mEventSubTypesHashMap != null && mRedrawEventSubTypesList) {
             Log.v(TAG,"UpdateUi() - populating event sub types list");
             if (seizureTypeStr != null) {
@@ -309,12 +295,9 @@ public class ReportSeizureActivity extends AppCompatActivity {
                 }
             };
     View.OnClickListener onCancel =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Log.v(TAG, "onCancel");
-                    finish();
-                }
+            view -> {
+                Log.v(TAG, "onCancel");
+                finish();
             };
     View.OnClickListener onSelectDate =
             new View.OnClickListener() {
@@ -322,15 +305,11 @@ public class ReportSeizureActivity extends AppCompatActivity {
                 public void onClick(View view) {
                     Log.v(TAG, "onSelectDate()");
                     DatePickerDialog datePickerDialog = new DatePickerDialog(mContext,
-                            new DatePickerDialog.OnDateSetListener() {
-                                @Override
-                                public void onDateSet(DatePicker view, int year,
-                                                      int monthOfYear, int dayOfMonth) {
+                            (view1, year, monthOfYear, dayOfMonth) -> {
 
-                                    mYear = year;
-                                    mMonth = monthOfYear;
-                                    mDay = dayOfMonth;
-                                }
+                                mYear = year;
+                                mMonth = monthOfYear;
+                                mDay = dayOfMonth;
                             }, mYear, mMonth, mDay);
                     datePickerDialog.show();
                 }
@@ -342,15 +321,10 @@ public class ReportSeizureActivity extends AppCompatActivity {
                 public void onClick(View view) {
                     Log.v(TAG, "onSelectTime()");
                     TimePickerDialog timePickerDialog = new TimePickerDialog(mContext,
-                            new TimePickerDialog.OnTimeSetListener() {
+                            (view1, hourOfDay, minute) -> {
 
-                                @Override
-                                public void onTimeSet(TimePicker view, int hourOfDay,
-                                                      int minute) {
-
-                                    mHour = hourOfDay;
-                                    mMinute = minute;
-                                }
+                                mHour = hourOfDay;
+                                mMinute = minute;
                             }, mHour, mMinute, true);
                     timePickerDialog.show();
                 }
@@ -358,20 +332,12 @@ public class ReportSeizureActivity extends AppCompatActivity {
 
 
     RadioGroup.OnCheckedChangeListener onEventTypeChange =
-            new RadioGroup.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(RadioGroup group, int checkedId) {
-                    mRedrawEventSubTypesList = true;
-                    updateUi();
-                }
+            (group, checkedId) -> {
+                mRedrawEventSubTypesList = true;
+                updateUi();
             };
     RadioGroup.OnCheckedChangeListener onEventSubTypeChange =
-            new RadioGroup.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(RadioGroup group, int checkedId) {
-                    updateUi();
-                }
-            };
+            (group, checkedId) -> updateUi();
 
 
     /*

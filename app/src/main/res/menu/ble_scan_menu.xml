@@ -18,7 +18,8 @@
     <item android:id="@+id/menu_refresh"
         android:checkable="false"
         android:orderInCategory="1"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="ifRoom"
+        android:title="TODO" />
     <item android:id="@+id/menu_scan"
         android:title="@string/menu_scan"
         android:orderInCategory="100"

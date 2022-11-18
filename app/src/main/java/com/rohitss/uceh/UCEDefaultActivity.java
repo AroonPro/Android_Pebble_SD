@@ -55,7 +55,6 @@ import uk.org.openseizuredetector.R;
  * Created by Rohit.
  */
 public final class UCEDefaultActivity extends AppCompatActivity {
-    private File txtFile;
     private String strCurrentErrorLog;
     private String TAG = "UCEDefaultActivity";
 
@@ -66,62 +65,26 @@ public final class UCEDefaultActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         Log.i(TAG,"onCreate()");
         setContentView(R.layout.default_error_activity);
-        findViewById(R.id.button_close_app).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                UCEHandler.closeApplication(UCEDefaultActivity.this);
-            }
-        });
-        findViewById(R.id.button_copy_error_log).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                copyErrorToClipboard();
-            }
-        });
-        findViewById(R.id.button_share_error_log).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                shareErrorLog();
-            }
-        });
-        findViewById(R.id.button_save_error_log).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                saveErrorLogToFile(true);
-            }
-        });
-        findViewById(R.id.button_email_error_log).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                emailErrorLog();
-            }
-        });
-        findViewById(R.id.button_view_error_log).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                AlertDialog dialog = new AlertDialog.Builder(UCEDefaultActivity.this)
-                        .setTitle("Error Log")
-                        .setMessage(getAllErrorDetailsFromIntent(UCEDefaultActivity.this, getIntent()))
-                        .setPositiveButton("Copy Log & Close",
-                                new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        copyErrorToClipboard();
-                                        dialog.dismiss();
-                                    }
-                                })
-                        .setNeutralButton("Close",
-                                new DialogInterface.OnClickListener() {
-                                    @Override
-                                    public void onClick(DialogInterface dialog, int which) {
-                                        dialog.dismiss();
-                                    }
-                                })
-                        .show();
-                TextView textView = dialog.findViewById(android.R.id.message);
-                if (textView != null) {
-                    textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
-                }
+        findViewById(R.id.button_close_app).setOnClickListener(v -> UCEHandler.closeApplication(UCEDefaultActivity.this));
+        findViewById(R.id.button_copy_error_log).setOnClickListener(v -> copyErrorToClipboard());
+        findViewById(R.id.button_share_error_log).setOnClickListener(v -> shareErrorLog());
+        findViewById(R.id.button_save_error_log).setOnClickListener(v -> saveErrorLogToFile(true));
+        findViewById(R.id.button_email_error_log).setOnClickListener(v -> emailErrorLog());
+        findViewById(R.id.button_view_error_log).setOnClickListener(v -> {
+            AlertDialog dialog = new AlertDialog.Builder(UCEDefaultActivity.this)
+                    .setTitle("Error Log")
+                    .setMessage(getAllErrorDetailsFromIntent(UCEDefaultActivity.this, getIntent()))
+                    .setPositiveButton("Copy Log & Close",
+                            (dialog12, which) -> {
+                                copyErrorToClipboard();
+                                dialog12.dismiss();
+                            })
+                    .setNeutralButton("Close",
+                            (dialog1, which) -> dialog1.dismiss())
+                    .show();
+            TextView textView = dialog.findViewById(android.R.id.message);
+            if (textView != null) {
+                textView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18);
             }
         });
     }
@@ -176,7 +139,7 @@ public final class UCEDefaultActivity extends AppCompatActivity {
     }
 
     private void saveErrorLogToFile(boolean isShowToast) {
-        Boolean isSDPresent = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED);
+        boolean isSDPresent = Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED);
         if (isSDPresent && isExternalStorageWritable()) {
             Date currentDate = new Date();
             DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US);
@@ -189,7 +152,7 @@ public final class UCEDefaultActivity extends AppCompatActivity {
             try {
                 File file = new File(fullPath);
                 file.mkdir();
-                txtFile = new File(fullPath + errorLogFileName + ".txt");
+                File txtFile = new File(fullPath + errorLogFileName + ".txt");
                 txtFile.createNewFile();
                 outputStream = new FileOutputStream(txtFile);
                 outputStream.write(errorLog.getBytes());

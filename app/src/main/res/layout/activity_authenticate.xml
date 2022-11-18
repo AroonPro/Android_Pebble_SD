@@ -45,7 +45,9 @@
                 android:layout_marginTop="16dp"
                 android:layout_marginRight="4dp"
                 android:layout_marginBottom="4dp"
-                android:hint="username" />
+                android:autofillHints=""
+                android:hint="@string/logged_in_as_user_id"
+                android:inputType="text" />
 
             <EditText
                 android:id="@+id/password"
@@ -55,8 +57,9 @@
                 android:layout_marginTop="4dp"
                 android:layout_marginRight="4dp"
                 android:layout_marginBottom="16dp"
+                android:autofillHints=""
                 android:fontFamily="sans-serif"
-                android:hint="password"
+                android:hint="@string/prompt_password"
                 android:inputType="textPassword" />
 
 
@@ -73,14 +76,16 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/back" />
+                android:text="@string/back"
+                style="?android:attr/buttonBarButtonStyle" />
 
             <Button
                 android:id="@+id/loginBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/authenticate" />
+                android:text="@string/authenticate"
+                style="?android:attr/buttonBarButtonStyle" />
         </LinearLayout>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
             android:layout_width="fill_parent"
@@ -93,14 +98,16 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/register" />
+                android:text="@string/register"
+                style="?android:attr/buttonBarButtonStyle" />
 
             <Button
                 android:id="@+id/ResetPasswordBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/reset_password" />
+                android:text="@string/reset_password"
+                style="?android:attr/buttonBarButtonStyle" />
         </LinearLayout>
 
 
@@ -170,14 +177,16 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/back" />
+                android:text="@string/back"
+                style="?android:attr/buttonBarButtonStyle" />
 
             <Button
                 android:id="@+id/logoutBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/logout" />
+                android:text="@string/logout"
+                style="?android:attr/buttonBarButtonStyle" />
         </LinearLayout>
     </LinearLayout>
 
@@ -197,14 +206,16 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/about_data_sharing" />
+            android:text="@string/about_data_sharing"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/privacyPolicyBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/privacy_policy" />
+            android:text="@string/privacy_policy"
+            style="?android:attr/buttonBarButtonStyle" />
     </LinearLayout>
 
 
