@@ -1,7 +1,7 @@
 package uk.org.openseizuredetector;
 
 
-/**
+/*
  */
 
 import android.content.Context;
@@ -87,7 +87,7 @@ public class LocationFinder implements LocationListener
                 mLocationManager.removeUpdates(mLocationListener);
                 mSdLocationReceiver.onSdLocationReceived(mLastLocation);
             }
-        }, mTimeoutPeriod * 1000);
+        }, mTimeoutPeriod * 1000L);
 
     }
 

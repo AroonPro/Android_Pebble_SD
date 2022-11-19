@@ -39,7 +39,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Field;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -177,12 +176,7 @@ public class LogManagerControlActivity extends AppCompatActivity {
             initialiseServiceConnection();
         } else {
             Log.v(TAG, "waitForConnection - waiting...");
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    waitForConnection();
-                }
-            }, 100);
+            new Handler().postDelayed(() -> waitForConnection(), 100);
         }
     }
 
@@ -229,7 +223,7 @@ public class LogManagerControlActivity extends AppCompatActivity {
                 //Log.v(TAG, "remoteEventsObj = " + remoteEventsObj.toString());
                 try {
                     JSONArray eventsArray = remoteEventsObj.getJSONArray("events");
-                    mRemoteEventsList = new ArrayList<HashMap<String, String>>();
+                    mRemoteEventsList = new ArrayList<>();
                     // A bit of a hack to display in reverse chronological order
                     for (int i = eventsArray.length() - 1; i >= 0; i--) {
                         JSONObject eventObj = eventsArray.getJSONObject(i);
@@ -259,7 +253,7 @@ public class LogManagerControlActivity extends AppCompatActivity {
                         if (!eventObj.isNull("desc")) {
                             desc = eventObj.getString("desc");
                         }
-                        HashMap<String, String> eventHashMap = new HashMap<String, String>();
+                        HashMap<String, String> eventHashMap = new HashMap<>();
                         eventHashMap.put("id", id);
                         eventHashMap.put("osdAlarmState", String.valueOf(osdAlarmState));
                         eventHashMap.put("osdAlarmStateStr", mUtil.alarmStatusToString(osdAlarmState));
@@ -451,11 +445,7 @@ public class LogManagerControlActivity extends AppCompatActivity {
                         .setTitle(R.string.mark_unverified_events_unknown_dialog_title)
                         .setMessage(R.string.mark_unverified_events_unknown_dialog_message)
                         .setIcon(android.R.drawable.ic_dialog_alert)
-                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int whichButton) {
-                                mLm.mWac.markUnverifiedEventsAsUnknown();
-                            }
-                        })
+                        .setPositiveButton(android.R.string.yes, (dialog, whichButton) -> mLm.mWac.markUnverifiedEventsAsUnknown())
                         .setNegativeButton(android.R.string.no, null)
                         .show();
             default:
@@ -484,19 +474,11 @@ public class LogManagerControlActivity extends AppCompatActivity {
                     builder.setTitle("Prune Database");
                     builder.setMessage(String.format("This will remove all data from the database that is more than %d days old."
                             + "\nThis can NOT be undone.\nAre you sure?", mLm.mDataRetentionPeriod));
-                    builder.setPositiveButton("YES", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            mLm.pruneLocalDb();
-                            dialog.dismiss();
-                        }
+                    builder.setPositiveButton("YES", (dialog, which) -> {
+                        mLm.pruneLocalDb();
+                        dialog.dismiss();
                     });
-                    builder.setNegativeButton("NO", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    });
+                    builder.setNegativeButton("NO", (dialog, which) -> dialog.dismiss());
                     AlertDialog alert = builder.create();
                     alert.show();
                 }
@@ -525,21 +507,15 @@ public class LogManagerControlActivity extends AppCompatActivity {
             };
 
     View.OnClickListener onRefreshBtn =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Log.v(TAG, "onRefreshBtn");
-                    initialiseServiceConnection();
-                }
+            view -> {
+                Log.v(TAG, "onRefreshBtn");
+                initialiseServiceConnection();
             };
 
     CompoundButton.OnCheckedChangeListener onIncludeWarningsCb =
-            new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                    Log.v(TAG, "onIncludeWarningsCb");
-                    initialiseServiceConnection();
-                }
+            (compoundButton, b) -> {
+                Log.v(TAG, "onIncludeWarningsCb");
+                initialiseServiceConnection();
             };
 
     AdapterView.OnItemClickListener onEventListClick =
@@ -560,16 +536,14 @@ public class LogManagerControlActivity extends AppCompatActivity {
             };
 
     AdapterView.OnItemClickListener onRemoteEventListClick =
-            new AdapterView.OnItemClickListener() {
-                public void onItemClick(AdapterView<?> adapter, View v, int position, long id) {
-                    Log.v(TAG, "onRemoteEventList Click() - Position=" + position + ", id=" + id);// Confirmation dialog based on: https://stackoverflow.com/a/12213536/2104584
-                    HashMap<String, String> eventObj = (HashMap<String, String>) adapter.getItemAtPosition(position);
-                    String eventId = eventObj.get("id");
-                    Log.d(TAG, "onItemClickListener(): eventId=" + eventId + ", eventObj=" + eventObj);
-                    Intent i = new Intent(getApplicationContext(), EditEventActivity.class);
-                    i.putExtra("eventId", eventId);
-                    startActivity(i);
-                }
+            (adapter, v, position, id) -> {
+                Log.v(TAG, "onRemoteEventList Click() - Position=" + position + ", id=" + id);// Confirmation dialog based on: https://stackoverflow.com/a/12213536/2104584
+                HashMap<String, String> eventObj = (HashMap<String, String>) adapter.getItemAtPosition(position);
+                String eventId = eventObj.get("id");
+                Log.d(TAG, "onItemClickListener(): eventId=" + eventId + ", eventObj=" + eventObj);
+                Intent i = new Intent(getApplicationContext(), EditEventActivity.class);
+                i.putExtra("eventId", eventId);
+                startActivity(i);
             };
 
 

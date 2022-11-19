@@ -129,14 +129,16 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/AcceptAlarmBtnTxt" />
+            android:text="@string/AcceptAlarmBtnTxt"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/cancelAudibleButton"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="@string/CancelAudibleButtonTxt" />
+            android:text="@string/CancelAudibleButtonTxt"
+            style="?android:attr/buttonBarButtonStyle" />
 
         <Button
             android:id="@+id/manualAlarmButton"
@@ -144,7 +146,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:backgroundTint="#ff0000"
-            android:text="@string/ManualAlarmBtnTxt" />
+            android:text="@string/ManualAlarmBtnTxt"
+            style="?android:attr/buttonBarButtonStyle" />
     </LinearLayout>
 
     <com.github.mikephil.charting.charts.BarChart

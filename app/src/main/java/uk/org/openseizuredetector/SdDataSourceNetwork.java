@@ -30,8 +30,6 @@ public class SdDataSourceNetwork extends SdDataSource {
     private int mReadTimeoutPeriod = 5000;
     private String mServerIP = "unknown";
 
-    private int ALARM_STATE_NETFAULT = 7;
-
 
     public SdDataSourceNetwork(Context context, Handler handler, SdDataReceiver sdDataReceiver) {
         super(context, handler, sdDataReceiver);
@@ -116,11 +114,11 @@ public class SdDataSourceNetwork extends SdDataSource {
     }
 
     private class DownloadSdDataTask extends AsyncTask<String, Void, SdData> {
-        private SdData sdData;
         @Override
         protected SdData doInBackground(String... urls) {
             // params comes from the execute() call: params[0] is the url.
-            sdData = new SdData();
+            SdData sdData = new SdData();
+            int ALARM_STATE_NETFAULT = 7;
             try {
                 String result = downloadUrl(urls[0]);
                 if (result.startsWith("Unable to retrieve web page")) {
@@ -130,7 +128,7 @@ public class SdDataSourceNetwork extends SdDataSource {
                     sdData.watchAppRunning = false;
                     sdData.alarmState = ALARM_STATE_NETFAULT;
                     sdData.alarmPhrase = "Warning - No Connection to Server";
-                    Log.v(TAG,"doInBackground(): No Connection to Server - sdData = "+sdData.toString());
+                    Log.v(TAG,"doInBackground(): No Connection to Server - sdData = "+ sdData.toString());
                 } else {
                     Log.v(TAG,"doInBackground - result = "+result);
                     sdData.fromJSON(result);
@@ -140,7 +138,7 @@ public class SdDataSourceNetwork extends SdDataSource {
                         sdData.haveSettings = true;
                     }
                     mStatusTime.setToNow();
-                    Log.v(TAG,"doInBackground(): sdData = "+sdData.toString());
+                    Log.v(TAG,"doInBackground(): sdData = "+ sdData.toString());
                 }
                 return (sdData);
 

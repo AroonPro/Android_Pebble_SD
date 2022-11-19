@@ -24,14 +24,11 @@
 package uk.org.openseizuredetector;
 
 import android.content.Context;
-import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.Binder;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -50,7 +47,6 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
 
     private final static int NSAMP = 250;
     private SensorManager mSensorManager;
-    private Sensor mSensor;
     private int mMode = 0;   // 0=check data rate, 1=running
     private SensorEvent mStartEvent = null;
     private long mStartTs = 0;
@@ -78,8 +74,8 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
         Log.i(TAG, "start()");
         mUtil.writeToSysLogFile("SdDataSourcePhone.start()");
         mSensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
-        mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        mSensorManager.registerListener(this, mSensor , SensorManager.SENSOR_DELAY_GAME);
+        Sensor mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_GAME);
         super.start();
     }
 

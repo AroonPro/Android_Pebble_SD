@@ -23,13 +23,22 @@
 */
 package uk.org.openseizuredetector;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.ContextWrapper;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Handler;
+import android.os.Looper;
 import android.preference.PreferenceManager;
 import android.text.format.Time;
+import android.util.JsonReader;
 import android.util.Log;
 import android.widget.Toast;
+
+
+import androidx.wear.remote.interactions.RemoteActivityHelper;
 
 import com.getpebble.android.kit.PebbleKit;
 import com.getpebble.android.kit.util.PebbleDictionary;
@@ -37,20 +46,42 @@ import com.getpebble.android.kit.util.PebbleDictionary;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.StringJoiner;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.UUID;
-import com.google.android.gms.wearable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  .MessageEvent;
-import com.google.android.gms.wearable.WearableListenerService;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
 
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.Tasks;
+import com.google.android.gms.wearable.*;
+
+import org.json.JSONException;
+
+import kotlin.coroutines.CoroutineContext;
 
 
 /**
  * Abstract class for a seizure detector data source.  Subclasses include a pebble smart watch data source and a
  * network data source.
  */
-public class SdDataSourceAw extends SdDataSource {
-    private Handler mHandler = new Handler();
+public class SdDataSourceAw extends SdDataSource implements DataClient.OnDataChangedListener,
+        MessageClient.OnMessageReceivedListener,
+        CapabilityClient.OnCapabilityChangedListener {
+
+
+    private final String TAG = "SdDataSourceAw";
+    private Context mContext ;
+    private Looper mLooper ;
+    private Handler mHandler ;
     private Timer mSettingsTimer;
     private Timer mStatusTimer;
     private Time mStatusTime;
@@ -59,11 +90,38 @@ public class SdDataSourceAw extends SdDataSource {
     // data after mDataUpdatePeriod
     //private Looper mServiceLooper;
     private int mFaultTimerPeriod = 30;  // Fault Timer Period in sec
-    private int mSettingsPeriod = 60;  // period between requesting settings in seconds.
     private PebbleKit.PebbleDataReceiver msgDataHandler = null;
+    private final String wearableAppCheckPayload = "AppOpenWearable";
+    private final String wearableAppCheckPayloadReturnACK = "AppOpenWearableACK";
+    private Boolean mWearableDeviceConnected = false;
+
+    private String currentAckFromWearForAppOpenCheck = null;
+    private final String APP_OPEN_WEARABLE_PAYLOAD_PATH = "/APP_OPEN_WEARABLE_PAYLOAD";
+
+    private final String MESSAGE_ITEM_RECEIVED_PATH = "/message-item-received";
+
+    private final String MESSAGE_ITEM_OSD_TEST = "/testMsg";
+    private final String MESSAGE_ITEM_OSD_DATA = "/data";
+    private final String MESSAGE_ITEM_OSD_TEST_RECEIVED = "/testMsg-received";
+    private final String MESSAGE_ITEM_OSD_DATA_RECEIVED = "/data-received";
+
+    private final String TAG_GET_NODES = "getnodes1";
+    private final String TAG_MESSAGE_RECEIVED = "receive1";
+
+    private MessageEvent mMessageEvent = null;
+    private String mWearableNodeUri  = null;
+    private CapabilityInfo mCapabilitityInfo ;
+    private CapabilityClient mCapabilityClientOsdAW;
+    private CapabilityClient mCapabilityClientWear;
+
+    private AWSdCommsListener mMessageClient ;
+    private NodeClient mNodeClient;
+    private RemoteActivityHelper remoteActivityHelper;
+    private Set<Node> wearNodesWithApp = null;
+    private List<Node> allConnectedNodes = null;
+    private Context activityContext;
 
 
-    private String TAG = "SdDataSourceAw";
 
     private UUID SD_UUID = UUID.fromString("03930f26-377a-4a3d-aa3e-f3b19e421c9d");
     private int NSAMP = 512;   // Number of samples in fft input dataset.
@@ -114,11 +172,8 @@ public class SdDataSourceAw extends SdDataSource {
 
     // Values for SD_MODE
     private int SD_MODE_FFT = 0;     // The original OpenSeizureDetector mode (FFT based)
-    private int SD_MODE_RAW = 1;     // Send raw, unprocessed data to the phone.
     private int SD_MODE_FILTER = 2;  // Use digital filter rather than FFT.
 
-    private short mDebug;
-    private short mDisplaySpectrum;
     private short mDataUpdatePeriod;
     private short mMutePeriod;
     private short mManAlarmPeriod;
@@ -135,68 +190,424 @@ public class SdDataSourceAw extends SdDataSource {
     private short mFallThreshMin;
     private short mFallThreshMax;
     private short mFallWindow;
-
+    private static Context lckContext;
     // raw data storage for SD_MODE_RAW
     private int MAX_RAW_DATA = 500;
     private double[] rawData = new double[MAX_RAW_DATA];
     private int nRawData = 0;
 
+
     public SdDataSourceAw(Context context, Handler handler,
                           SdDataReceiver sdDataReceiver) {
         super(context, handler, sdDataReceiver);
+        mContext = context;
+        lckContext = context;
+        Log.e(TAG,"starting to init cntexts");
         mName = "Android Wear";
         // Set default settings from XML files (mContext is set by super().
         PreferenceManager.setDefaultValues(mContext,
                 R.xml.seizure_detector_prefs, true);
     }
 
+    //Function to return Activity from given Context
+    public Activity getActivity(Context context)
+    {
+        if (context == null)
+        {
+            return null;
+        }
+        else if (context instanceof ContextWrapper)
+        {
+            if (context instanceof Activity)
+            {
+                return (Activity) context;
+            }
+            else
+            {
+                return getActivity(((ContextWrapper) context).getBaseContext());
+            }
+        }
 
+        return null;
+    }
+
+    public void findWearDevicesWithApp()
+    {
+        mNodeClient = Wearable.getNodeClient(mContext);
+        try
+        {
+
+            Task<List<Node>> connectedNodes = mNodeClient.getConnectedNodes();
+
+            connectedNodes.addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            allConnectedNodes = task.getResult();
+                            Log.v(TAG,"Found " + allConnectedNodes.size() + "connected nodes") ;
+                            for (Node node: allConnectedNodes
+                                 ) {
+                                Log.d (TAG,"id "+node.getId() + " " +node.getDisplayName());
+                                //initialiseDevicePairing(tempAct);
+
+                            }
+
+
+                        } else {
+                            Log.e(TAG,"Task get connected Nodes failed");
+                        }
+                        if (task.isCanceled()) {
+                            Log.e(TAG,"Task get connected Nodes failed due cancellation");
+                        }
+                    }
+            );
+        }catch (CancellationException e) {
+            Log.e(TAG,"Task get connected Nodes failed due cancellation in try");
+        }catch (Throwable throwable){
+            Log.d(TAG,"Node request failed to return any results.");
+        }
+    }
+
+    private void initialiseDevicePairing(Activity tempAct) {
+        boolean[] getNodesResBool = new boolean[0];
+        Log.d(TAG,"Current context in initDevsP: " +tempAct.toString());
+        try{
+            Context lmContext = tempAct.getApplicationContext();
+
+            getNodesResBool = getNodes(lmContext);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        try {
+            if (getNodesResBool[0]) {
+                // If message Acknowledgment Received
+                if (getNodesResBool[1]) {
+                    mWearableDeviceConnected = true;
+                    mSdData.watchConnected = true;
+                } else {
+                    mWearableDeviceConnected = false;
+                    mSdData.watchConnected = false;
+
+                }
+            } else {
+                //no Wearable devices found
+                Log.e(TAG, "No Wearables found.");
+            }
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean[] getNodes(Context context){
+        //HashSet<String> nodeResults = new HashSet<String>();
+        boolean[] resBool = new boolean[2];
+        //resBool[0]: nodePresent
+        //resBook[1]: wearableReturnAckReceived
+        Task<List<Node>> nodeListTask = mNodeClient.getConnectedNodes();
+        try {
+            Tasks.await(nodeListTask);
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+        }
+        try{
+            if (nodeListTask.isSuccessful())
+            {
+                for (Node node: nodeListTask.getResult()) {
+                    Log.v(TAG, "Task fetched nodes");
+                    try {
+                        boolean result;
+                        String nodeId = node.getId();
+                        byte[] payload = wearableAppCheckPayload.getBytes(StandardCharsets.UTF_8);
+                        Task<Integer> sendMessageTask = Wearable.getMessageClient(mContext)
+                                .sendMessage(nodeId, APP_OPEN_WEARABLE_PAYLOAD_PATH, payload);
+                        try {
+                            Tasks.await(sendMessageTask);
+                        } catch (ExecutionException | InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        try {
+                            result = sendMessageTask.isSuccessful();
+                            Log.d(TAG, "Send message result: " + sendMessageTask.getResult().toString());
+                            resBool[0] = true;
+
+                            if (!Objects.equals(currentAckFromWearForAppOpenCheck, wearableAppCheckPayloadReturnACK)) {
+                                try {
+                                    Thread.sleep(100);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                                Log.d(TAG_GET_NODES, "ACK thread sleep 1");
+                            }
+                            if (Objects.equals(currentAckFromWearForAppOpenCheck, wearableAppCheckPayloadReturnACK)) {
+                                mWearableNodeUri = nodeId;
+                                resBool[1] = true;
+                                return resBool;
+                            }
+                            //Wait 3
+                            if (!Objects.equals(currentAckFromWearForAppOpenCheck, wearableAppCheckPayloadReturnACK)) {
+                                try {
+                                    Thread.sleep(200);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                                Log.d(TAG_GET_NODES, "ACK thread sleep 3");
+                            } else if (Objects.equals(currentAckFromWearForAppOpenCheck, wearableAppCheckPayloadReturnACK)) {
+                                resBool[1] = true;
+                                mWearableNodeUri = nodeId;
+                                return resBool;
+                            }
+                            //Wait 4
+                            else if (!Objects.equals(currentAckFromWearForAppOpenCheck, wearableAppCheckPayloadReturnACK)) {
+                                try {
+                                    Thread.sleep(250);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                                Log.d(TAG_GET_NODES, "ACK thread sleep 4");
+                            } else if (Objects.equals(currentAckFromWearForAppOpenCheck, wearableAppCheckPayloadReturnACK)) {
+                                resBool[1] = true;
+                                mWearableNodeUri = nodeId;
+                                return resBool;
+                            } else if (!Objects.equals(currentAckFromWearForAppOpenCheck, wearableAppCheckPayloadReturnACK)) {
+                                //wait 5
+
+                                try {
+                                    Thread.sleep(350);
+                                } catch (InterruptedException e) {
+                                    e.printStackTrace();
+                                }
+                                Log.d(TAG_GET_NODES, "ACK thread sleep 5");
+                            } else if (Objects.equals(currentAckFromWearForAppOpenCheck, wearableAppCheckPayloadReturnACK)) {
+                                resBool[1] = true;
+                                mWearableNodeUri = nodeId;
+                                return resBool;
+                            }
+                            //resBool[1] = false; redundant stays false
+                            Log.d(
+                                    TAG_GET_NODES,
+                                    "ACK thread timeout, no message received from the wearable "
+                            );
+
+
+                        } catch (Exception e) {
+                            Log.e(TAG, "Exception in getting results: " + e.getLocalizedMessage());
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Exception in getting results: " + e.getLocalizedMessage());
+                    }
+                }
+
+            }
+
+        }catch (Exception e)
+        {
+            Log.e(TAG, "Exception in getting results: " + e.getLocalizedMessage());
+        }
+        Log.e(TAG,"Failed to get reply ");
+        return resBool;
+    }
+
+    public void findAllWearDevices()
+    {
+        try
+        {
+            Task<CapabilityInfo> capabilityInfoOsdAW = mCapabilityClientOsdAW
+                    .getCapability(Uri.parse("wear://").toString(),CapabilityClient.FILTER_REACHABLE);
+
+            capabilityInfoOsdAW.addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            wearNodesWithApp = task.getResult().getNodes();
+                            Log.v(TAG,"Found " + wearNodesWithApp.size() + "nodes") ;
+
+
+                        } else {
+                            Log.e(TAG,"Task failed to complete to get compatible nodes");
+
+                        }
+                        if (task.isCanceled()) {
+                            Log.e(TAG,"Task get connected Nodes failed due cancellation");
+                        }
+                    }
+            );
+            Task<CapabilityInfo> capabilityInfo = mCapabilityClientOsdAW
+                    .getCapability(String.valueOf(CAPABILITY_WEAR_APP), CapabilityClient.FILTER_ALL);
+
+            capabilityInfo.addOnCompleteListener(task -> {
+                        if (task.isSuccessful()) {
+                            wearNodesWithApp = task.getResult().getNodes();
+                            Log.v(TAG,"Found " + wearNodesWithApp.size() + "nodes") ;
+
+                        } else {
+                            Log.e(TAG,"Task failed to complete to get compatible nodes");
+
+                        }
+                        if (task.isCanceled()) {
+                            Log.e(TAG,"Task get connected Nodes failed due cancellation");
+                        }
+                    }
+            );
+        }catch (CancellationException e) {
+            Log.e(TAG,"Task get connected Nodes failed due cancellation");
+        }catch (Throwable throwable){
+            Log.d(TAG,"Node request failed to return any results. " + throwable);
+        }
+    }
+    private Activity tempAct;
     /**
      * Start the datasource updating - initialises from sharedpreferences first to
      * make sure any changes to preferences are taken into account.
      */
-    public void start() {
+    public void start()
+    {
+
         Log.v(TAG, "start()");
-        mUtil.writeToSysLogFile("SdDataSourceAw.start()");
-        updatePrefs();
-        startPebbleServer();
-        // Start timer to check status of pebble regularly.
-        mStatusTime = new Time(Time.getCurrentTimezone());
-        // use a timer to check the status of the pebble app on the same frequency
-        // as we get app data.
-        if (mStatusTimer == null) {
-            Log.v(TAG, "start(): starting status timer");
-            mUtil.writeToSysLogFile("SdDataSourceAw.start() - starting status timer");
-            mStatusTimer = new Timer();
-            mStatusTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    getPebbleStatus();
-                }
-            }, 0, mDataUpdatePeriod * 1000);
-        } else {
-            Log.v(TAG, "start(): status timer already running.");
-            mUtil.writeToSysLogFile("SdDataSourceAw.start() - status timer already running??");
+
+        try
+        {
+            //if (Objects.equals(mContext,null)){
+            //    mContext = (ContextWrapper)this;
+            //}
+            this.activityContext =  this.mContext;
+
+            Intent mTempIntent = new Intent()
+                    .setClass(mContext,this.getClass())
+                    .setAction(this.getClass().getName())
+                    .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+
+            tempAct = (Activity)((MainActivity)mContext);
+            updatePrefs();
+
+            remoteActivityHelper = new RemoteActivityHelper(
+                    mContext,
+                    Executors.newSingleThreadExecutor());
         }
-        // make sure we get some data when we first start.
-        getWatchData();
-        // Start timer to retrieve pebble settings regularly.
-        getWatchSdSettings();
-        if (mSettingsTimer == null) {
-            Log.v(TAG, "start(): starting settings timer");
-            mUtil.writeToSysLogFile("SdDataSourceAw.start() - starting settings timer");
-            mSettingsTimer = new Timer();
-            mSettingsTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    //mUtil.writeToSysLogFile("SdDataSourceAw.mSettingsTimer timed out.");
-                    getWatchSdSettings();
-                }
-            }, 0, 1000 * mSettingsPeriod);  // ask for settings less frequently than we get data
-        } else {
-            Log.v(TAG, "start(): settings timer already running.");
-            mUtil.writeToSysLogFile("SdDataSourceAw.start() - settings timer already running??");
+        catch (Exception e)
+        {
+            Log.e(TAG, "Failed to get initiate remoteActivityHelper" + e);
         }
+
+        try
+        {
+            if (mContext != null)
+            {
+                mNodeClient = Wearable.getNodeClient(mContext);
+                mCapabilityClientWear = Wearable.getCapabilityClient(mContext);
+                mCapabilityClientOsdAW = Wearable.getCapabilityClient(mContext);
+                Wearable.getMessageClient(mContext).addListener(this);
+                findAllWearDevices();
+                if (!mWearableDeviceConnected)
+                {
+                    if ( !Objects.equals(tempAct,null)) {
+                        initialiseDevicePairing(tempAct);
+                        findWearDevicesWithApp();
+                    }
+                    else
+                    {
+                        Log.e(TAG, "mContext && tmpAct null");
+                    }
+                }
+                mCapabilityClientWear.addListener(this, CAPABILITY_WEAR_APP, CapabilityClient.FILTER_REACHABLE);
+
+
+                if (!wearNodesWithApp.isEmpty())
+                {
+                    mWearableDeviceConnected = true;
+                    mSdData.watchConnected = true;
+                } else if (!allConnectedNodes.isEmpty()) {
+                    //TODO installer
+                } else {
+                    Log.e(TAG, "No nodes detected. Defaulting to Phone");
+                    //TODO Default to Phone
+                }
+                Log.d(TAG, "Passed finding nodes");
+            }
+
+        }
+        catch (Exception e)
+        {
+            Log.e(TAG, "Failed executing code Wearable,connect" + e);
+        }
+
+        try
+        {
+            // Start timer to check status of pebble regularly.
+            mStatusTime = new Time(Time.getCurrentTimezone());
+            // use a timer to check the status of the pebble app on the same frequency
+            // as we get app data.
+            if (mStatusTimer == null) {
+                Log.v(TAG, "start(): starting status timer");
+                mUtil.writeToSysLogFile("SdDataSourceAw.start() - starting status timer");
+                mStatusTimer = new Timer();
+                mStatusTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        getPebbleStatus();
+                    }
+                }, 0, mDataUpdatePeriod * 1000);
+            } else {
+                Log.v(TAG, "start(): status timer already running.");
+                mUtil.writeToSysLogFile("SdDataSourceAw.start() - status timer already running??");
+            }
+            if (mWearableDeviceConnected)
+            {
+                final String nodeId = mMessageEvent.getSourceNodeId();
+                //set the data f the message to the butes of the Uri.
+                final byte[] payload = "connect_init".getBytes(StandardCharsets.UTF_8);
+                final Task<Integer> sendMessageTask = Wearable.getMessageClient(mContext)
+                        .sendMessage(nodeId, MESSAGE_ITEM_RECEIVED_PATH, payload);
+                try {
+                    // Block on a task and get the result synchronously (because this is on a background thread).
+                    Tasks.await(sendMessageTask);
+                } catch (ExecutionException | InterruptedException ex) {
+                    ex.printStackTrace();
+                }
+                if (sendMessageTask.isSuccessful()) {
+                    mWearableDeviceConnected = true;
+
+                } else {
+                    Log.e(TAG_MESSAGE_RECEIVED, "Failed to send message " + Arrays.toString(payload));
+                }
+
+
+                Log.d(TAG_MESSAGE_RECEIVED, "");
+
+
+            }
+
+            // make sure we get some data when we first start.
+            getWatchData();
+            // Start timer to retrieve pebble settings regularly.
+            getWatchSdSettings();
+            if (mSettingsTimer == null) {
+                Log.v(TAG, "start(): starting settings timer");
+                mUtil.writeToSysLogFile("SdDataSourceAw.start() - starting settings timer");
+                mSettingsTimer = new Timer();
+                // period between requesting settings in seconds.
+                int mSettingsPeriod = 60;
+                mSettingsTimer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        //mUtil.writeToSysLogFile("SdDataSourceAw.mSettingsTimer timed out.");
+                        getWatchSdSettings();
+                    }
+                }, 0, 1000L * mSettingsPeriod);  // ask for settings less frequently than we get data
+            } else {
+                Log.v(TAG, "start(): settings timer already running.");
+                mUtil.writeToSysLogFile("SdDataSourceAw.start() - settings timer already running??");
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Start failed completly" + e);
+        }
+        try
+        {
+            super.start();
+            mUtil.writeToSysLogFile("SdDataSourceAw.start()");
+        }
+        catch (Exception e)
+        {
+            Log.e(TAG, "Failed to load super in class");
+        }
+
     }
 
     /**
@@ -226,6 +637,13 @@ public class SdDataSourceAw extends SdDataSource {
             Log.v(TAG, "stop(): stopping pebble server");
             mUtil.writeToSysLogFile("SdDataSourceAw.stop() - stopping pebble server");
             stopPebbleServer();
+
+
+            Wearable.getDataClient(mContext).removeListener(this);
+            Wearable.getMessageClient(mContext).removeListener(this);
+            Wearable.getCapabilityClient(mContext).removeListener(this);
+            mCapabilityClientWear.removeListener(this, String.valueOf(Uri.parse("wear://")));
+            mCapabilityClientOsdAW.removeListener(this, String.valueOf(CAPABILITY_WEAR_APP));
 
         } catch (Exception e) {
             Log.v(TAG, "Error in stop() - " + e.toString());
@@ -270,11 +688,11 @@ public class SdDataSourceAw extends SdDataSource {
             String prefStr;
 
             prefStr = SP.getString("PebbleDebug", "SET_FROM_XML");
-            mDebug = (short) Integer.parseInt(prefStr);
+            short mDebug = (short) Integer.parseInt(prefStr);
             Log.v(TAG, "updatePrefs() Debug = " + mDebug);
 
             prefStr = SP.getString("PebbleDisplaySpectrum", "SET_FROM_XML");
-            mDisplaySpectrum = (short) Integer.parseInt(prefStr);
+            short mDisplaySpectrum = (short) Integer.parseInt(prefStr);
             Log.v(TAG, "updatePrefs() DisplaySpectrum = " + mDisplaySpectrum);
 
             prefStr = SP.getString("PebbleUpdatePeriod", "SET_FROM_XML");
@@ -348,6 +766,88 @@ public class SdDataSourceAw extends SdDataSource {
         }
     }
 
+    @Override
+    public void onDataChanged( DataEventBuffer dataEventBuffer) {
+
+    }
+
+    @Override
+    public void onMessageReceived( MessageEvent messageEvent) {
+        Log.d(TAG_MESSAGE_RECEIVED, "onMessageReceived event received");
+        final String s = new String( messageEvent.getData(),StandardCharsets.UTF_8);
+        final String messageEventPath = messageEvent.getPath();
+        Log.d(
+                TAG_MESSAGE_RECEIVED,
+                "onMessageReceived() A message from watch was received:"
+                        + messageEvent.getRequestId()
+                        + " "
+                        + messageEventPath
+                        + " "
+                        + s
+        );
+        //Send back a message back to the source node
+        //This acknowledges that the receiver activity is open
+        if (Objects.equals(messageEventPath,APP_OPEN_WEARABLE_PAYLOAD_PATH)) {
+            // Get the node id of the node that created the data item from the host portion of
+            // the uri.
+            final String nodeId = messageEvent.getSourceNodeId();
+            // Set the data of the message to be the bytes of the Uri.
+            final String returnPayloadAck = wearableAppCheckPayloadReturnACK;
+            final byte[] payload = (wearableAppCheckPayloadReturnACK.getBytes(StandardCharsets.UTF_8));
+
+            Log.d(
+                    TAG_MESSAGE_RECEIVED,
+                    "Acknowledgement message successfully with payload : " + returnPayloadAck
+            );
+            mMessageEvent = messageEvent;
+            mWearableNodeUri = messageEvent.getSourceNodeId();
+            try
+            {
+
+                Log.d(TAG_MESSAGE_RECEIVED, "");
+            } catch (Exception e) {
+
+            }
+        }
+        else if (!messageEventPath.isEmpty() && messageEventPath.equals(MESSAGE_ITEM_OSD_DATA)){
+
+            try {
+                    mSdData.fromJSON(s);
+                    mSdDataReceiver.onSdDataReceived(mSdData);
+                }
+             catch (Exception e) {
+                Log.e(TAG,"Exception in updating msddata");
+            }
+        }
+
+    }
+    private Boolean CheckIsWearClient(CapabilityInfo capabilityInfo){
+        Log.v(TAG,"In checking if there is a wear client");
+        if (capabilityInfo.equals(Uri.parse("wear://"))) {
+            CapabilityInfo mMobileNodesWithCompatibility = capabilityInfo;
+            if (mMobileNodesWithCompatibility.getNodes().isEmpty()) {
+                Wearable.getMessageClient(mContext).removeListener(this);
+                mWearableDeviceConnected = false;
+            } else {
+                Wearable.getMessageClient(mContext).addListener(this);
+                mWearableDeviceConnected = true;
+            }
+        }
+        return mWearableDeviceConnected;
+    }
+    @Override
+    public void onCapabilityChanged( CapabilityInfo capabilityInfo) {
+        try {
+            CheckIsWearClient(capabilityInfo);
+        } catch (Exception e)
+        {
+            Log.e(TAG,"Failed with " + e + " in check is Wear Client") ;
+        }
+        mCapabilitityInfo = capabilityInfo;
+        findAllWearDevices();
+    }
+
+
     class AWSdCommsListener extends WearableListenerService {
         String TAG = "AWSdCommsListener";
         public String SERVICE_CALLED_WEAR = "WearListClicked";
@@ -384,102 +884,7 @@ public class SdDataSourceAw extends SdDataSource {
             public void receiveData(final Context context,
                                     final int transactionId,
                                     final PebbleDictionary data) {
-                Log.v(TAG, "Received message from Pebble - data type="
-                        + data.getUnsignedIntegerAsLong(KEY_DATA_TYPE));
-                // If we have a message, the app must be running
-                Log.v(TAG, "Setting mWatchAppRunningCheck to true");
-                mWatchAppRunningCheck = true;
-                PebbleKit.sendAckToPebble(context, transactionId);
-                //Log.v(TAG,"Message is: "+data.toJsonString());
-                if (data.getUnsignedIntegerAsLong(KEY_DATA_TYPE)
-                        == DATA_TYPE_RESULTS) {
-                    Log.v(TAG, "DATA_TYPE = Results");
-                    mSdData.dataTime.setToNow();
-                    Log.v(TAG, "mSdData.dataTime=" + mSdData.dataTime);
 
-                    mSdData.alarmState = data.getUnsignedIntegerAsLong(
-                            KEY_ALARMSTATE);
-                    mSdData.maxVal = data.getUnsignedIntegerAsLong(KEY_MAXVAL);
-                    mSdData.maxFreq = data.getUnsignedIntegerAsLong(KEY_MAXFREQ);
-                    mSdData.specPower = data.getUnsignedIntegerAsLong(KEY_SPECPOWER);
-                    mSdData.roiPower = data.getUnsignedIntegerAsLong(KEY_ROIPOWER);
-                    mSdData.alarmPhrase = "Unknown";
-                    mSdData.haveData = true;
-                    mSdDataReceiver.onSdDataReceived(mSdData);
-
-
-                    // Read the data that has been sent, and convert it into
-                    // an integer array.
-                    byte[] byteArr = data.getBytes(KEY_SPEC_DATA);
-                    if ((byteArr != null) && (byteArr.length != 0)) {
-                        IntBuffer intBuf = ByteBuffer.wrap(byteArr)
-                                .order(ByteOrder.LITTLE_ENDIAN)
-                                .asIntBuffer();
-                        int[] intArray = new int[intBuf.remaining()];
-                        intBuf.get(intArray);
-                        for (int i = 0; i < intArray.length; i++) {
-                            mSdData.simpleSpec[i] = intArray[i];
-                        }
-                    } else {
-                        Log.v(TAG, "***** zero length spectrum received - error!!!!");
-                    }
-                }
-
-                if (data.getUnsignedIntegerAsLong(KEY_DATA_TYPE)
-                        == DATA_TYPE_SETTINGS) {
-                    Log.v(TAG, "DATA_TYPE = Settings");
-                    try {
-                        mSdData.analysisPeriod = data.getUnsignedIntegerAsLong(KEY_SAMPLE_PERIOD);
-                        mSdData.alarmFreqMin = data.getUnsignedIntegerAsLong(KEY_ALARM_FREQ_MIN);
-                        mSdData.alarmFreqMax = data.getUnsignedIntegerAsLong(KEY_ALARM_FREQ_MAX);
-                        mSdData.nMin = data.getUnsignedIntegerAsLong(KEY_NMIN);
-                        mSdData.nMax = data.getUnsignedIntegerAsLong(KEY_NMAX);
-                        mSdData.warnTime = data.getUnsignedIntegerAsLong(KEY_WARN_TIME);
-                        mSdData.alarmTime = data.getUnsignedIntegerAsLong(KEY_ALARM_TIME);
-                        mSdData.alarmThresh = data.getUnsignedIntegerAsLong(KEY_ALARM_THRESH);
-                        mSdData.alarmRatioThresh = data.getUnsignedIntegerAsLong(KEY_ALARM_RATIO_THRESH);
-                        mSdData.batteryPc = data.getUnsignedIntegerAsLong(KEY_BATTERY_PC);
-                        mSdData.haveSettings = true;
-                    } catch (Exception ex) {
-                        mUtil.showToast("*** Error interpreting settings sent from watch - Please check you have "
-                                + "the latest version of the watch app installed by using the OpenSeizureDetector "
-                                + "menu to install the Watch App");
-                        mUtil.writeToSysLogFile("Error interpreting settings received from watch - wrong version "
-                                + "of watch app installed?");
-                    }
-                }
-                if (data.getUnsignedIntegerAsLong(KEY_DATA_TYPE)
-                        == DATA_TYPE_RAW) {
-                    Log.v(TAG, "DATA_TYPE = Raw");
-                    long numSamples;
-                    numSamples = data.getUnsignedIntegerAsLong(KEY_NUM_RAW_DATA);
-                    Log.v(TAG, "numSamples = " + numSamples);
-                    byte[] rawDataBytes = data.getBytes(KEY_RAW_DATA);
-                    for (int i = 0; i < rawDataBytes.length - 4; i += 4) { // 4 bytes per sample
-                        int x = (rawDataBytes[i]);
-                        //int y = (rawDataBytes[i+2] & 0xff) | (rawDataBytes[i+3] << 8);
-                        //int z = (rawDataBytes[i+4] & 0xff) | (rawDataBytes[i+5] << 8);
-                        //Log.v(TAG,"x="+x+", y="+y+", z="+z);
-                        Log.v(TAG,"x="+x);
-                        if (nRawData < MAX_RAW_DATA) {
-                            rawData[nRawData] = (int)Math.sqrt(x);
-                        } else {
-                            Log.i(TAG, "WARNING - rawData Buffer Full");
-                        }
-
-                    }
-
-
-                    //for (AccelData reading : AccelData.fromDataArray(rawDataBytes)) {
-                    //    if (nRawData < MAX_RAW_DATA) {
-                    //        rawData[nRawData] = reading.getMagnitude();
-                    //        nRawData++;
-                    //    } else {
-                    //        Log.i(TAG, "WARNING - rawData Buffer Full");
-                    //    }
-                   // }
-
-                }
             }
         };
         PebbleKit.registerReceivedDataHandler(mContext, msgDataHandler);
@@ -512,7 +917,7 @@ public class SdDataSourceAw extends SdDataSource {
         Log.v(TAG, "startWatchApp() - closing app first");
         mUtil.writeToSysLogFile("SdDataSourceAw.startWatchApp() - closing app first");
         // first close the watch app if it is running.
-        // FIXME - Make this work with Android Wear
+
         Log.v(TAG, "startWatchApp() - starting watch app after 5 seconds delay...");
 	// Wait 5 seconds then start the app.
         Timer appStartTimer = new Timer();
@@ -560,34 +965,20 @@ public class SdDataSourceAw extends SdDataSource {
         Log.v(TAG, "sendWatchSdSettings() - preparing settings dictionary.. mSampleFreq=" + mSampleFreq);
         mUtil.writeToSysLogFile("SdDataSourceAw.sendWatchSdSettings()");
 
-        // Watch Settings
-        //final PebbleDictionary setDict = new PebbleDictionary();
-        //setDict.addInt16(KEY_DEBUG, mDebug);
-        //setDict.addInt16(KEY_DISPLAY_SPECTRUM, mDisplaySpectrum);
-        //setDict.addInt16(KEY_DATA_UPDATE_PERIOD, mDataUpdatePeriod);
-        //setDict.addInt16(KEY_MUTE_PERIOD, mMutePeriod);
-        //setDict.addInt16(KEY_MAN_ALARM_PERIOD, mManAlarmPeriod);
-        //setDict.addInt16(KEY_SD_MODE, mPebbleSdMode);
-        //setDict.addInt16(KEY_SAMPLE_FREQ, mSampleFreq);
-        //setDict.addInt16(KEY_SAMPLE_PERIOD, mSamplePeriod);
-        //setDict.addInt16(KEY_ALARM_FREQ_MIN, mAlarmFreqMin);
-        //setDict.addInt16(KEY_ALARM_FREQ_MAX, mAlarmFreqMax);
-        //setDict.addUint16(KEY_WARN_TIME, mWarnTime);
-        //setDict.addUint16(KEY_ALARM_TIME, mAlarmTime);
-        //setDict.addUint16(KEY_ALARM_THRESH, mAlarmThresh);
-        //setDict.addUint16(KEY_ALARM_RATIO_THRESH, mAlarmRatioThresh);
-        //if (mFallActive)
-        //    setDict.addUint16(KEY_FALL_ACTIVE, (short) 1);
-        //else
-        //    setDict.addUint16(KEY_FALL_ACTIVE, (short) 0);
-        //setDict.addUint16(KEY_FALL_THRESH_MIN, mFallThreshMin);
-        //setDict.addUint16(KEY_FALL_THRESH_MAX, mFallThreshMax);
-        //setDict.addUint16(KEY_FALL_WINDOW, mFallWindow);
+        byte[] payload = mSdData.toSettingsJSON().getBytes(StandardCharsets.UTF_8);
+        Task<Integer> sendMessageTask = Wearable.getMessageClient(mContext)
+                .sendMessage(mWearableNodeUri, APP_OPEN_WEARABLE_PAYLOAD_PATH, payload);
+        try {
+            Tasks.await(sendMessageTask);
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+        }
+        try {
+            Log.v(TAG,"Message send with state: + " + sendMessageTask.isSuccessful());
+        }
+        catch(Exception e){
 
-        // Send Watch Settings to Pebble
-        //Log.v(TAG, "sendWatchSdSettings() - setDict = " + setDict.toJsonString());
-        //PebbleKit.sendDataToPebble(mContext, SD_UUID, setDict);
-        // FIXME - make this work on Android Wear
+        }
     }
 
 
@@ -665,7 +1056,8 @@ public class SdDataSourceAw extends SdDataSource {
      */
     public void getWatchData() {
         Log.v(TAG, "getData() - requesting data from watch");
-        mUtil.writeToSysLogFile("SdDataSourceAw.getData() - requesting data from pebble");
+        mUtil.writeToSysLogFile("SdDataSourceAw.getData() - requesting data from Android Wear");
+
         // FIXME - make this work with Android Wear
     }
 
@@ -683,50 +1075,57 @@ public class SdDataSourceAw extends SdDataSource {
         tdiff = (tnow.toMillis(false) - mStatusTime.toMillis(false));
         Log.v(TAG, "getStatus() - mWatchAppRunningCheck=" + mWatchAppRunningCheck + " tdiff=" + tdiff);
         // Check we are actually connected to the pebble.
-        mSdData.watchConnected = PebbleKit.isWatchConnected(mContext);
-        if (!mSdData.watchConnected) mWatchAppRunningCheck = false;
-        // And is the pebble_sd app running?
-        // set mWatchAppRunningCheck has been false for more than 10 seconds
-        // the app is not talking to us
-        // mWatchAppRunningCheck is set to true in the receiveData handler.
-        if (!mWatchAppRunningCheck &&
-                (tdiff > (mDataUpdatePeriod + mAppRestartTimeout) * 1000)) {
-            Log.v(TAG, "getStatus() - tdiff = " + tdiff);
-            mSdData.watchAppRunning = false;
-            //Log.v(TAG, "getStatus() - Pebble App Not Running - Attempting to Re-Start");
-            //mUtil.writeToSysLogFile("SdDataSourceAw.getStatus() - Pebble App not Running - Attempting to Re-Start");
-            //startWatchApp();
-            //mStatusTime = tnow;  // set status time to now so we do not re-start app repeatedly.
-            //getWatchSdSettings();
-            // Only make audible warning beep if we have not received data for more than mFaultTimerPeriod seconds.
-            if (tdiff > (mDataUpdatePeriod + mFaultTimerPeriod) * 1000) {
-                Log.v(TAG, "getStatus() - Watch App Not Running - Attempting to Re-Start");
-                mUtil.writeToSysLogFile("SdDataSourceAw.getStatus() - Pebble App not Running - Attempting to Re-Start");
-                startWatchApp();
-                mStatusTime.setToNow();
-                mSdDataReceiver.onSdDataFault(mSdData);
+        if (mCapabilitityInfo != null) {
+            mSdData.watchConnected = CheckIsWearClient(mCapabilitityInfo);
+            if (!mSdData.watchConnected) mWatchAppRunningCheck = false;
+            // And is the pebble_sd app running?
+            // set mWatchAppRunningCheck has been false for more than 10 seconds
+            // the app is not talking to us
+            // mWatchAppRunningCheck is set to true in the receiveData handler.
+            if (!mWatchAppRunningCheck &&
+                    (tdiff > (mDataUpdatePeriod + mAppRestartTimeout) * 1000L)) {
+                Log.v(TAG, "getStatus() - tdiff = " + tdiff);
+                mSdData.watchAppRunning = false;
+                //Log.v(TAG, "getStatus() - Pebble App Not Running - Attempting to Re-Start");
+                //mUtil.writeToSysLogFile("SdDataSourceAw.getStatus() - Pebble App not Running - Attempting to Re-Start");
+                //startWatchApp();
+                //mStatusTime = tnow;  // set status time to now so we do not re-start app repeatedly.
+                //getWatchSdSettings();
+                // Only make audible warning beep if we have not received data for more than mFaultTimerPeriod seconds.
+                if (tdiff > (mDataUpdatePeriod + mFaultTimerPeriod) * 1000L) {
+                    Log.v(TAG, "getStatus() - Watch App Not Running - Attempting to Re-Start");
+                    mUtil.writeToSysLogFile("SdDataSourceAw.getStatus() - Pebble App not Running - Attempting to Re-Start");
+                    startWatchApp();
+                    mStatusTime.setToNow();
+                    mSdDataReceiver.onSdDataFault(mSdData);
+                } else {
+                    Log.v(TAG, "getStatus() - Waiting for mFaultTimerPeriod before issuing audible warning...");
+                }
             } else {
-                Log.v(TAG, "getStatus() - Waiting for mFaultTimerPeriod before issuing audible warning...");
+                mSdData.watchAppRunning = true;
             }
-        } else {
-            mSdData.watchAppRunning = true;
-        }
 
-        // if we have confirmation that the app is running, reset the
-        // status time to now and initiate another check.
-        if (mWatchAppRunningCheck) {
-            mWatchAppRunningCheck = false;
-            mStatusTime.setToNow();
-        }
+            // if we have confirmation that the app is running, reset the
+            // status time to now and initiate another check.
+            if (mWatchAppRunningCheck) {
+                mWatchAppRunningCheck = false;
+                mStatusTime.setToNow();
+            }
 
-        if (!mSdData.haveSettings) {
-            Log.v(TAG, "getStatus() - no settings received yet - requesting");
-            getWatchSdSettings();
-            getWatchData();
-        }
+            if (!mSdData.haveSettings) {
+                Log.v(TAG, "getStatus() - no settings received yet - requesting");
+                getWatchSdSettings();
+                getWatchData();
+            }
 
-        if (mPebbleSdMode == SD_MODE_RAW) {
-            analyseRawData();
+            // Send raw, unprocessed data to the phone.
+            int SD_MODE_RAW = 1;
+            if (mPebbleSdMode == SD_MODE_RAW) {
+                analyseRawData();
+            }
+        }
+        else{
+
         }
     }
 
@@ -736,7 +1135,7 @@ public class SdDataSourceAw extends SdDataSource {
      * ignored!
      */
     private void analyseRawData() {
-        Log.v(TAG,"analyserawData()");
+        Log.v(TAG, "analyserawData()");
         //DoubleFFT_1D fft = new DoubleFFT_1D(MAX_RAW_DATA);
         //fft.realForward(rawData);
         // FIXME - rawData should really be a circular buffer.
@@ -744,10 +1143,23 @@ public class SdDataSourceAw extends SdDataSource {
     }
 
 
+    // Name of capability listed in Phone app's wear.xml.
+    // IMPORTANT NOTE: This should be named differently than your Wear app's capability.
+    static final Uri CAPABILITY_WEAR_APP = Uri.parse("wear://");
 
+    // Links to install mobile app for both Android (Play Store) and iOS.
+    // TODO: Replace with your links/packages.
+    static final String ANDROID_MARKET_APP_URI =
+            "market://details?id=com.example.android.wearable.wear.wearverifyremoteapp";
+
+    // TODO: Replace with your links/packages.
+    static final String APP_STORE_APP_URI =
+            "https://itunes.apple.com/us/app/android-wear/id986496028?mt=8";
 
 
 }
+
+
 
 
 

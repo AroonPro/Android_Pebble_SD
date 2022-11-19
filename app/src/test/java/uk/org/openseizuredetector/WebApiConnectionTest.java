@@ -5,7 +5,6 @@ import static org.junit.Assert.*;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
-import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.google.firebase.FirebaseApp;
 
