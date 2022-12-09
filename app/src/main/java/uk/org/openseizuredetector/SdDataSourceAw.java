@@ -23,14 +23,22 @@
 */
 package uk.org.openseizuredetector;
 
+import android.app.Activity;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.preference.PreferenceManager;
+import android.text.SpannableString;
+import android.text.util.Linkify;
 import android.util.Log;
 
+import androidx.appcompat.app.AlertDialog;
 import java.util.Objects;
 
 
@@ -107,7 +115,7 @@ public class SdDataSourceAw extends SdDataSource {
         }
     }
 
-    
+
 
 }
 
