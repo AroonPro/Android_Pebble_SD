@@ -195,6 +195,7 @@
     <string name="wearer_id_title">Wearer ID of the person wearing the watch (from OSD Web API)</string>
     <string name="remote_url_summary">URL for remote data logging.</string>
     <string name="remote_url_title">Remote URL</string>
+    <string name="notes_about_event">Notes about event</string>
     <string name="prevent_sleep_summary">Prevent the screen from blanking while the application is running.</string>
     <string name="prevent_sleep_title">Prevent the screen from blanking.</string>
     <string name="data_update_period_summary">Display update period in miliseconds.</string>

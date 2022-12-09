@@ -53,18 +53,55 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
     private SensorEvent mStartEvent = null;
     private long mStartTs = 0;
     public double mSampleFreq = 0;
+    private double mSampleTimeUs;
+    private double mConversionSampleFactor;
 
 
     private PowerManager.WakeLock mWakeLock;
 
+    /**
+     * Calculate the static values of requested mSdData.mSampleFreq, mSampleTimeUs and factorDownSampling  through
+     * mSdData.analysisPeriod and mSdData.mDefaultSampleCount .
+     */
+    private void calculateStaticTimings(){
+        // default sampleCount : mSdData.mDefaultSampleCount
+        // default sampleTime  : mSdData.analysisPeriod
+        // sampleFrequency = sampleCount / sampleTime:
+        mSdData.mSampleFreq = (long) mSdData.mDefaultSampleCount / mSdData.analysisPeriod;
 
+        // now we have mSampleFreq in number samples / second (Hz) as default.
+        // to calculate sampleTimeUs: (1 / mSampleFreq) * 1000 [1s == 1000000us]
+        mSampleTimeUs = (1 / mSdData.mSampleFreq) * 1000;
+
+        // num samples == fixed final 250 (NSAMP)
+        // time seconds in default == 10 (SIMPLE_SPEC_FMAX)
+        // count samples / time = 25 samples / second == 25 Hz max.
+        // 1 Hz == 1 /s
+        // 25 Hz == 0,04s
+        // 1s == 1.000.000 us (sample interval)
+        // sampleTime = 40.000 uS == (SampleTime (s) * 1000)
+        double mSDDataSampleTimeUs = (double) (mSdData.mNsamp / mSdData.dT) * 1000f;
+        mConversionSampleFactor = mSampleTimeUs / mSDDataSampleTimeUs;
+    }
+
+    /**
+     * SdDataSourcePhone Class. This class handles simulation data for
+     * the carrier of the phone.
+     * @param context : Android context, usually actual class of application or given
+     *                  surroundings of parent.
+     * @param handler : Handler handles out-of-activity requests.
+     * @param sdDataReceiver : Through this object will the child objects of this
+     *                         class be available.
+     */
     public SdDataSourcePhone(Context context, Handler handler,
                              SdDataReceiver sdDataReceiver) {
         super(context, handler, sdDataReceiver);
+
         mName = "Phone";
         // Set default settings from XML files (mContext is set by super().
         PreferenceManager.setDefaultValues(mContext,
                 R.xml.network_passive_datasource_prefs, true);
+        calculateStaticTimings();
     }
 
 
@@ -77,7 +114,9 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
         mUtil.writeToSysLogFile("SdDataSourcePhone.start()");
         mSensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
         Sensor mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_GAME);
+        // registering listener with reference to (this).onSensorChanged , mSampleTime in MicroSeconds
+        // and bufferingTime , sampleTime * 3 in order to save the battery, calling back to mHandler
+        mSensorManager.registerListener(this, mSensor, (int) mSampleTimeUs,(int) mSampleTimeUs * 3, mHandler);
         super.start();
     }
 
@@ -110,9 +149,9 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                 } else {
                     mSdData.mNsamp++;
                 }
-                if (mSdData.mNsamp >= 250) {
+                if (mSdData.mNsamp >= mSdData.mDefaultSampleCount) {
                     Log.v(TAG, "onSensorChanged(): Collected Data = final TimeStamp=" + event.timestamp + ", initial TimeStamp=" + mStartTs);
-                    double dT = 1e-9 * (event.timestamp - mStartTs);
+                    double dT = 1.0e-9 * (event.timestamp - mStartTs);
                     mSdData.mSampleFreq = (int) (mSdData.mNsamp / dT);
                     mSdData.haveSettings = true;
                     Log.v(TAG, "onSensorChanged(): Collected data for " + dT + " sec - calculated sample rate as " + mSampleFreq + " Hz");
@@ -132,7 +171,7 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                     mSdData.rawData3D[3 * mSdData.mNsamp + 1] = y;
                     mSdData.rawData3D[3 * mSdData.mNsamp + 2] = z;
                     mSdData.mNsamp++;
-                    if (mSdData.mNsamp == NSAMP) {
+                    if (mSdData.mNsamp == mSdData.mNsampDefault) {
                         // Calculate the sample frequency for this sample, but do not change mSampleFreq, which is used for
                         // analysis - this is because sometimes you get a very long delay (e.g. when disconnecting debugger),
                         // which gives a very low frequency which can make us run off the end of arrays in doAnalysis().
@@ -142,14 +181,17 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                         Log.v(TAG, "onSensorChanged(): Collected " + NSAMP + " data points in " + dT + " sec (=" + sampleFreq + " Hz) - analysing...");
                         // DownSample from the 50Hz received frequency to 25Hz and convert to mg.
                         // FIXME - we should really do this properly rather than assume we are really receiving data at 50Hz.
+                        int writePosition = 1;
+
                         for (int i = 0; i < mSdData.mNsamp; i++) {
-                            mSdData.rawData[i / 2] = 1000. * mSdData.rawData[i] / 9.81;
-                            mSdData.rawData3D[i / 2] = 1000. * mSdData.rawData3D[i] / 9.81;
-                            mSdData.rawData3D[i / 2 + 1] = 1000. * mSdData.rawData3D[i + 1] / 9.81;
-                            mSdData.rawData3D[i / 2 + 2] = 1000. * mSdData.rawData3D[i + 2] / 9.81;
+                            writePosition = (int) Math.floor((double) i / mConversionSampleFactor);
+                            mSdData.rawData[writePosition] = 1000. * mSdData.rawData[i] / SensorManager.GRAVITY_EARTH;
+                            mSdData.rawData3D[writePosition] = 1000. * mSdData.rawData3D[i] / SensorManager.GRAVITY_EARTH;
+                            mSdData.rawData3D[writePosition + 1] = 1000. * mSdData.rawData3D[i + 1] / SensorManager.GRAVITY_EARTH;
+                            mSdData.rawData3D[writePosition + 2] = 1000. * mSdData.rawData3D[i + 2] / SensorManager.GRAVITY_EARTH;
                             //Log.v(TAG,"i="+i+", rawData="+mSdData.rawData[i]+","+mSdData.rawData[i/2]);
                         }
-                        mSdData.mNsamp /= 2;
+                        mSdData.mNsamp /= (int) mConversionSampleFactor;
                         doAnalysis();
                         mSdData.mNsamp = 0;
                         mStartTs = event.timestamp;

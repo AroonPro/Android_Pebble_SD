@@ -68,7 +68,7 @@ public abstract class SdDataSource {
     public String mName = "undefined";
     protected OsdUtil mUtil;
     protected Context mContext;
-    protected SdDataReceiver mSdDataReceiver;
+    protected static SdDataReceiver mSdDataReceiver;
     private String TAG = "SdDataSource";
 
     private short mDebug;
