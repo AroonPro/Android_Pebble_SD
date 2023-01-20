@@ -88,14 +88,14 @@ public class LogManager {
     final static private String mEventsTableName = "events";
     private boolean mLogRemote;
     private boolean mLogRemoteMobile;
-    public boolean mLogNDA;
+    private String mAuthToken;
     static private SQLiteDatabase mOsdDb = null;   // SQLite Database for data and log entries.
     private RemoteLogTimer mRemoteLogTimer;
+    public boolean mLogNDA;
     public NDATimer mNDATimer;
+    private long mNDATimerStartTime;  // milliseconds
     public double mNDATimeRemaining; // hours
     public double mNDALogPeriodHours = 24.0;  // hours
-    private String mAuthToken;
-    private long mNDATimerStartTime;  // milliseconds
     private static Context mContext;
     private OsdUtil mUtil;
     public static WebApiConnection mWac;
@@ -341,7 +341,7 @@ public class LogManager {
             Log.v(TAG, "writeDatapointToLocalDb(): datapoint written to database");
 
             if (sdData.alarmState != 0) {
-                Log.i(TAG, "writeDatapointToLocalDb(): adding event to local DB");
+                Log.d(TAG, "writeDatapointToLocalDb(): adding event to local DB");
                 createLocalEvent(dateStr,sdData.alarmState,null, null, null, sdData.toSettingsJSON());
             }
         } catch (SQLException e) {
@@ -369,7 +369,7 @@ public class LogManager {
         values.put("dataJSON", dataJSON);
 
         long newRowId = mOsdDb.insert(mEventsTableName, null, values);
-        Log.d(TAG, "createLocalEvent(): Created Row ID" + newRowId);
+        Log.d(TAG, "createLocalEvent(): Created Row ID"+newRowId);
         return true;
     }
 
@@ -1099,6 +1099,7 @@ public class LogManager {
         mNDATimer =
                 new NDATimer(mEventDuration * 1000, 1000, mNDALogPeriodHours);
         mNDATimer.start();
+        mLogNDA = true;
 
         // If we do not have a stored start time for NDA logging, set it to current time
         // and store it.
@@ -1111,16 +1112,14 @@ public class LogManager {
             mNDATimerStartTime = timeNow.toMillis(true);
             SharedPreferences.Editor editor = SP.edit();
             editor.putLong("NDATimerStartTime", mNDATimerStartTime);
-            editor.putBoolean("LogNDA", true);
+            editor.putBoolean("LogNDA", mLogNDA);
             editor.apply();
         }
         Time timeNow = new Time(Time.getCurrentTimezone());
         timeNow.setToNow();
         long tNow = timeNow.toMillis(true);
         long tDiffMillis = (tNow - mNDATimerStartTime);
-        mNDATimeRemaining = mNDALogPeriodHours - tDiffMillis / (3600. * 1000.);
-
-
+        mNDATimeRemaining = mNDALogPeriodHours - tDiffMillis / (3600.*1000.);
     }
 
     /*
@@ -1131,10 +1130,12 @@ public class LogManager {
             Log.i(TAG, "stopNDATimer(): cancelling Normal Daily Activity timer");
             mNDATimer.cancel();
             mNDATimer = null;
+            mLogNDA = false;
         }
     }
 
     public void disableNDATimer() {
+        stopNDATimer();
         SharedPreferences SP = PreferenceManager
                 .getDefaultSharedPreferences(mContext);
         SharedPreferences.Editor editor = SP.edit();
@@ -1143,6 +1144,7 @@ public class LogManager {
     }
 
     public void enableNDATimer() {
+        //startNDATimer();
         SharedPreferences SP = PreferenceManager
                 .getDefaultSharedPreferences(mContext);
         SharedPreferences.Editor editor = SP.edit();
@@ -1179,17 +1181,18 @@ public class LogManager {
 
 
     public void createNDAEvent() {
-        Log.i(TAG, "createNDAEvent()");
+        Log.i(TAG,"createNDAEvent()");
         Date curDate = new Date();
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String dateStr = dateFormat.format(curDate);
-        createLocalEvent(dateStr, 6, "nda", null, null,
+        createLocalEvent(dateStr,6,"nda", null, null,
                 mSdSettingsData.toSettingsJSON());
     }
 
     public void updateSdData(SdData sdData) {
         mSdSettingsData = sdData;
     }
+
 
 
     public static class OsdDbHelper extends SQLiteOpenHelper {
@@ -1270,7 +1273,6 @@ public class LogManager {
      */
     private class NDATimer extends CountDownTimer {
         double mNDALogPeriodHours = 0;
-
         public NDATimer(long startTime, long interval, double logPeriod) {
             super(startTime, interval);
             mNDALogPeriodHours = logPeriod;
@@ -1291,7 +1293,7 @@ public class LogManager {
             timeNow.setToNow();
             long tNow = timeNow.toMillis(true);
             long tDiffMillis = (tNow - mNDATimerStartTime);
-            double tDiffHrs = tDiffMillis / (3600. * 1000.);
+            double tDiffHrs = tDiffMillis / (3600.*1000.);
             mNDATimeRemaining = mNDALogPeriodHours - tDiffHrs;
             if (tDiffHrs >= mNDALogPeriodHours) {
                 Log.i(TAG, "mNDATimer - onFinish - NDA logging period completed - switching off NDA Logging");
@@ -1303,8 +1305,8 @@ public class LogManager {
                 editor.apply();
             } else {
                 // Restart this timer.
-                Log.i(TAG, "NDATimer - tDiffMillis=" + tDiffMillis + ", tdiffHrs = " + tDiffHrs + ", tnow=" + tNow + ", tstart=" + mNDATimerStartTime + ", NDALogPeriod=" + mNDALogPeriodHours);
-                Log.i(TAG, "NDATimer - re-starting NDA timer");
+                Log.i(TAG,"NDATimer - tDiffMillis="+tDiffMillis+", tdiffHrs = "+tDiffHrs+ ", tnow="+tNow+", tstart="+mNDATimerStartTime+", NDALogPeriod="+mNDALogPeriodHours);
+                Log.i(TAG,"NDATimer - re-starting NDA timer");
                 start();
             }
         }

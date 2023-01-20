@@ -25,6 +25,7 @@
 package uk.org.openseizuredetector;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
@@ -48,11 +49,14 @@ import android.text.format.Time;
 import android.util.Log;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+
+import org.apache.http.conn.util.InetAddressUtils;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.text.ParseException;
@@ -73,6 +77,8 @@ public class OsdUtil {
     public final static String DATA_SHARING_URL = "https://www.openseizuredetector.org.uk/?page_id=1818";
 
     private final String SYSLOG = "SysLog";
+    private final String ALARMLOG = "AlarmLog";
+    private final String DATALOG = "DataLog";
 
     /**
      * Based on http://stackoverflow.com/questions/7440473/android-how-to-check-if-the-intent-service-is-still-running-or-has-stopped-running
@@ -81,14 +87,15 @@ public class OsdUtil {
     private Handler mHandler;
     private static String TAG = "OsdUtil";
     private boolean mLogAlarms = true;
+    private boolean mLogSystem = true;
     private boolean mLogData = true;
     private boolean mPermissionsRequested = false;
     private boolean mSMSPermissionsRequested = false;
     private static final String mSysLogTableName = "SysLog";
     //private LogManager mLm;
     static private SQLiteDatabase mSysLogDb = null;   // SQLite Database for data and log entries.
-    private final static Long mMinPruneInterval = (long) (5 * 60 * 1000); // minimum time between syslog pruning is 5 minutes
-    private static Long mLastPruneMillis = 0L;   // Record of the last time we pruned the syslog db.
+    private final static Long mMinPruneInterval = new Long(5 * 60 * 1000); // minimum time between syslog pruning is 5 minutes
+    private static Long mLastPruneMillis = new Long(0);   // Record of the last time we pruned the syslog db.
 
     private static int mNbound = 0;
 
@@ -116,7 +123,7 @@ public class OsdUtil {
             Log.v(TAG, "updatePrefs() - mLogAlarms = " + mLogAlarms);
             mLogData = SP.getBoolean("LogData", true);
             Log.v(TAG, "OsdUtil.updatePrefs() - mLogData = " + mLogData);
-            boolean mLogSystem = SP.getBoolean("LogSystem", true);
+            mLogSystem = SP.getBoolean("LogSystem", true);
             Log.v(TAG, "updatePrefs() - mLogSystem = " + mLogSystem);
 
         } catch (Exception ex) {
@@ -138,7 +145,7 @@ public class OsdUtil {
         int nServers = 0;
         /* Log.v(TAG,"isServerRunning()...."); */
         ActivityManager manager =
-                (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
+                (ActivityManager) mContext.getSystemService(mContext.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service :
                 manager.getRunningServices(Integer.MAX_VALUE)) {
             //Log.v(TAG,"Service: "+service.service.getClassName());
@@ -147,8 +154,11 @@ public class OsdUtil {
                 nServers = nServers + 1;
             }
         }
-        //Log.v(TAG, "isServerRunning() - " + nServers + " instances are running");
-        return nServers != 0;
+        if (nServers != 0) {
+            //Log.v(TAG, "isServerRunning() - " + nServers + " instances are running");
+            return true;
+        } else
+            return false;
     }
 
     /**
@@ -160,9 +170,8 @@ public class OsdUtil {
         writeToSysLogFile("startServer() - starting server");
         Intent sdServerIntent;
         sdServerIntent = new Intent(mContext, SdServer.class);
-        sdServerIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
         sdServerIntent.setData(Uri.parse("Start"));
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        if (Build.VERSION.SDK_INT >= 26) {
             Log.i(TAG, "Starting Foreground Service (Android 8 and above)");
             mContext.startForegroundService(sdServerIntent);
         } else {
@@ -194,7 +203,6 @@ public class OsdUtil {
             }
         }, 1000);
     }
-
     /**
      * bind an activity to to an already running server.
      */
@@ -267,10 +275,10 @@ public class OsdUtil {
 
                     // for getting IPV4 format
                     if (!inetAddress.isLoopbackAddress()
-                            && inetAddress instanceof Inet4Address
-                    ) {
+                            && InetAddressUtils.isIPv4Address(
+                            inetAddress.getHostAddress())) {
 
-                        String ip = inetAddress.getHostAddress();
+                        String ip = inetAddress.getHostAddress().toString();
                         //Log.v(TAG,"ip---::" + ip);
                         return ip;
                     }
@@ -311,14 +319,19 @@ public class OsdUtil {
      * @param msg - message to display.
      */
     public void showToast(final String msg) {
-        runOnUiThread(() -> Toast.makeText(mContext, msg,
-                Toast.LENGTH_LONG).show());
+        runOnUiThread(new Runnable() {
+            public void run() {
+                Toast.makeText(mContext, msg,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
 
     /**
      * Write a message to the system log database.
      *
+     * @param msgStr
      */
     public void writeToSysLogFile(String msgStr,String logType) {
         writeLogEntryToLocalDb(msgStr,logType);
@@ -332,9 +345,9 @@ public class OsdUtil {
     /**
      * Write a message to the alarm log file, provided mLogAlarms is true.
      *
+     * @param msgStr
      */
     public void writeToAlarmLogFile(String msgStr) {
-        String ALARMLOG = "AlarmLog";
         if (mLogAlarms)
             writeToLogFile(ALARMLOG, msgStr);
         else
@@ -344,9 +357,9 @@ public class OsdUtil {
     /**
      * Write a message to the data log file, provided mLogData is true.
      *
+     * @param msgStr
      */
     public void writeToDataLogFile(String msgStr) {
-        String DATALOG = "DataLog";
         if (mLogData)
             writeToLogFile(DATALOG, msgStr);
         else
@@ -378,7 +391,9 @@ public class OsdUtil {
                     if (msgStr != null) {
                         String dateTimeStr = tnow.format("%Y-%m-%d %H:%M:%S");
                         //Log.v(TAG, "writing msgStr");
-                        of.append(dateTimeStr).append(", ").append(String.valueOf(tnow.toMillis(true))).append(", ").append(msgStr).append("<br/>\n");
+                        of.append(dateTimeStr + ", "
+                                + tnow.toMillis(true) + ", "
+                                + msgStr + "<br/>\n");
                     }
                     of.close();
                 } catch (Exception ex) {
@@ -458,7 +473,7 @@ public class OsdUtil {
     public Date string2date(String dateStr) {
         Date dataTime = null;
         try {
-            long tstamp = Long.parseLong(dateStr);
+            Long tstamp = Long.parseLong(dateStr);
             dataTime = new Date(tstamp);
         } catch (NumberFormatException e) {
             Log.v(TAG, "remoteEventsAdapter.getView: Error Parsing dataDate as Long: " + e.getLocalizedMessage()+" trying as string");

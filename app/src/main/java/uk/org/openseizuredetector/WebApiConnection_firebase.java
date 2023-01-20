@@ -386,4 +386,9 @@ public class WebApiConnection_firebase extends WebApiConnection {
         return mServerConnectionOk;
     }
 
+    public boolean getCnnModelInfo(JSONObjectCallback callback) {
+        Log.w(TAG,"getCnnModelInfo() - FIXME - not implemented yet!");
+        return false;
+    }
+
 }

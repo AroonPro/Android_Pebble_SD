@@ -6,7 +6,7 @@
         <item>"Pebble Watch"</item>
         <item>"Phone Sensor (for testing)"</item>
         <item>"Network (for Wifi Alerts)"</item>
-        <item>"Android Wear (from Wear OS Messages)"</item>
+        <item>"Android Wear"</item>
     </string-array>
     <string-array name="datasource_list_values">
         <item>"Garmin"</item>
