@@ -162,12 +162,12 @@ public class OsdUtil {
 
     /**
      * Start the SdServer service
-     * without parameters allways sends Uri://Start
+     * without parameters always sends Uri://Start
      */
     public void  startServer(){
         startServer(Constants.GLOBAL_CONSTANTS.mStartUri);
     }
-    //overload startServer without parmeters
+    //overload startServer without parameters
     public void startServer(Uri setData ) {
         // Start the server
         Log.d(TAG, "OsdUtil.startServer()");

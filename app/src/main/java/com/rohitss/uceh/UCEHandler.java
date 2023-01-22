@@ -86,9 +86,7 @@ public final class UCEHandler {
                     }
                     application = (Application) context.getApplicationContext();
                     //Setup UCE Handler.
-                    Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-                        @Override
-                        public void uncaughtException(Thread thread, final Throwable throwable) {
+                    Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
                         if (isUCEHEnabled) {
                             Log.e(TAG, "App crashed, executing UCEHandler's UncaughtExceptionHandler", throwable);
                             if (hasCrashedInTheLastSeconds(application)) {
@@ -140,7 +138,6 @@ public final class UCEHandler {
                         } else if (oldHandler != null) {
                             //Pass control to old uncaught exception handler
                             oldHandler.uncaughtException(thread, throwable);
-                        }
                         }
                     });
                     application.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {
@@ -236,11 +233,11 @@ public final class UCEHandler {
     }
 
     public static class Builder {
-        private Context context;
-        private boolean isUCEHEnabled = true;
-        private String commaSeparatedEmailAddresses;
-        private boolean isTrackActivitiesEnabled = false;
-        private boolean isBackgroundModeEnabled = true;
+        Context context;
+        boolean isUCEHEnabled = true;
+        String commaSeparatedEmailAddresses;
+        boolean isTrackActivitiesEnabled = false;
+        boolean isBackgroundModeEnabled = true;
 
         public Builder(Context context) {
             this.context = context;
