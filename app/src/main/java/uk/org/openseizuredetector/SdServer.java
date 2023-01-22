@@ -447,7 +447,7 @@ public class SdServer extends Service implements SdDataReceiver {
         else hasIntent = false;
         mUtil.writeToSysLogFile("SdServer.onStartCommand()");
 
-        if (hasIntent && Constants.GLOBAL_CONSTANTS.mStartUri.equals(intent.getAction())) {
+        if ((hasIntent && Constants.GLOBAL_CONSTANTS.mStartUri.equals(intent.getData()))) {
             // Update preferences.
             Log.v(TAG, "onStartCommand() - calling updatePrefs()");
             updatePrefs();
@@ -586,10 +586,6 @@ public class SdServer extends Service implements SdDataReceiver {
             if (!Objects.equals(intent, null))
                 if (!Objects.equals(intent.getData(), null)) {
                     if (Objects.equals(intent.getData(), Uri.parse("Start"))) bindBatteryEvents();
-                    if (Objects.equals(intent.getData(), Uri.parse("Stop")))
-                        if (!Objects.equals(mPowerUpdateManager, null))
-                            if (mPowerUpdateManager.isRegistered)
-                                mPowerUpdateManager.unregister(this);
                 }
         }else if (hasIntent && Constants.GLOBAL_CONSTANTS.mStopUri.equals(intent.getData())) {
             stopServiceRunner();
@@ -615,6 +611,10 @@ public class SdServer extends Service implements SdDataReceiver {
     }
 
     private void stopServiceRunner(){
+
+        if (!Objects.equals(mPowerUpdateManager, null))
+            if (mPowerUpdateManager.isRegistered)
+                mPowerUpdateManager.unregister(this);
         if (mWakeLock != null) {
             try {// TODO deside to ask if (mWakeLock.isHeld())
                 if (mWakeLock.isHeld() ) mWakeLock.release();

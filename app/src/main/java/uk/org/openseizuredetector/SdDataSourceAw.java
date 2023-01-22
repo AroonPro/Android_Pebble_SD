@@ -78,7 +78,6 @@ public class SdDataSourceAw extends SdDataSource  {
     private boolean sdBroadCastReceived;
     private boolean sdAwBroadCastReceived;
 
-
     public SdDataSourceAw(Context context, Handler handler,
                           SdDataReceiver sdDataReceiver) {
         super(context, handler, sdDataReceiver);
@@ -314,6 +313,16 @@ public class SdDataSourceAw extends SdDataSource  {
                                     Log.e(TAG,"onStartReceived()",e);
                                 }
                             }
+
+                            if (Constants.ACTION.STOP_WEAR_SD_ACTION.equals(receivedAction)) {
+                                //if (((SdServer)mSdDataReceiver).)Log.i(TAG," fixme: add here liveData from startup and main activity");
+                                ((SdServer)mSdDataReceiver).mSdData.haveSettings = false;
+                                ((SdServer)mSdDataReceiver).mSdData.haveData = false;
+                                ((SdServer)mSdDataReceiver).mSdData.watchConnected = false;
+                                ((SdServer)mSdDataReceiver).mSdData.mDataType = receivedAction;
+                                mUtil.stopServer();
+                            }
+
 
 
 
