@@ -160,7 +160,7 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
 
 
     private  void bindSensorListeners(){
-        if (mSampleTimeUs <= (double) SensorManager.SENSOR_DELAY_NORMAL ||
+        if (mSampleTimeUs < (double) SensorManager.SENSOR_DELAY_NORMAL ||
                 Double.isInfinite(mSampleTimeUs) ||
                 Double.isNaN(mSampleTimeUs))
         {

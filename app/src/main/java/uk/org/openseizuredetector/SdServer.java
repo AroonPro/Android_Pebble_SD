@@ -95,6 +95,7 @@ public class SdServer extends Service implements SdDataReceiver {
     private String mEventNotChId = "OSD Event Notification Channel";
     private CharSequence mEventNotChName = "OSD Event Notification Channel";
     private String mEventNotChDesc = "OSD Event Notification Channel Description";
+    private final long mEventsTimerPeriod = 60; // Number of seconds between checks to see if there are unvalidated remote events.
     public powerUpdateReceiver mPowerUpdateManager = null;
 
     private NotificationManager mNM;
@@ -142,12 +143,31 @@ public class SdServer extends Service implements SdDataReceiver {
     public boolean mLogNDA = false;
 
     private String mAuthToken = null;
+    private final long mAutoPrunePeriod = 3600;  // Prune the database every hour
     private long mEventsTimerPeriod = 60; // Number of seconds between checks to see if there are unvalidated remote events.
     private long mEventDuration = 120;   // event duration in seconds - uploads datapoints that cover this time range centred on the event time.
     private int mDefaultSampleCount = Constants.SD_SERVICE_CONSTANTS.defaultSampleCount;   // number of samples to take, part 1 of 2 of sampleFrequency. Number of samples / time sampling.
     private int mDfaultSampleTime = Constants.SD_SERVICE_CONSTANTS.defaultSampleTime;
     private int mDefaultSampleRate = Constants.SD_SERVICE_CONSTANTS.defaultSampleTime;
     public long mDataRetentionPeriod = 1; // Prunes the local db so it only retains data younger than this duration (in days)
+    public int mFlag_Intent = PendingIntent.FLAG_UPDATE_CURRENT;
+    /**
+     * smsCanelClickListener - onClickListener for the SMS cancel dialog box.   If the
+     * negative button is pressed, it cancels the SMS timer to prevent the SMS being sent.
+     */
+    DialogInterface.OnClickListener smsCancelClickListener = (dialog, which) -> {
+        switch (which) {
+            case DialogInterface.BUTTON_POSITIVE:
+                Log.v(TAG, "smsCancelClickListener - Positive button");
+                //Yes button clicked
+                break;
+
+            case DialogInterface.BUTTON_NEGATIVE:
+                Log.v(TAG, "smsCancelClickListener - Negative button");
+                //No button clicked
+                break;
+        }
+    };
     private long mAutoPrunePeriod = 3600;  // Prune the database every hour
     private boolean mAutoPruneDb;
 
@@ -157,7 +177,7 @@ public class SdServer extends Service implements SdDataReceiver {
     private OsdUtil mUtil;
     private Handler mHandler;
     private ToneGenerator mToneGenerator;
-
+    private boolean mCancelAudible = false;
     private boolean autoStart ;
 
     private NetworkBroadcastReceiver mNetworkBroadcastReceiver;

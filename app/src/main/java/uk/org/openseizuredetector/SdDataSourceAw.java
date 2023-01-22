@@ -29,6 +29,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ComponentInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.content.Intent;
@@ -43,6 +44,14 @@ import android.util.Log;
 import androidx.appcompat.app.AlertDialog;
 import java.util.Objects;
 ;
+/**
+ * order of boolean tracing
+ * mConnection.mBound
+ * mConnection.mWatchConnected
+ * mConnection.hasSdSettings()
+ * mWatchAppRunningCheck
+ * mConnection.hasSdData
+ */
 
 /**
  * A Passive data source that expects a device to send it data periodically by sending a POST request.
@@ -147,12 +156,13 @@ public class SdDataSourceAw extends SdDataSource {
             installAwApp();
         } else {
             try {
+                aWIntent.setClassName(aWIntent.getPackage(),".WearReceiver");
                 //aWIntent = new Intent();
                 //aWIntent.setPackage(Constants.GLOBAL_CONSTANTS.mAppPackageNameWearReceiver);
                 //FIXME: tell me how to encorporate <data ######## /> with:
                 // .setData()
                 // and: launch DebugActivity from debugger.
-                // (this is one way of 2 way communication.
+                // (this is one way of 2 way communication.)
                 SdData sdData = getSdData();
                 aWIntent.putExtra("data","Start");
                 aWIntent.putExtra("mSdData", sdData.toSettingsJSON());

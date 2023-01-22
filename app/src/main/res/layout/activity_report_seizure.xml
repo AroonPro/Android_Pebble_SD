@@ -166,14 +166,12 @@
                     android:id="@+id/loginBtn"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    style="?android:attr/buttonBarButtonStyle"
                     android:text="@string/okBtnTxt" />
 
                 <Button
                     android:id="@+id/cancelBtn"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    style="?android:attr/buttonBarButtonStyle"
                     android:text="@string/cancelBtnTxt" />
             </LinearLayout>
 

@@ -76,7 +76,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                style="?android:attr/buttonBarButtonStyle"
                 android:text="@string/back" />
 
             <Button
@@ -84,7 +83,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                style="?android:attr/buttonBarButtonStyle"
                 android:text="@string/authenticate" />
         </LinearLayout>
         <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -98,7 +96,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                style="?android:attr/buttonBarButtonStyle"
                 android:text="@string/register" />
 
             <Button
@@ -106,7 +103,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                style="?android:attr/buttonBarButtonStyle"
                 android:text="@string/reset_password" />
         </LinearLayout>
 
@@ -177,7 +173,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                style="?android:attr/buttonBarButtonStyle"
                 android:text="@string/back" />
 
             <Button
@@ -185,7 +180,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                style="?android:attr/buttonBarButtonStyle"
                 android:text="@string/logout" />
         </LinearLayout>
     </LinearLayout>
@@ -206,7 +200,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            style="?android:attr/buttonBarButtonStyle"
             android:text="@string/about_data_sharing" />
 
         <Button
@@ -214,7 +207,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            style="?android:attr/buttonBarButtonStyle"
             android:text="@string/privacy_policy" />
     </LinearLayout>
 
