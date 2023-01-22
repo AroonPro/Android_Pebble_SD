@@ -229,6 +229,7 @@ public class SdDataSourceAw extends SdDataSource  {
                                     sdAwBroadCastReceived = true;
                                     if (registeredAllBroadCastIntents()){
                                         aWIntent = aWIntentBase;
+                                        aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentReceiver,receivingIntent);
                                         aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction, Constants.ACTION.REGISTERED_WEARRECEIVER_INTENT);
                                         mContext.sendBroadcast(aWIntent);
                                     }
@@ -479,7 +480,7 @@ public class SdDataSourceAw extends SdDataSource  {
     public void mobileBatteryPctUpdate(){
         try{
             aWIntent = aWIntentBase;
-            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction,Uri.parse(Constants.ACTION.BATTERYUPDATE_ACTION));
+            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction,Constants.ACTION.BATTERYUPDATE_ACTION);
             aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.mPowerLevel, ((SdServer)mSdDataReceiver).batteryPct);
             mContext.sendBroadcast(aWIntent);
         }catch ( Exception e ){
