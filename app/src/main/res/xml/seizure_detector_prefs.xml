@@ -67,6 +67,11 @@
             android:key="SamplePeriod"
             android:summary="@string/sample_period_summary"
             android:title="@string/sample_period_title" />
+        <EditTextPreference
+            android:defaultValue="250"
+            android:key="DefaultSampleCount"
+            android:summary="@string/default_sample_count_summary"
+            android:title="@string/default_sample_count_title" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/HeartRateAlarmSettingsTitle">

@@ -23,19 +23,15 @@
 */
 package uk.org.openseizuredetector;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.text.SpannableString;
-import android.text.util.Linkify;
 import android.util.Log;
 
-import androidx.appcompat.app.AlertDialog;
+import java.util.Objects;
 
 
 /**
@@ -48,6 +44,7 @@ public class SdDataSourceAw extends SdDataSource {
     private String TAG = "SdDataSourceAw";
     private final String mAppPackageName = "uk.org.openseizuredetector.aw.mobile";
     //private final String mAppPackageName = "uk.org.openseizuredetector";
+    private Intent aWIntent = null;
 
     public SdDataSourceAw(Context context, Handler handler,
                           SdDataReceiver sdDataReceiver) {
@@ -69,15 +66,17 @@ public class SdDataSourceAw extends SdDataSource {
         super.start();
 
         // Now start the AndroidWear companion app
-        Intent i = new Intent(Intent.ACTION_MAIN);
         PackageManager manager = mContext.getPackageManager();
-        i = manager.getLaunchIntentForPackage(mAppPackageName);
-        if (i == null) {
+        aWIntent = manager.getLaunchIntentForPackage(mAppPackageName);
+        if (aWIntent == null) {
             mUtil.showToast("Error - OpenSeizureDetector Android Wear App is not installed - please install it and run it");
             installAwApp();
         } else {
-            i.addCategory(Intent.CATEGORY_LAUNCHER);
-            mContext.startActivity(i);
+            aWIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+            SdData sdData = getSdData();
+            aWIntent.setData(Uri.parse("Start"));
+            aWIntent.putExtra("mSdData", sdData);
+            mContext.startActivity(aWIntent);
         }
     }
 
@@ -87,6 +86,10 @@ public class SdDataSourceAw extends SdDataSource {
     public void stop() {
         Log.i(TAG, "stop()");
         mUtil.writeToSysLogFile("SdDataSourceAw.stop()");
+        if (!Objects.equals(aWIntent, null)) {
+            aWIntent.setData(Uri.parse("Start"));
+            mContext.startActivity(aWIntent);
+        }
         super.stop();
     }
 

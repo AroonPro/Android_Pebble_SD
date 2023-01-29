@@ -24,19 +24,20 @@
 */
 package uk.org.openseizuredetector;
 
-import android.os.Parcelable;
 import android.os.Parcel;
+import android.os.Parcelable;
 import android.text.format.Time;
 import android.util.Log;
 
-import org.json.JSONObject;
 import org.json.JSONArray;
+import org.json.JSONObject;
 
 /* based on http://stackoverflow.com/questions/2139134/how-to-send-an-object-from-one-android-activity-to-another-using-intents */
 
 public class SdData implements Parcelable {
     private final static String TAG = "SdData";
     private final static int N_RAW_DATA = 500;  // 5 seconds at 100 Hz.
+    public static int defaultSampleCount;
 
     // Seizure Detection Algorithm Selection
     public boolean mOsdAlarmActive;
@@ -106,13 +107,13 @@ public class SdData implements Parcelable {
 
     public boolean mHRAlarmStanding = false;
     public boolean mHRFaultStanding = false;
-    public double mHR = 0;
+    public double mHR;
 
     public boolean mO2SatAlarmStanding = false;
     public boolean mO2SatFaultStanding = false;
-    public double mO2Sat = 0;
+    public double mO2Sat;
 
-    public double mPseizure = 0.;
+    public double mPseizure;
 
     public SdData() {
         simpleSpec = new int[10];
@@ -138,6 +139,7 @@ public class SdData implements Parcelable {
             // FIXME - this doesn't work!!!
             dataTime.setToNow();
             Log.v(TAG, "fromJSON(): dataTime = " + dataTime.toString());
+            defaultSampleCount = jo.optInt("DefaultSampleCount");
             maxVal = jo.optInt("maxVal");
             maxFreq = jo.optInt("maxFreq");
             specPower = jo.optInt("specPower");
@@ -244,6 +246,7 @@ public class SdData implements Parcelable {
                 jsonObj.put("dataTimeStr", "00000000T000000");
                 jsonObj.put("dataTime", "00-00-00 00:00:00");
             }
+            jsonObj.put("DefaultSampleCount", defaultSampleCount);
             jsonObj.put("batteryPc", batteryPc);
             jsonObj.put("alarmState", alarmState);
             jsonObj.put("alarmPhrase", alarmPhrase);

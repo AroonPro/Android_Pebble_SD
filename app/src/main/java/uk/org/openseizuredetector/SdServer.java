@@ -139,6 +139,7 @@ public class SdServer extends Service implements SdDataReceiver {
     private String mAuthToken = null;
     private long mEventsTimerPeriod = 60; // Number of seconds between checks to see if there are unvalidated remote events.
     private long mEventDuration = 120;   // event duration in seconds - uploads datapoints that cover this time range centred on the event time.
+    private int mDefaultSampleCount = 250;   // number of samples to take, part 1 of 2 of sampleFrequency. Number of samples / time sampling.
     public long mDataRetentionPeriod = 1; // Prunes the local db so it only retains data younger than this duration (in days)
     private long mRemoteLogPeriod = 6; // Period in seconds between uploads to the remote server.
     private long mAutoPrunePeriod = 3600;  // Prune the database every hour
@@ -1240,7 +1241,12 @@ public class SdServer extends Service implements SdDataReceiver {
             Log.v(TAG, "updatePrefs() - mAuthToken = " + mAuthToken);
             mUtil.writeToSysLogFile("updatePrefs() - mAuthToken = " + mAuthToken);
 
+
             String prefVal;
+            prefVal = SP.getString("DefaultSampleCount", "250");
+            mEventDuration = Integer.parseInt(prefVal);
+            Log.v(TAG, "mDefaultSampleCount=" + mDefaultSampleCount);
+
             prefVal = SP.getString("EventDurationSec", "300");
             mEventDuration = Integer.parseInt(prefVal);
             Log.v(TAG, "mEventDuration=" + mEventDuration);

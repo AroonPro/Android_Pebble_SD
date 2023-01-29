@@ -78,6 +78,7 @@ public abstract class SdDataSource {
     private short mMutePeriod;
     private short mManAlarmPeriod;
     private short mPebbleSdMode;
+    private int mDefaultSampleCount;
     private short mSampleFreq;
     private short mAlarmFreqMin;
     private short mAlarmFreqMax;
@@ -816,22 +817,26 @@ public abstract class SdDataSource {
             if (prefStr != null) {
                 mDebug = (short) Integer.parseInt(prefStr);
                 Log.v(TAG, "updatePrefs() Debug = " + mDebug);
-                mUtil.writeToSysLogFile( "updatePrefs() Debug = " + mDebug);
+                mUtil.writeToSysLogFile("updatePrefs() Debug = " + mDebug);
 
                 prefStr = SP.getString("PebbleDisplaySpectrum", "SET_FROM_XML");
                 mDisplaySpectrum = (short) Integer.parseInt(prefStr);
                 Log.v(TAG, "updatePrefs() DisplaySpectrum = " + mDisplaySpectrum);
-                mUtil.writeToSysLogFile( "updatePrefs() DisplaySpectrum = " + mDisplaySpectrum);
+                mUtil.writeToSysLogFile("updatePrefs() DisplaySpectrum = " + mDisplaySpectrum);
+
+                prefStr = SP.getString("DefaultSampleCount", "250");
+                mDefaultSampleCount = Integer.parseInt(prefStr);
+                Log.v(TAG, "mDefaultSampleCount=" + mDefaultSampleCount);
 
                 prefStr = SP.getString("PebbleUpdatePeriod", "SET_FROM_XML");
                 mDataUpdatePeriod = (short) Integer.parseInt(prefStr);
                 Log.v(TAG, "updatePrefs() DataUpdatePeriod = " + mDataUpdatePeriod);
-                mUtil.writeToSysLogFile( "updatePrefs() DataUpdatePeriod = " + mDataUpdatePeriod);
+                mUtil.writeToSysLogFile("updatePrefs() DataUpdatePeriod = " + mDataUpdatePeriod);
 
                 prefStr = SP.getString("MutePeriod", "SET_FROM_XML");
                 mMutePeriod = (short) Integer.parseInt(prefStr);
                 Log.v(TAG, "updatePrefs() MutePeriod = " + mMutePeriod);
-                mUtil.writeToSysLogFile( "updatePrefs() MutePeriod = " + mMutePeriod);
+                mUtil.writeToSysLogFile("updatePrefs() MutePeriod = " + mMutePeriod);
 
                 prefStr = SP.getString("ManAlarmPeriod", "SET_FROM_XML");
                 mManAlarmPeriod = (short) Integer.parseInt(prefStr);

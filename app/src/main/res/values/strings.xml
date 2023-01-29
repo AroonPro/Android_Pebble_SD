@@ -245,6 +245,8 @@
     <string name="manual_alarm_period_title">Manual Alarm Period (sec)</string>
     <string name="warn_time_summary">Time to wait before initiating warning (Default = 5 sec)</string>
     <string name="warn_time_title">WarnTime (sec)</string>
+    <string name="default_sample_count_summary">Number of samples to take before Analysis (Default = 150)</string>
+    <string name="default_sample_count_title">Default SampleCount</string>
     <string name="alarm_time_summary">Time to wait before initiating alarm (Default = 10 sec)</string>
     <string name="alarm_time_title">AlarmTime (sec)</string>
     <string name="alarm_threshold_summary">Alarm Threshold (Default = 100)</string>
