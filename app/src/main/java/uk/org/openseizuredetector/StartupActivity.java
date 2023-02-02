@@ -33,6 +33,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
@@ -53,6 +54,7 @@ import androidx.core.content.ContextCompat;
 
 import com.rohitss.uceh.UCEHandler;
 
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -97,6 +99,8 @@ public class StartupActivity extends AppCompatActivity {
     private boolean mLocationPermissions2Requested;
     private boolean mSmsPermissionsRequested;
     private boolean mPermissionsRequested;
+    private Intent mStartUpActivityIntent;
+
     /*
      * serverStatusRunnable - called by updateServerStatus - updates the
      * user interface to reflect the current status received from the server.
@@ -272,7 +276,7 @@ public class StartupActivity extends AppCompatActivity {
                             finish();
                         } catch (Exception ex) {
                             mStartedMainActivity = false;
-                            Log.e(TAG, "exception starting main activity " + ex.toString());
+                            Log.e(TAG, "exception starting main activity " + ex.toString(),ex);
                             mUtil.writeToSysLogFile("StartupActivity.serverStatusRunnable - exception starting main activity " + ex.toString());
                         }
                     } else {
@@ -290,9 +294,31 @@ public class StartupActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         Log.i(TAG, "onCreate()");
         setContentView(R.layout.startup_activity);
         mContext = this;
+        mHandler = new Handler();
+        mUtil = new OsdUtil(getApplicationContext(), mHandler);
+        if (!Objects.equals(getIntent(),null))if (!Objects.equals(getIntent().getData(),null))
+            if (Objects.equals(getIntent().getData() , Uri.parse("PASS")))
+        {
+            Log.d(mStartUpActivityIntent.toString(),getIntent().getData().toString());
+            moveTaskToBack(true);
+            setIntent(getIntent().setData(Uri.parse("")));
+            if (mUtil.isServerRunning()) {
+                if (Objects.equals(mConnection,null)) mConnection = new SdServiceConnection(getApplicationContext());
+                if (!mConnection.mBound) mUtil.bindToServer(getApplicationContext(), mConnection);
+
+                moveTaskToBack(true);
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                    mConnection.mSdServer.onSdDataReceived(getIntent().getParcelableExtra("mSdData"));
+                }
+            }
+            finish();
+
+        }
 
         // Set our custom uncaught exception handler to report issues.
         //Thread.setDefaultUncaughtExceptionHandler(new OsdUncaughtExceptionHandler(StartupActivity.this));
@@ -310,8 +336,6 @@ public class StartupActivity extends AppCompatActivity {
         PreferenceManager.setDefaultValues(mContext, R.xml.network_passive_datasource_prefs, true);
         PreferenceManager.setDefaultValues(mContext, R.xml.logging_prefs, true);
 
-        mHandler = new Handler();
-        mUtil = new OsdUtil(mContext, mHandler);
         mUtil.writeToSysLogFile("");
         mUtil.writeToSysLogFile("*******************************");
         mUtil.writeToSysLogFile("* StartUpActivity Started     *");
@@ -333,7 +357,7 @@ public class StartupActivity extends AppCompatActivity {
                         PrefActivity.class);
                 startActivity(intent);
             } catch (Exception ex) {
-                Log.v(TAG, "exception starting settings activity " + ex.toString());
+                Log.v(TAG, "exception starting settings activity " + ex.toString(),ex);
                 mUtil.writeToSysLogFile("ERROR Starting Settings Activity");
             }
 
@@ -356,7 +380,8 @@ public class StartupActivity extends AppCompatActivity {
         Log.i(TAG, "onStop() - unbinding from server");
         mUtil.writeToSysLogFile("StartupActivity.onStop() - unbinding from server");
         mUtil.unbindFromServer(getApplicationContext(), mConnection);
-        mUiTimer.cancel();
+        if (mUiTimer != null)
+            mUiTimer.cancel();
     }
 
     @Override

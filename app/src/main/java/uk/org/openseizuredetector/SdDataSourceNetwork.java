@@ -202,7 +202,7 @@ public class SdDataSourceNetwork extends SdDataSource {
                 sdData.watchAppRunning = false;
                 sdData.alarmState = ALARM_STATE_NETFAULT;
                 sdData.alarmPhrase = "Warning - No Connection to Server";
-                Log.v(TAG,"doInBackground(): IOException - "+e.toString());
+                Log.e(TAG,"doInBackground(): IOException - "+e.toString(),e);
                 return sdData;
             }
         }
@@ -226,7 +226,7 @@ public class SdDataSourceNetwork extends SdDataSource {
                     Log.v(TAG, "doInBackground(): Alarm Accepted");
                 }
             } catch (IOException e) {
-                Log.v(TAG,"doInBackground(): IOException - "+e.toString());
+                Log.e(TAG,"doInBackground(): IOException - "+e.toString(),e);
             }
             return "Done";
         }

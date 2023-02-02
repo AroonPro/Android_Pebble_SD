@@ -117,6 +117,7 @@ public class SdServer extends Service implements SdDataReceiver {
     private int mLatchAlarmPeriod = 0;
     private LatchAlarmTimer mLatchAlarmTimer = null;
     private boolean mCancelAudible = false;
+    private final long mRemoteLogPeriod = 6; // Period in seconds between uploads to the remote server.
     public boolean mAudibleAlarm = false;   // set to public because it is accessed by MainActivity
     private boolean mAudibleWarning = false;
     private boolean mAudibleFaultWarning = false;
@@ -141,11 +142,11 @@ public class SdServer extends Service implements SdDataReceiver {
     private long mEventDuration = 120;   // event duration in seconds - uploads datapoints that cover this time range centred on the event time.
     private int mDefaultSampleCount = 250;   // number of samples to take, part 1 of 2 of sampleFrequency. Number of samples / time sampling.
     public long mDataRetentionPeriod = 1; // Prunes the local db so it only retains data younger than this duration (in days)
-    private long mRemoteLogPeriod = 6; // Period in seconds between uploads to the remote server.
     private long mAutoPrunePeriod = 3600;  // Prune the database every hour
     private boolean mAutoPruneDb;
 
     private String mOSDUrl = "";
+    private Thread coRoutine;
 
     private OsdUtil mUtil;
     private Handler mHandler;
@@ -369,7 +370,7 @@ public class SdServer extends Service implements SdDataReceiver {
                 mWakeLock.release();
                 Log.d(TAG, "Released Wake Lock to allow device to sleep.");
             } catch (Exception e) {
-                Log.e(TAG, "Error Releasing Wakelock - " + e.toString());
+                Log.e(TAG, "Error Releasing Wakelock - " + e.toString(),e);
                 mUtil.writeToSysLogFile("SdServer.onDestroy() - Error releasing wakelock.");
                 mUtil.showToast(getString(R.string.ErrorReleasingWakelockMsg));
             }
@@ -452,7 +453,7 @@ public class SdServer extends Service implements SdDataReceiver {
             stopSelf();
 
         } catch (Exception e) {
-            Log.e(TAG, "Error in onDestroy() - " + e.toString());
+            Log.e(TAG, "Error in onDestroy() - " + e.toString(),e);
             mUtil.writeToSysLogFile("SdServer.onDestroy() -error " + e.toString());
         }
 
@@ -1059,7 +1060,7 @@ public class SdServer extends Service implements SdDataReceiver {
             try {
                 webServer.start();
             } catch (IOException ioe) {
-                Log.e(TAG, "startWebServer(): Error: " + ioe.toString());
+                Log.e(TAG, "startWebServer(): Error: " + ioe.toString(),ioe);
             }
             Log.i(TAG, "startWebServer(): Web server initialized.");
         } else {
@@ -1113,7 +1114,7 @@ public class SdServer extends Service implements SdDataReceiver {
             try {
                 activeNetwork = cm.getActiveNetworkInfo();
             } catch (Exception e) {
-                Log.e(TAG, "NetworkBroadcastReceiver - failed to retrieve active network info");
+                Log.e(TAG, "NetworkBroadcastReceiver - failed to retrieve active network info",e);
                 mUtil.writeToSysLogFile("NetworkBroadcastReceiver - failed to retrieve active network info");
                 Log.e(TAG, e.toString());
             }
@@ -1179,7 +1180,7 @@ public class SdServer extends Service implements SdDataReceiver {
                 Log.v(TAG, "updatePrefs() - mLatchAlarmTimerPeriod = " + mLatchAlarmPeriod);
                 mUtil.writeToSysLogFile("updatePrefs() - mLatchAlarmTimerPeriod = " + mLatchAlarmPeriod);
             } catch (Exception ex) {
-                Log.v(TAG, "updatePrefs() - Problem with LatchAlarmTimerPeriod preference!");
+                Log.e(TAG, "updatePrefs() - Problem with LatchAlarmTimerPeriod preference!",ex);
                 mUtil.writeToSysLogFile("updatePrefs() - Problem with LatchAlarmTimerPeriod preference!");
                 mUtil.showToast(getString(R.string.problem_parsing_preferences));
             }
@@ -1193,7 +1194,7 @@ public class SdServer extends Service implements SdDataReceiver {
                 Log.v(TAG, "updatePrefs() - mFaultTimerPeriod = " + mFaultTimerPeriod);
                 mUtil.writeToSysLogFile("updatePrefs() - mFaultTimerPeriod = " + mFaultTimerPeriod);
             } catch (Exception ex) {
-                Log.v(TAG, "updatePrefs() - Problem with FaultTimerPeriod preference!");
+                Log.v(TAG, "updatePrefs() - Problem with FaultTimerPeriod preference!",ex);
                 mUtil.writeToSysLogFile("updatePrefs() - Problem with FaultTimerPeriod preference!");
                 mUtil.showToast(getString(R.string.problem_parsing_preferences));
             }
@@ -1244,8 +1245,17 @@ public class SdServer extends Service implements SdDataReceiver {
 
             String prefVal;
             prefVal = SP.getString("DefaultSampleCount", "250");
+
             mEventDuration = Integer.parseInt(prefVal);
             Log.v(TAG, "mDefaultSampleCount=" + mDefaultSampleCount);
+
+            mDefaultSampleCount = Integer.parseInt(prefVal);
+            Log.v(TAG, "mDefaultSampleCount=" + mDefaultSampleCount);
+            mSdData.mDefaultSampleCount = mDefaultSampleCount;
+
+            prefVal = SP.getString("analysisPeriod", "10");
+            mSdData.analysisPeriod = Integer.parseInt(prefVal);
+            Log.v(TAG, "mSdData.analysisPeriod=" + mSdData.analysisPeriod);
 
             prefVal = SP.getString("EventDurationSec", "300");
             mEventDuration = Integer.parseInt(prefVal);
@@ -1273,7 +1283,7 @@ public class SdServer extends Service implements SdDataReceiver {
             Log.v(TAG, "updatePrefs() - mOSDUrl = " + mOSDUrl);
             mUtil.writeToSysLogFile("updatePrefs() - mOSDUrl = " + mOSDUrl);
         } catch (Exception ex) {
-            Log.v(TAG, "updatePrefs() - Problem parsing preferences!");
+            Log.e(TAG, "updatePrefs() - Problem parsing preferences!",ex);
             mUtil.writeToSysLogFile("SdServer.updatePrefs() - Error " + ex.toString());
             mUtil.showToast(getString(R.string.problem_parsing_preferences));
         }
@@ -1356,7 +1366,7 @@ public class SdServer extends Service implements SdDataReceiver {
                 sm.sendTextMessage(phoneNo, null, msgStr,
                         null, null);
             } catch (Exception e) {
-                Log.e(TAG, "sendSMS - Failed to send SMS Message");
+                Log.e(TAG, "sendSMS - Failed to send SMS Message",e);
                 mUtil.writeToSysLogFile("sendSMS - Failed to send SMS Message");
                 Log.e(TAG, e.toString());
                 mUtil.showToast(getString(R.string.failed_to_send_sms));
@@ -1601,7 +1611,7 @@ public class SdServer extends Service implements SdDataReceiver {
                         mNM.cancel(DATASHARE_NOTIFICATION_ID);
                     }
                 } catch (JSONException e) {
-                    Log.e(TAG, "CheckEventsTimer.onFinish(): Error Parsing remoteEventsObj: " + e.getMessage());
+                    Log.e(TAG, "CheckEventsTimer.onFinish(): Error Parsing remoteEventsObj: " + e.getMessage(),e);
                     //mUtil.showToast("Error Parsing remoteEventsObj - this should not happen!!!");
                 }
             }
