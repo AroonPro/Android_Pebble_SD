@@ -71,6 +71,7 @@ public abstract class SdDataSource {
     protected static SdDataReceiver mSdDataReceiver;
     private String TAG = "SdDataSource";
 
+    protected boolean mIsRunning = false;
     private short mDebug;
     private short mFreqCutoff = 12;
     private short mDisplaySpectrum;

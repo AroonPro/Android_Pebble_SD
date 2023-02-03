@@ -39,12 +39,15 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.BatteryManager;
 import android.os.Binder;
 import android.os.Build;
 import android.os.CountDownTimer;
@@ -158,6 +161,16 @@ public class SdServer extends Service implements SdDataReceiver {
 
     public LogManager mLm;
 
+
+    public int mChargingState = 0;
+    public boolean mIsCharging = false;
+    public int chargePlug = 0;
+    public boolean usbCharge = false;
+    public boolean acCharge = false;
+    public float batteryPct = -1f;
+    public IntentFilter batteryStatusIntentFilter = null;
+    public Intent batteryStatusIntent;
+
     /**
      * class to handle binding the MainApp activity to this service
      * so it can access mSdData.
@@ -217,6 +230,94 @@ public class SdServer extends Service implements SdDataReceiver {
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                 "OSD:WakeLock");
     }
+    protected void powerUpdateReceieAction(Intent intent) {
+        try {
+            if (intent.getAction() != null) {
+                Log.d(TAG, "onReceive(): Received action:  " + intent.getAction());
+                // Are we charging / charged?
+                if (
+                        intent.getAction().equals(Intent.ACTION_POWER_CONNECTED) ||
+                                intent.getAction().equals(Intent.ACTION_POWER_DISCONNECTED)) {
+                    mChargingState = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+                    mIsCharging = mChargingState == BatteryManager.BATTERY_STATUS_CHARGING ||
+                            mChargingState == BatteryManager.BATTERY_STATUS_FULL;
+
+                    // How are we charging?
+                    chargePlug = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+                    usbCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_USB;
+                    acCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_AC;
+
+                    if ( mSdDataSourceName =="Phone") {
+                        if (mIsCharging &&
+                                mSdDataSource.mIsRunning)
+                            mSdDataSource.stop();
+                    } else{
+                    if (mIsCharging  && mSdData.watchConnected  && !mSdDataSource.mIsRunning)
+                        mSdDataSource.start();
+                    }
+                    if (!mIsCharging && !sensorsActive)
+
+                        bindSensorListeners();
+
+                }
+                if (intent.getAction().equals(Intent.ACTION_BATTERY_CHANGED)) {
+                    int level = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+
+                    int scale = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+                    batteryPct = 100 * level / (float) scale;
+                    mSdData.batteryPc = (int) (batteryPct);
+
+                    mChargingState = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+                    mIsCharging = mChargingState == BatteryManager.BATTERY_STATUS_CHARGING ||
+                            mChargingState == BatteryManager.BATTERY_STATUS_FULL;
+
+                    // How are we charging?
+                    chargePlug = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1);
+                    usbCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_USB;
+                    acCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_AC;
+                    boolean wirelessCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_WIRELESS;
+                    if (mIsCharging && sensorsActive)
+                        unBindSensorListeners();
+                    if (!mIsCharging && !sensorsActive)
+                        bindSensorListeners();
+                }
+                if (intent.getAction().equals(Intent.ACTION_BATTERY_LOW) ||
+                        intent.getAction().equals(Intent.ACTION_BATTERY_OKAY)) {
+
+                    if (sensorsActive && batteryPct < 15f)
+                        unBindSensorListeners();
+                }
+                mUtil.runOnUiThread(() -> {
+                    Log.d(TAG, "onBatteryChanged(): runOnUiThread(): updateUI");
+                });
+
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "powerUpdateReceiveAction() : error in type", e);
+        }
+
+    }
+
+    public BroadcastReceiver powerUpdateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            powerUpdateReceiveAction(intent);
+        }
+
+    };
+
+
+    private void bindBatteryEvents() {
+        batteryStatusIntentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        sdServerIntent.registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
+        registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
+        registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_BATTERY_LOW));
+        registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_BATTERY_OKAY));
+        batteryStatusIntent = registerReceiver(powerUpdateReceiver, batteryStatusIntentFilter);
+        registerReceiver(connectionUpdateReceiver, new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
+
+    }
+
 
     /**
      * onStartCommand - start the web server and the message loop for
@@ -266,6 +367,7 @@ public class SdServer extends Service implements SdDataReceiver {
                 Log.v(TAG, "Selecting Phone Sensor DataSource");
                 mUtil.writeToSysLogFile("SdServer.onStartCommand() - creating SdDataSourcePhone");
                 mSdDataSource = new SdDataSourcePhone(this.getApplicationContext(), mHandler, this);
+
                 break;
             default:
                 Log.e(TAG, "Datasource " + mSdDataSourceName + " not recognised - Defaulting to Phone");
