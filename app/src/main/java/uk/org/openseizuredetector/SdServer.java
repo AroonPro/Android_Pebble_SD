@@ -511,7 +511,7 @@ public class SdServer extends Service implements SdDataReceiver {
         i.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         PendingIntent contentIntent =
                 PendingIntent.getActivity(this,
-                        0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+                        0, i, PendingIntent.FLAG_MUTABLE);
         String smsStr;
         if (mSMSAlarm) {
             smsStr = getString(R.string.sms_location_alarm_active);
@@ -1681,7 +1681,7 @@ public class SdServer extends Service implements SdDataReceiver {
         i.setAction("None");
         PendingIntent contentIntent =
                 PendingIntent.getActivity(getApplicationContext(),
-                        0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+                        0, i, PendingIntent.FLAG_MUTABLE);
         String contentStr = getString(R.string.please_confirm_seizure_events);
 
         Notification notification = notificationBuilder.setContentIntent(contentIntent)
@@ -1726,12 +1726,12 @@ public class SdServer extends Service implements SdDataReceiver {
         i.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent contentIntent =
                 PendingIntent.getActivity(getApplicationContext(),
-                        0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+                        0, i, PendingIntent.FLAG_MUTABLE);
         Intent loginIntent = new Intent(getApplicationContext(), AuthenticateActivity.class);
         loginIntent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         PendingIntent loginPendingIntent =
                 PendingIntent.getActivity(getApplicationContext(),
-                        0, loginIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                        0, loginIntent, PendingIntent.FLAG_MUTABLE);
 
         String contentStr = getString(R.string.datasharing_notification_text);
         Notification notification = notificationBuilder
