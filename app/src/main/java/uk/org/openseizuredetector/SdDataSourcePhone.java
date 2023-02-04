@@ -150,9 +150,11 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
 
     private  void bindSensorListeners(){
         if (mSampleTimeUs <= 0d)
+        {
             calculateStaticTimings();
-        else
-            mSampleTimeUs = SensorManager.SENSOR_DELAY_NORMAL;
+            if (mSampleTimeUs <= 0d)
+                mSampleTimeUs = SensorManager.SENSOR_DELAY_NORMAL;
+        }
         mSensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
         Sensor mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         // registering listener with reference to (this).onSensorChanged , mSampleTime in MicroSeconds

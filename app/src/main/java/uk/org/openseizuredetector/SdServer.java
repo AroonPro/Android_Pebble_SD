@@ -155,6 +155,8 @@ public class SdServer extends Service implements SdDataReceiver {
     private Handler mHandler;
     private ToneGenerator mToneGenerator;
 
+    private boolean autoStart ;
+
     private NetworkBroadcastReceiver mNetworkBroadcastReceiver;
 
     private final IBinder mBinder = new SdBinder();
@@ -167,9 +169,11 @@ public class SdServer extends Service implements SdDataReceiver {
     public int chargePlug = 0;
     public boolean usbCharge = false;
     public boolean acCharge = false;
+    public boolean runPausedByCharger;
     public float batteryPct = -1f;
     public IntentFilter batteryStatusIntentFilter = null;
     public Intent batteryStatusIntent;
+    private boolean serverInitialized = false;
 
     /**
      * class to handle binding the MainApp activity to this service
@@ -230,9 +234,10 @@ public class SdServer extends Service implements SdDataReceiver {
         mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                 "OSD:WakeLock");
     }
-    protected void powerUpdateReceieAction(Intent intent) {
+    protected void powerUpdateReceiveAction(Intent intent) {
         try {
-            if (intent.getAction() != null) {
+            if (intent.getAction() != null && serverInitialized) {
+
                 Log.d(TAG, "onReceive(): Received action:  " + intent.getAction());
                 // Are we charging / charged?
                 if (
@@ -247,17 +252,18 @@ public class SdServer extends Service implements SdDataReceiver {
                     usbCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_USB;
                     acCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_AC;
 
-                    if ( mSdDataSourceName =="Phone") {
+                    if ( mSdDataSourceName == "Phone") {
                         if (mIsCharging &&
                                 mSdDataSource.mIsRunning)
                             mSdDataSource.stop();
                     } else{
-                    if (mIsCharging  && mSdData.watchConnected  && !mSdDataSource.mIsRunning)
+                    if (
+                            !mIsCharging  && mSdData.watchConnected  && !mSdDataSource.mIsRunning)
                         mSdDataSource.start();
                     }
-                    if (!mIsCharging && !sensorsActive)
+                    if (!mIsCharging && mUtil.isServerRunning() && runPausedByCharger)
 
-                        bindSensorListeners();
+                        mSdDataSource.start();
 
                 }
                 if (intent.getAction().equals(Intent.ACTION_BATTERY_CHANGED)) {
@@ -265,7 +271,8 @@ public class SdServer extends Service implements SdDataReceiver {
 
                     int scale = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
                     batteryPct = 100 * level / (float) scale;
-                    mSdData.batteryPc = (int) (batteryPct);
+                    if( mSdDataSourceName == "Phone")
+                        mSdData.batteryPc = (int) (batteryPct);
 
                     mChargingState = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
                     mIsCharging = mChargingState == BatteryManager.BATTERY_STATUS_CHARGING ||
@@ -276,17 +283,44 @@ public class SdServer extends Service implements SdDataReceiver {
                     usbCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_USB;
                     acCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_AC;
                     boolean wirelessCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_WIRELESS;
-                    if (mIsCharging && sensorsActive)
-                        unBindSensorListeners();
-                    if (!mIsCharging && !sensorsActive)
-                        bindSensorListeners();
+                    if (mIsCharging && mSdDataSource.mIsRunning &&  mSdDataSourceName == "Phone" )
+                    {
+                        mSdDataSource.stop();
+                        runPausedByCharger = true;
+                    }
+                    if (!mIsCharging && autoStart && mSdDataSourceName == "Phone" && runPausedByCharger)
+                    {
+                        mSdDataSource.start();
+                        runPausedByCharger = false;
+                    }
                 }
                 if (intent.getAction().equals(Intent.ACTION_BATTERY_LOW) ||
                         intent.getAction().equals(Intent.ACTION_BATTERY_OKAY)) {
 
-                    if (sensorsActive && batteryPct < 15f)
-                        unBindSensorListeners();
+                    if (mSdData.watchConnected) {
+                        if (batteryPct < 15f) {
+                            if (!mIsCharging)
+                            {
+                                mSdDataSource.stop();
+                            }
+                            else {
+                                if (mSdDataSource.mIsRunning &&  mSdDataSourceName == "Phone" )
+                                {
+                                    mSdDataSource.stop();
+                                    runPausedByCharger = true;
+                                }
+                                if (!mIsCharging && autoStart && mSdDataSourceName == "Phone" && runPausedByCharger)
+                                {
+                                    mSdDataSource.start();
+                                    runPausedByCharger = false;
+                                }
+                            }
+                        }
+
+
+                    }
                 }
+
                 mUtil.runOnUiThread(() -> {
                     Log.d(TAG, "onBatteryChanged(): runOnUiThread(): updateUI");
                 });
@@ -301,7 +335,7 @@ public class SdServer extends Service implements SdDataReceiver {
     public BroadcastReceiver powerUpdateReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            powerUpdateReceiveAction(intent);
+           powerUpdateReceiveAction(intent);
         }
 
     };
@@ -309,12 +343,11 @@ public class SdServer extends Service implements SdDataReceiver {
 
     private void bindBatteryEvents() {
         batteryStatusIntentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        sdServerIntent.registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
+        registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
         registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
         registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_BATTERY_LOW));
         registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_BATTERY_OKAY));
         batteryStatusIntent = registerReceiver(powerUpdateReceiver, batteryStatusIntentFilter);
-        registerReceiver(connectionUpdateReceiver, new IntentFilter("android.net.conn.CONNECTIVITY_CHANGE"));
 
     }
 
@@ -680,7 +713,7 @@ public class SdServer extends Service implements SdDataReceiver {
     public void onSdDataReceived(SdData sdData) {
         Log.v(TAG, "onSdDataReceived() - " + sdData.toString());
         Log.v(TAG, "onSdDataReceived(), sdData.fallAlarmStanding=" + sdData.fallAlarmStanding);
-
+        if (!serverInitialized) serverInitialized = true;
         if (sdData.alarmState == 0) {
             if ((!mLatchAlarms) ||
                     (mLatchAlarms &&
@@ -1269,6 +1302,7 @@ public class SdServer extends Service implements SdDataReceiver {
         SharedPreferences SP = PreferenceManager
                 .getDefaultSharedPreferences(getBaseContext());
         try {
+            autoStart = SP.getBoolean("AutoStart",false);
             mSdDataSourceName = SP.getString("DataSource", "Pebble");
             Log.v(TAG, "updatePrefs() - DataSource = " + mSdDataSourceName);
             mUtil.writeToSysLogFile("updatePrefs() - DataSource = " + mSdDataSourceName);
