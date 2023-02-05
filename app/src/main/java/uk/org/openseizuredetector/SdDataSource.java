@@ -226,7 +226,7 @@ public abstract class SdDataSource {
             }
 
         } catch (Exception e) {
-            Log.v(TAG, "Error in stop() - " + e.toString());
+            Log.e(TAG, "Error in stop() - " + e.toString(),e);
             mUtil.writeToSysLogFile("SDDataSource.stop() - error - " + e.toString());
         }
 
@@ -248,7 +248,7 @@ public abstract class SdDataSource {
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             mContext.startActivity(i);
         } catch (Exception ex) {
-            Log.i(TAG, "exception starting install watch app activity " + ex.toString());
+            Log.i(TAG, "installWatchApp(): exception starting install watch app activity " + ex.toString(),ex);
             showToast("Error Displaying Installation Instructions - try http://www.openseizuredetector.org.uk/?page_id=1207 instead");
         }
     }
@@ -324,7 +324,7 @@ public abstract class SdDataSource {
                     }
                 } catch (JSONException e) {
                     // If we get an error, just set rawData3D to zero
-                    Log.i(TAG,"updateFromJSON - error parsing 3D data - setting it to zero");
+                    Log.i(TAG,"updateFromJSON - error parsing 3D data - setting it to zero",e);
                     for (i = 0; i < mSdData.rawData3D.length; i++) {
                         mSdData.rawData3D[i] = 0.;
                     }
@@ -360,7 +360,7 @@ public abstract class SdDataSource {
                     mSdData.watchSdVersion = sdVersion;
                     mSdData.watchSdName = sdName;
                 } catch (Exception e) {
-                    Log.e(TAG, "updateFromJSON - Error Parsing V3.2 JSON String - " + e.toString());
+                    Log.e(TAG, "updateFromJSON - Error Parsing V3.2 JSON String - " + e.toString(),e);
                     mUtil.writeToSysLogFile("updateFromJSON - Error Parsing V3.2 JSON String - " + jsonStr + " - " + e.toString());
                     mUtil.writeToSysLogFile("          This is probably because of an out of date watch app - please upgrade!");
                     e.printStackTrace();
@@ -374,7 +374,7 @@ public abstract class SdDataSource {
                 retVal = "ERROR";
             }
         } catch (Exception e) {
-            Log.e(TAG, "updateFromJSON - Error Parsing JSON String - " + jsonStr + " - " + e.toString());
+            Log.e(TAG, "updateFromJSON - Error Parsing JSON String - " + jsonStr + " - " + e.toString(),e);
             mUtil.writeToSysLogFile("updateFromJSON - Error Parsing JSON String - " + jsonStr + " - " + e.toString());
             mUtil.writeToSysLogFile("updateFromJSON: Exception at Line Number: " + e.getCause().getStackTrace()[0].getLineNumber() + ", " + e.getCause().getStackTrace()[0].toString());
             if (accelVals == null) {
@@ -490,7 +490,7 @@ public abstract class SdDataSource {
             mWatchAppRunningCheck = true;
         } catch (Exception e) {
             Log.e(TAG, "doAnalysis - Exception during Analysis");
-            mUtil.writeToSysLogFile("doAnalysis - Exception during analysis - " + e.toString());
+            mUtil.writeToSysLogFile("doAnalysis - Exception during analysis - " + e.toString(),e);
             mUtil.writeToSysLogFile("doAnalysis: Exception at Line Number: " + e.getCause().getStackTrace()[0].getLineNumber() + ", " + e.getCause().getStackTrace()[0].toString());
             mUtil.writeToSysLogFile("doAnalysis: mSdData.mNsamp="+mSdData.mNsamp);
             mUtil.writeToSysLogFile("doAnalysis: alarmFreqMin="+mAlarmFreqMin+" nMin="+nMin);
@@ -785,7 +785,7 @@ public abstract class SdDataSource {
                 Log.v(TAG, "updatePrefs() - mAppRestartTimeout = " + mAppRestartTimeout);
                 mUtil.writeToSysLogFile( "updatePrefs() - mAppRestartTimeout = " + mAppRestartTimeout);
             } catch (Exception ex) {
-                Log.v(TAG, "updatePrefs() - Problem with AppRestartTimeout preference!");
+                Log.e(TAG, "updatePrefs() - Problem with AppRestartTimeout preference!",ex);
                 mUtil.writeToSysLogFile( "updatePrefs() - Problem with AppRestartTimeout preference!");
                 Toast toast = Toast.makeText(mContext, "Problem Parsing AppRestartTimeout Preference", Toast.LENGTH_SHORT);
                 toast.show();
@@ -798,7 +798,7 @@ public abstract class SdDataSource {
                 Log.v(TAG, "updatePrefs() - mFaultTimerPeriod = " + mFaultTimerPeriod);
                 mUtil.writeToSysLogFile( "updatePrefs() - mFaultTimerPeriod = " + mFaultTimerPeriod);
             } catch (Exception ex) {
-                Log.v(TAG, "updatePrefs() - Problem with FaultTimerPeriod preference!");
+                Log.e(TAG, "updatePrefs() - Problem with FaultTimerPeriod preference!",ex);
                 mUtil.writeToSysLogFile( "updatePrefs() - Problem with FaultTimerPeriod preference!");
                 Toast toast = Toast.makeText(mContext, "Problem Parsing FaultTimerPeriod Preference", Toast.LENGTH_SHORT);
                 toast.show();
@@ -958,7 +958,7 @@ public abstract class SdDataSource {
             }
 
         } catch (Exception ex) {
-            Log.v(TAG, "updatePrefs() - Problem parsing preferences!");
+            Log.e(TAG, "updatePrefs() - Problem parsing preferences!",ex);
             mUtil.writeToSysLogFile("SDDataSource.updatePrefs() - ERROR " + ex.toString());
             Toast toast = Toast.makeText(mContext, "Problem Parsing Preferences - Something won't work - Please go back to Settings and correct it!", Toast.LENGTH_SHORT);
             toast.show();
