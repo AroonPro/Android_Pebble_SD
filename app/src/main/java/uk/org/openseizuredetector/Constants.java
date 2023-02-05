@@ -15,4 +15,10 @@ public class Constants {
     public interface TAGS {
         public static String AWSDService = "AWSdService";
     }
+
+    public interface SD_SERVICE_CONSTANTS{
+        public static short defaultSampleRate = 25;
+        public static short defaultSampleTime = 10;
+        public static short defaultSampleCount = defaultSampleRate * defaultSampleTime;
+    }
 }

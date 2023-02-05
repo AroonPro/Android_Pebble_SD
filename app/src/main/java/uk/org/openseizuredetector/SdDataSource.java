@@ -40,6 +40,7 @@ import org.json.JSONObject;
 import org.jtransforms.fft.DoubleFFT_1D;
 
 import java.util.Arrays;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -112,10 +113,11 @@ public abstract class SdDataSource {
         mHandler = handler;
         mUtil = new OsdUtil(mContext, mHandler);
         mSdDataReceiver = sdDataReceiver;
-        mSdData = new SdData();
+        mSdData = pullSdData();
 
     }
 
+    private SdData pullSdData() { return ((SdServer)mSdDataReceiver).mSdData; }
     /**
      * Returns the SdData object stored by this class.
      *
@@ -130,9 +132,9 @@ public abstract class SdDataSource {
      * make sure any changes to preferences are taken into account.
      */
     public void start() {
-
         Log.v(TAG, "start()");
         mUtil.writeToSysLogFile("SdDataSource.start()");
+        if (!Objects.equals(mSdData,pullSdData())) mSdData = pullSdData();
         updatePrefs();
 
         if (mSdData.mCnnAlarmActive) {
@@ -410,7 +412,7 @@ public abstract class SdDataSource {
         double[] fft = null;
         try {
             // FIXME - Use specified sampleFreq, not this hard coded one
-            mSampleFreq = 25;
+            mSampleFreq = Constants.SD_SERVICE_CONSTANTS.defaultSampleRate;
             double freqRes = 1.0 * mSampleFreq / mSdData.mNsamp;
             Log.v(TAG, "doAnalysis(): mSampleFreq=" + mSampleFreq + " mNSamp=" + mSdData.mNsamp + ": freqRes=" + freqRes);
             Log.v(TAG,"doAnalysis(): rawData=" + Arrays.toString(mSdData.rawData));

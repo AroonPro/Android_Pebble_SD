@@ -39,8 +39,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
-import android.hardware.Sensor;
-import android.hardware.SensorManager;
 import android.location.Location;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
@@ -143,7 +141,9 @@ public class SdServer extends Service implements SdDataReceiver {
     private String mAuthToken = null;
     private long mEventsTimerPeriod = 60; // Number of seconds between checks to see if there are unvalidated remote events.
     private long mEventDuration = 120;   // event duration in seconds - uploads datapoints that cover this time range centred on the event time.
-    private int mDefaultSampleCount = 250;   // number of samples to take, part 1 of 2 of sampleFrequency. Number of samples / time sampling.
+    private int mDefaultSampleCount = Constants.SD_SERVICE_CONSTANTS.defaultSampleCount;   // number of samples to take, part 1 of 2 of sampleFrequency. Number of samples / time sampling.
+    private int mDfaultSampleTime = Constants.SD_SERVICE_CONSTANTS.defaultSampleTime;
+    private int mDefaultSampleRate = Constants.SD_SERVICE_CONSTANTS.defaultSampleTime;
     public long mDataRetentionPeriod = 1; // Prunes the local db so it only retains data younger than this duration (in days)
     private long mAutoPrunePeriod = 3600;  // Prune the database every hour
     private boolean mAutoPruneDb;
