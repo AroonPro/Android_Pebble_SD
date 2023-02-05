@@ -489,8 +489,8 @@ public abstract class SdDataSource {
             // Because we have received data, set flag to show watch app running.
             mWatchAppRunningCheck = true;
         } catch (Exception e) {
-            Log.e(TAG, "doAnalysis - Exception during Analysis");
-            mUtil.writeToSysLogFile("doAnalysis - Exception during analysis - " + e.toString(),e);
+            Log.e(TAG, "doAnalysis - Exception during Analysis".e);
+            mUtil.writeToSysLogFile("doAnalysis - Exception during analysis - " + e.toString());
             mUtil.writeToSysLogFile("doAnalysis: Exception at Line Number: " + e.getCause().getStackTrace()[0].getLineNumber() + ", " + e.getCause().getStackTrace()[0].toString());
             mUtil.writeToSysLogFile("doAnalysis: mSdData.mNsamp="+mSdData.mNsamp);
             mUtil.writeToSysLogFile("doAnalysis: alarmFreqMin="+mAlarmFreqMin+" nMin="+nMin);
