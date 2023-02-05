@@ -272,7 +272,9 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                         rawDataList.clear();
                         rawDataList3D.clear();
                         mSdData.mNsamp = Constants.SD_SERVICE_CONSTANTS.defaultSampleCount;
-
+                        int scale = ((SdServer)mSdDataReceiver).batteryStatusIntent.getIntExtra("scale",-1);
+                        int level = ((SdServer)mSdDataReceiver).batteryStatusIntent.getIntExtra("level",-1);
+                        mSdData.batteryPc = (long) 100d*(level/scale);
                         doAnalysis();
                         mSdData.mNsamp = 0;
                         mStartTs = event.timestamp;

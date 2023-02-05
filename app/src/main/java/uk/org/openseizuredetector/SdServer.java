@@ -72,6 +72,7 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.List;
+import java.util.Objects;
 import java.util.Timer;
 
 /**
@@ -271,7 +272,7 @@ public class SdServer extends Service implements SdDataReceiver {
 
                     int scale = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
                     batteryPct = 100 * level / (float) scale;
-                    if( mSdDataSourceName == "Phone")
+                    if( mSdDataSourceName.equals("Phone") )
                         mSdData.batteryPc = (int) (batteryPct);
 
                     mChargingState = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
@@ -283,12 +284,12 @@ public class SdServer extends Service implements SdDataReceiver {
                     usbCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_USB;
                     acCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_AC;
                     boolean wirelessCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_WIRELESS;
-                    if (mIsCharging && mSdDataSource.mIsRunning &&  mSdDataSourceName == "Phone" )
+                    if (mIsCharging && mSdDataSource.mIsRunning &&  mSdDataSourceName.equals("Phone") )
                     {
                         mSdDataSource.stop();
                         runPausedByCharger = true;
                     }
-                    if (!mIsCharging && autoStart && mSdDataSourceName == "Phone" && runPausedByCharger)
+                    if (!mIsCharging && autoStart && mSdDataSourceName.equals("Phone") && runPausedByCharger)
                     {
                         mSdDataSource.start();
                         runPausedByCharger = false;
@@ -343,7 +344,7 @@ public class SdServer extends Service implements SdDataReceiver {
 
     private void bindBatteryEvents() {
         batteryStatusIntentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
+        registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_POWER_CONNECTED));
         registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
         registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_BATTERY_LOW));
         registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_BATTERY_OKAY));
@@ -490,6 +491,9 @@ public class SdServer extends Service implements SdDataReceiver {
         }
 
         checkEvents();
+        if (Objects.equals(intent.getData(),Uri.parse("Start")))bindBatteryEvents();
+        if (Objects.equals(intent.getData(),Uri.parse("Stop")))unregisterReceiver(powerUpdateReceiver);
+
 
         return START_STICKY;
     }
