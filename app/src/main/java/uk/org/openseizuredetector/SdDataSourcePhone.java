@@ -135,6 +135,7 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                              SdDataReceiver sdDataReceiver) {
         super(context, handler, sdDataReceiver);
 
+
         mName = "Phone";
         // Set default settings from XML files (mContext is set by super().
          PreferenceManager.setDefaultValues(mContext,
@@ -147,7 +148,7 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
         Log.d(TAG,"logging value of mSdData: "+super.mSdData.mDefaultSampleCount);
         //mSdDataSettings = sdDataReceiver.mSdData;
         sdServer = (SdServer) sdDataReceiver;
-        mSdDataSettings = sdServer.mSdData;
+        mSdDataSettings = pullSdData();
         sdServerIntent = new Intent(context,SdDataSource.class);
         if (!Objects.equals(mSdDataSettings,null))if (mSdDataSettings.mDefaultSampleCount >0d && mSdDataSettings.analysisPeriod > 0d ) {
             calculateStaticTimings();

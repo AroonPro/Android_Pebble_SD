@@ -237,9 +237,9 @@ public class SdServer extends Service implements SdDataReceiver {
     }
     protected void powerUpdateReceiveAction(Intent intent) {
         try {
+            Log.d(TAG, "onReceive(): Received action:  " + intent.getAction());
             if (intent.getAction() != null && serverInitialized) {
 
-                Log.d(TAG, "onReceive(): Received action:  " + intent.getAction());
                 // Are we charging / charged?
                 if (
                         intent.getAction().equals(Intent.ACTION_POWER_CONNECTED) ||
@@ -305,12 +305,12 @@ public class SdServer extends Service implements SdDataReceiver {
                                 mSdDataSource.stop();
                             }
                             else {
-                                if (mSdDataSource.mIsRunning &&  mSdDataSourceName == "Phone" )
+                                if (mSdDataSource.mIsRunning &&  mSdDataSourceName.equals("Phone") )
                                 {
                                     mSdDataSource.stop();
                                     runPausedByCharger = true;
                                 }
-                                if (!mIsCharging && autoStart && mSdDataSourceName == "Phone" && runPausedByCharger)
+                                if (!mIsCharging && autoStart && mSdDataSourceName.equals("Phone") && runPausedByCharger)
                                 {
                                     mSdDataSource.start();
                                     runPausedByCharger = false;
@@ -360,6 +360,8 @@ public class SdServer extends Service implements SdDataReceiver {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "onStartCommand() - SdServer service starting");
+        int returnValueFromSuper = super.onStartCommand(intent, flags, startId);
+
         mUtil.writeToSysLogFile("SdServer.onStartCommand()");
 
         // Update preferences.
@@ -482,8 +484,12 @@ public class SdServer extends Service implements SdDataReceiver {
 
         // Apply the wake-lock to prevent CPU sleeping (very battery intensive!)
         if (mWakeLock != null) {
-            mWakeLock.acquire();
-            Log.v(TAG, "Applied Wake Lock to prevent device sleeping");
+            if (!mWakeLock.isHeld()){
+                mWakeLock.acquire(24 * 60 * 60 * 1000L /*1 day*/);
+                Log.v(TAG, "Applied Wake Lock to prevent device sleeping");
+
+            }
+            else Log.v(TAG, "onStartCommand(): lock already helt");
             mUtil.writeToSysLogFile("SdServer.onStartCommand() - applying wake lock");
         } else {
             Log.d(TAG, "mmm...mWakeLock is null, so not aquiring lock.  This shouldn't happen!");
@@ -495,7 +501,9 @@ public class SdServer extends Service implements SdDataReceiver {
         if (Objects.equals(intent.getData(),Uri.parse("Stop")))unregisterReceiver(powerUpdateReceiver);
 
 
-        return START_STICKY;
+        if (intent == null) return START_NOT_STICKY;
+        return returnValueFromSuper;
+
     }
 
     @Override
@@ -1723,7 +1731,7 @@ public class SdServer extends Service implements SdDataReceiver {
         // Retrieve events from remote database
         if (mLm.mWac.getEvents((JSONObject remoteEventsObj) -> {
             Log.v(TAG, "checkEvents.getEvents.Callback()");
-            Boolean haveUnvalidatedEvent = false;
+            boolean haveUnvalidatedEvent = false;
             if (remoteEventsObj == null) {
                 Log.e(TAG, "checkEvents.getEvents.Callback():  Error Retrieving events");
             } else {
