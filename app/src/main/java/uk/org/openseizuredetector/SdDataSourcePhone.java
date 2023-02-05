@@ -257,7 +257,7 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                         // FIXME - we should really do this properly rather than assume we are really receiving data at 50Hz.
                         int readPosition = 1;
 
-                        for (int i = 0; i < Constants.SD_SERVICE_CONSTANTS.defaultSampleCount; i++) {
+                        for (int i = 0; i < Constants.SD_SERVICE_CONSTANTS.defaultSampleCount -1; i++) {
                             readPosition = (int) Math.round((double) i / mConversionSampleFactor);
                             mSdData.rawData[i] = miliGravityScaleFactor * rawDataList.get(readPosition) / SensorManager.GRAVITY_EARTH;
                             mSdData.rawData3D[i] = miliGravityScaleFactor * rawDataList3D.get(readPosition) / SensorManager.GRAVITY_EARTH;
