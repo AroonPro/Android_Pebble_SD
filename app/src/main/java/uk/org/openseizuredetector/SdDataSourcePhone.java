@@ -220,7 +220,7 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                 } else {
                     mSdData.mNsamp++;
                 }
-                if (mSdData.mNsamp >= mSdData.mDefaultSampleCount) {
+                if (mSdData.mNsamp >= mSdDataSettings.mDefaultSampleCount) {
                     Log.v(TAG, "onSensorChanged(): Collected Data = final TimeStamp=" + event.timestamp + ", initial TimeStamp=" + mStartTs);
                     mSdData.dT = 1.0e-9 * (event.timestamp - mStartTs);
                     mSdData.mSampleFreq = (int) (mSdData.mNsamp / mSdData.dT);
