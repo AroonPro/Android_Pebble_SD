@@ -284,16 +284,7 @@ public class SdServer extends Service implements SdDataReceiver {
                     usbCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_USB;
                     acCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_AC;
                     boolean wirelessCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_WIRELESS;
-                    if (mIsCharging && mSdDataSource.mIsRunning &&  mSdDataSourceName.equals("Phone") )
-                    {
-                        mSdDataSource.stop();
-                        runPausedByCharger = true;
-                    }
-                    if (!mIsCharging && autoStart && mSdDataSourceName.equals("Phone") && runPausedByCharger)
-                    {
-                        mSdDataSource.start();
-                        runPausedByCharger = false;
-                    }
+                   
                 }
                 if (intent.getAction().equals(Intent.ACTION_BATTERY_LOW) ||
                         intent.getAction().equals(Intent.ACTION_BATTERY_OKAY)) {
@@ -422,7 +413,7 @@ public class SdServer extends Service implements SdDataReceiver {
             mLocationFinder = new LocationFinder(getApplicationContext());
         }
         mUtil.writeToSysLogFile("SdServer.onStartCommand() - starting SdDataSource");
-        mSdDataSource.start();
+        if (!mSdDataSource.mIsRunning) mSdDataSource.start();
 
         // Initialise Notification channel for API level 26 and over
         // from https://stackoverflow.com/questions/44443690/notificationcompat-with-api-26

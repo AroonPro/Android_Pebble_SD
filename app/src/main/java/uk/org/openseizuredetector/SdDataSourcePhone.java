@@ -67,9 +67,6 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
     private SdData mSdDataSettings ;
     private SdServer sdServer;
     private PowerManager.WakeLock mWakeLock;
-    private double accelerationCombined = -1d;
-    private double gravityScaleFactor;
-    private double miliGravityScaleFactor;
 
     private int mChargingState = 0;
     private boolean mIsCharging = false;
@@ -113,12 +110,13 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
             mConversionSampleFactor = 1d;
         if (accelerationCombined != -1d) {
             gravityScaleFactor = (Math.round(accelerationCombined / SensorManager.GRAVITY_EARTH) % 10d);
+
         }
         else
         {
             gravityScaleFactor = 1d;
         }
-        miliGravityScaleFactor = gravityScaleFactor / 1e3;
+        miliGravityScaleFactor = gravityScaleFactor * 1e3;
 
     }
 
@@ -158,7 +156,9 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
 
 
     private  void bindSensorListeners(){
-        if (mSampleTimeUs <= 0d)
+        if (mSampleTimeUs <= (double) SensorManager.SENSOR_DELAY_NORMAL ||
+                Double.isInfinite(mSampleTimeUs) ||
+                Double.isNaN(mSampleTimeUs))
         {
             calculateStaticTimings();
             if (mSampleTimeUs <= 0d)
@@ -183,10 +183,13 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
      * Start the datasource updating - initialises from sharedpreferences first to
      * make sure any changes to preferences are taken into account.
      */
+    @Override
     public void start() {
         Log.i(TAG, "start()");
         mUtil.writeToSysLogFile("SdDataSourcePhone.start()");
         super.start();
+        Log.i(TAG,"onStart(): returned from SdDataSource.onStart");
+        mCurrentMaxSampleCount = ((SdServer)mSdDataReceiver).mSdData.mDefaultSampleCount;
         bindSensorListeners();
         mIsRunning = true;
     }
@@ -194,12 +197,15 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
     /**
      * Stop the datasource from updating
      */
+    @Override
     public void stop() {
         Log.i(TAG, "stop()");
         mUtil.writeToSysLogFile("SdDataSourcePhone.stop()");
 
         super.stop();
+        Log.i(TAG,"onStop(): returned from SdDataSource.onStop");
         unBindSensorListeners();
+        Log.i(TAG,"onStart(): returned from unBindSensorListners");
 
         mIsRunning = false;
     }
@@ -241,13 +247,16 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                 float y = event.values[1];
                 float z = event.values[2];
                 //Log.v(TAG,"Accelerometer Data Received: x="+x+", y="+y+", z="+z);
-                if (!Objects.equals(rawDataList, null) ) {
+                if (!Objects.equals(rawDataList, null) && rawDataList.size() <= mCurrentMaxSampleCount ) {
                     rawDataList.add( sqrt(x * x + y * y + z * z));
                     rawDataList3D.add((double) x);
                     rawDataList3D.add((double) y);
                     rawDataList3D.add((double) z);
                     mSdData.mNsamp++;
-                    if (mSdData.mNsamp == (mCurrentMaxSampleCount -(1/mConversionSampleFactor)) ) {
+                    if (mSdData.mNsamp == (mCurrentMaxSampleCount -(1f/mConversionSampleFactor)) )
+                    {
+
+
                         // Calculate the sample frequency for this sample, but do not change mSampleFreq, which is used for
                         // analysis - this is because sometimes you get a very long delay (e.g. when disconnecting debugger),
                         // which gives a very low frequency which can make us run off the end of arrays in doAnalysis().
@@ -276,6 +285,10 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                         int scale = ((SdServer)mSdDataReceiver).batteryStatusIntent.getIntExtra("scale",-1);
                         int level = ((SdServer)mSdDataReceiver).batteryStatusIntent.getIntExtra("level",-1);
                         mSdData.batteryPc = (long) 100d*(level/scale);
+                        mSdData.mHR = -1;
+                        mSdData.mHRAlarmActive = false;
+                        mSdData.mHRAlarmStanding = false;
+                        mSdData.mHRNullAsAlarm = false;
                         doAnalysis();
                         mSdData.mNsamp = 0;
                         mStartTs = event.timestamp;

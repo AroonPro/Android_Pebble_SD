@@ -89,12 +89,17 @@ public abstract class SdDataSource {
     private short mAlarmTime;
     private short mAlarmThresh;
     private short mAlarmRatioThresh;
+    protected double accelerationCombined = -1d;
+    protected double gravityScaleFactor;
+    protected double miliGravityScaleFactor;
     private boolean mFallActive;
     private short mFallThreshMin;
     private short mFallThreshMax;
     private short mFallWindow;
     private int mMute;  // !=0 means muted by keypress on watch.
     private SdAlgNn mSdAlgNn;
+    double[] fft = null;
+    double[] simpleSpec;
 
     // Values for SD_MODE
     private int SIMPLE_SPEC_FMAX = 10;
@@ -409,7 +414,7 @@ public abstract class SdDataSource {
         int nMin = 0;
         int nMax = 0;
         int nFreqCutoff = 0;
-        double[] fft = null;
+        fft = null;
         try {
             // FIXME - Use specified sampleFreq, not this hard coded one
             mSampleFreq = Constants.SD_SERVICE_CONSTANTS.defaultSampleRate;
@@ -456,7 +461,7 @@ public abstract class SdDataSource {
             double roiRatio = 10 * roiPower / specPower;
 
             // Calculate the simplified spectrum - power in 1Hz bins.
-            double[] simpleSpec = new double[SIMPLE_SPEC_FMAX + 1];
+            simpleSpec = new double[SIMPLE_SPEC_FMAX + 1];
             for (int ifreq = 0; ifreq < SIMPLE_SPEC_FMAX; ifreq++) {
                 int binMin = (int) (1 + ifreq / freqRes);    // add 1 to loose dc component
                 int binMax = (int) (1 + (ifreq + 1) / freqRes);
@@ -469,8 +474,8 @@ public abstract class SdDataSource {
 
             // Populate the mSdData structure to communicate with the main SdServer service.
             mDataStatusTime.setToNow();
-            mSdData.specPower = (long) specPower / ACCEL_SCALE_FACTOR;
-            mSdData.roiPower = (long) roiPower / ACCEL_SCALE_FACTOR;
+            mSdData.specPower = (long) (specPower / miliGravityScaleFactor);
+            mSdData.roiPower = (long) (roiPower / miliGravityScaleFactor);
             mSdData.dataTime.setToNow();
             mSdData.maxVal = 0;   // not used
             mSdData.maxFreq = 0;  // not used
@@ -482,7 +487,7 @@ public abstract class SdDataSource {
             // note mSdData.batteryPc is set from settings data in updateFromJSON()
             // FIXME - I haven't worked out why dividing by 1000 seems necessary to get the graph on scale - we don't seem to do that with the Pebble.
             for (int i = 0; i < SIMPLE_SPEC_FMAX; i++) {
-                mSdData.simpleSpec[i] = (int) simpleSpec[i] / ACCEL_SCALE_FACTOR;
+                mSdData.simpleSpec[i] = (int) (simpleSpec[i] / gravityScaleFactor);
             }
             Log.v(TAG, "simpleSpec = " + Arrays.toString(mSdData.simpleSpec));
 
@@ -650,7 +655,7 @@ public abstract class SdDataSource {
         int i, j;
         double minAcc, maxAcc;
 
-        long fallWindowSamp = (mFallWindow * mSdData.mSampleFreq) / 1000; // Convert ms to samples.
+        long fallWindowSamp =(int) ((mFallWindow * mSdData.mSampleFreq) / miliGravityScaleFactor); // Convert ms to samples.
         Log.v(TAG, "check_fall() - fallWindowSamp=" + fallWindowSamp);
         // Move window through sample buffer, checking for fall.
         // Note - not resetting fallAlarmStanding means that fall alarms will always latch until the 'Accept Alarm' button
