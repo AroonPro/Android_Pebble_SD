@@ -488,9 +488,11 @@ public class SdServer extends Service implements SdDataReceiver {
         }
 
         checkEvents();
-        if (Objects.equals(intent.getData(),Uri.parse("Start")))bindBatteryEvents();
-        if (Objects.equals(intent.getData(),Uri.parse("Stop")))unregisterReceiver(powerUpdateReceiver);
-
+        if (!Objects.equals(intent.getData(),null)) {
+            if (Objects.equals(intent.getData(), Uri.parse("Start"))) bindBatteryEvents();
+            if (Objects.equals(intent.getData(), Uri.parse("Stop")))
+                unregisterReceiver(powerUpdateReceiver);
+        }
 
         if (intent == null) return START_NOT_STICKY;
         return returnValueFromSuper;
@@ -717,6 +719,7 @@ public class SdServer extends Service implements SdDataReceiver {
         Log.v(TAG, "onSdDataReceived() - " + sdData.toString());
         Log.v(TAG, "onSdDataReceived(), sdData.fallAlarmStanding=" + sdData.fallAlarmStanding);
         if (!serverInitialized) serverInitialized = true;
+        if (mSdDataSourceName.equals("Phone")) sdData.batteryPc = (int) batteryPct;
         if (sdData.alarmState == 0) {
             if ((!mLatchAlarms) ||
                     (mLatchAlarms &&
