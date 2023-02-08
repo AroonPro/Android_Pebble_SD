@@ -171,7 +171,7 @@ public class SdServer extends Service implements SdDataReceiver {
     public boolean usbCharge = false;
     public boolean acCharge = false;
     public boolean runPausedByCharger;
-    public float batteryPct = -1f;
+    public long batteryPct = -1;
     public IntentFilter batteryStatusIntentFilter = null;
     public Intent batteryStatusIntent;
     private boolean serverInitialized = false;
@@ -253,7 +253,7 @@ public class SdServer extends Service implements SdDataReceiver {
                     usbCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_USB;
                     acCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_AC;
 
-                    if ( mSdDataSourceName == "Phone") {
+                    if ( mSdDataSourceName == "Phone"&& !runPausedByCharger) {
                         if (mIsCharging &&
                                 mSdDataSource.mIsRunning)
                             mSdDataSource.stop();
@@ -271,9 +271,10 @@ public class SdServer extends Service implements SdDataReceiver {
                     int level = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
 
                     int scale = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
-                    batteryPct = 100 * level / (float) scale;
-                    if( mSdDataSourceName.equals("Phone") )
-                        mSdData.batteryPc = (int) (batteryPct);
+                    batteryPct = 100 * level /  scale;
+                    if( mSdDataSourceName.equals("Phone") ) {
+                        mSdData.batteryPc = (long) (batteryPct);
+                    }
 
                     mChargingState = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
                     mIsCharging = mChargingState == BatteryManager.BATTERY_STATUS_CHARGING ||

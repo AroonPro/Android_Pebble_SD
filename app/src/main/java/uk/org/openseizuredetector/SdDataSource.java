@@ -474,8 +474,8 @@ public abstract class SdDataSource {
 
             // Populate the mSdData structure to communicate with the main SdServer service.
             mDataStatusTime.setToNow();
-            mSdData.specPower = (long) (specPower / miliGravityScaleFactor);
-            mSdData.roiPower = (long) (roiPower / miliGravityScaleFactor);
+            mSdData.specPower = (long) (specPower / gravityScaleFactor);
+            mSdData.roiPower = (long) (roiPower / gravityScaleFactor);
             mSdData.dataTime.setToNow();
             mSdData.maxVal = 0;   // not used
             mSdData.maxFreq = 0;  // not used
@@ -487,7 +487,7 @@ public abstract class SdDataSource {
             // note mSdData.batteryPc is set from settings data in updateFromJSON()
             // FIXME - I haven't worked out why dividing by 1000 seems necessary to get the graph on scale - we don't seem to do that with the Pebble.
             for (int i = 0; i < SIMPLE_SPEC_FMAX; i++) {
-                mSdData.simpleSpec[i] = (int) (simpleSpec[i] / miliGravityScaleFactor);
+                mSdData.simpleSpec[i] = (int) (simpleSpec[i] / gravityScaleFactor);
             }
             Log.v(TAG, "simpleSpec = " + Arrays.toString(mSdData.simpleSpec));
 

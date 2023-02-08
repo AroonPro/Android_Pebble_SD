@@ -263,10 +263,10 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                     for (int i = 0; i < Constants.SD_SERVICE_CONSTANTS.defaultSampleCount -1; i++) {
                         readPosition = (int) Math.round((double) i / mConversionSampleFactor);
                         if (readPosition < rawDataList.size() -1){
-                            mSdData.rawData[i] = miliGravityScaleFactor * rawDataList.get(readPosition) / SensorManager.GRAVITY_EARTH;
-                            mSdData.rawData3D[i] = miliGravityScaleFactor * rawDataList3D.get(readPosition) / SensorManager.GRAVITY_EARTH;
-                            mSdData.rawData3D[i + 1] = miliGravityScaleFactor * rawDataList3D.get(readPosition + 1) / SensorManager.GRAVITY_EARTH;
-                            mSdData.rawData3D[i + 2] = miliGravityScaleFactor * rawDataList3D.get(readPosition + 2) / SensorManager.GRAVITY_EARTH;
+                            mSdData.rawData[i] = gravityScaleFactor * rawDataList.get(readPosition) / SensorManager.GRAVITY_EARTH;
+                            mSdData.rawData3D[i] = gravityScaleFactor * rawDataList3D.get(readPosition) / SensorManager.GRAVITY_EARTH;
+                            mSdData.rawData3D[i + 1] = gravityScaleFactor * rawDataList3D.get(readPosition + 1) / SensorManager.GRAVITY_EARTH;
+                            mSdData.rawData3D[i + 2] = gravityScaleFactor * rawDataList3D.get(readPosition + 2) / SensorManager.GRAVITY_EARTH;
                             //Log.v(TAG,"i="+i+", rawData="+mSdData.rawData[i]+","+mSdData.rawData[i/2]);
                         }
                     }
