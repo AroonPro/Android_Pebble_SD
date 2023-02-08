@@ -244,7 +244,7 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
             } else if (mMode==1) {
                 // mMode=1 is normal operation - collect NSAMP accelerometer data samples, then analyse them by calling doAnalysis().
 
-                if (mSdData.mNsamp == (mCurrentMaxSampleCount -(1f/mConversionSampleFactor)) )
+                if (mSdData.mNsamp == mCurrentMaxSampleCount  )
                 {
 
 
@@ -260,9 +260,9 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                     // FIXME - we should really do this properly rather than assume we are really receiving data at 50Hz.
                     int readPosition = 1;
 
-                    for (int i = 0; i < Constants.SD_SERVICE_CONSTANTS.defaultSampleCount -1; i++) {
-                        readPosition = (int) Math.round((double) i / mConversionSampleFactor);
-                        if (readPosition < rawDataList.size() -1){
+                    for (int i = 0; i < Constants.SD_SERVICE_CONSTANTS.defaultSampleCount ; i++) {
+                        readPosition = (int) (i / mConversionSampleFactor);
+                        if (readPosition < rawDataList.size() ){
                             mSdData.rawData[i] = gravityScaleFactor * rawDataList.get(readPosition) / SensorManager.GRAVITY_EARTH;
                             mSdData.rawData3D[i] = gravityScaleFactor * rawDataList3D.get(readPosition) / SensorManager.GRAVITY_EARTH;
                             mSdData.rawData3D[i + 1] = gravityScaleFactor * rawDataList3D.get(readPosition + 1) / SensorManager.GRAVITY_EARTH;
@@ -284,20 +284,21 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                     mSdData.mNsamp = 0;
                     mStartTs = event.timestamp;
                     return;
-                } else if (mSdData.mNsamp > mCurrentMaxSampleCount - 1) {
-                    Log.v(TAG, "onSensorChanged(): Received data during analysis - ignoring sample");
-                    return;
-                }
-                float x = event.values[0];
-                float y = event.values[1];
-                float z = event.values[2];
-                //Log.v(TAG,"Accelerometer Data Received: x="+x+", y="+y+", z="+z);
-                if (!Objects.equals(rawDataList, null) && rawDataList.size() <= mCurrentMaxSampleCount ) {
+                }else if (!Objects.equals(rawDataList, null) && rawDataList.size() <= mCurrentMaxSampleCount ) {
+
+                    float x = event.values[0];
+                    float y = event.values[1];
+                    float z = event.values[2];
+                    //Log.v(TAG,"Accelerometer Data Received: x="+x+", y="+y+", z="+z);
                     rawDataList.add( sqrt(x * x + y * y + z * z));
                     rawDataList3D.add((double) x);
                     rawDataList3D.add((double) y);
                     rawDataList3D.add((double) z);
                     mSdData.mNsamp++;
+                    return;
+                }else if (mSdData.mNsamp > mCurrentMaxSampleCount - 1) {
+                    Log.v(TAG, "onSensorChanged(): Received data during analysis - ignoring sample");
+                    return;
                 } else {
                     Log.v(TAG, "onSensorChanged(): Received empty data during analysis - ignoring sample");
                 }

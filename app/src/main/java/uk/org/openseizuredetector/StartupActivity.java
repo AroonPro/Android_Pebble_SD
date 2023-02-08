@@ -312,9 +312,7 @@ public class StartupActivity extends AppCompatActivity {
 
                 moveTaskToBack(true);
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                    mConnection.mSdServer.onSdDataReceived(getIntent().getParcelableExtra("mSdData"));
-                }
+                mConnection.mSdServer.mSdDataSource.updateFromJSON(getIntent().getStringExtra("mSdData"));
             }
             finish();
 

@@ -488,6 +488,10 @@ public class SdServer extends Service implements SdDataReceiver {
             mUtil.writeToSysLogFile("SdServer.onStartCommand() - mWakeLock is not null - this shouldn't happen???");
         }
 
+        //check if battery value has a percentage
+        if (batteryPct <= 1l)
+            bindBatteryEvents();
+
         checkEvents();
         if (!Objects.equals(intent.getData(),null)) {
             if (Objects.equals(intent.getData(), Uri.parse("Start"))) bindBatteryEvents();
@@ -507,7 +511,7 @@ public class SdServer extends Service implements SdDataReceiver {
         // release the wake lock to allow CPU to sleep and reduce
         // battery drain.
         if (mWakeLock != null) {
-            try {
+            try {// TODO deside to ask if (mWakeLock.isHeld())
                 mWakeLock.release();
                 Log.d(TAG, "Released Wake Lock to allow device to sleep.");
             } catch (Exception e) {
@@ -527,6 +531,12 @@ public class SdServer extends Service implements SdDataReceiver {
         } else {
             Log.e(TAG, "ERROR - mSdDataSource is null - why????");
             mUtil.writeToSysLogFile("SdServer.onDestroy() - mSdDataSource is null - why???");
+        }
+
+        //unbind batteryevents
+        if (!Objects.equals(batteryStatusIntent,null )) {
+            unregisterReceiver(powerUpdateReceiver);
+            batteryStatusIntent =null;
         }
 
         // Stop the Cancel Audible timer
