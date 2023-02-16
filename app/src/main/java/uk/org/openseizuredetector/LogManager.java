@@ -25,6 +25,7 @@ package uk.org.openseizuredetector;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.SQLException;
@@ -203,17 +204,21 @@ public class LogManager {
         while (!c.isAfterLast()) {
             JSONObject datapoint = new JSONObject();
             try {
-                datapoint.put("id", c.getString(c.getColumnIndex("id")));
-                datapoint.put("dataTime", c.getString(c.getColumnIndex("dataTime")));
-                datapoint.put("status", c.getString(c.getColumnIndex("status")));
-                datapoint.put("dataJSON", c.getString(c.getColumnIndex("dataJSON")));
-                datapoint.put("uploaded", c.getString(c.getColumnIndex("uploaded")));
-                //Log.v(TAG,"cursor2json() - datapoint="+datapoint.toString());
+                try {
+                    datapoint.put("id", c.getString(c.getColumnIndexOrThrow("id")));
+                    datapoint.put("dataTime", c.getString(c.getColumnIndexOrThrow("dataTime")));
+                    datapoint.put("status", c.getString(c.getColumnIndexOrThrow("status")));
+                    datapoint.put("dataJSON", c.getString(c.getColumnIndexOrThrow("dataJSON")));
+                    datapoint.put("uploaded", c.getString(c.getColumnIndexOrThrow("uploaded")));
+                    //Log.v(TAG,"cursor2json() - datapoint="+datapoint.toString());
+                }catch (IllegalArgumentException illegalArgumentException){
+                    Log.e(TAG + "_cursor2Json()", "Encountered -1 as return, skipping to next",illegalArgumentException);
+                }
                 c.moveToNext();
                 dataPointArray.put(i, datapoint);
                 i++;
             } catch (JSONException | NullPointerException e) {
-                Log.e(TAG, "cursor2Json(): error creating JSON Object");
+                Log.e(TAG, "cursor2Json(): error creating JSON Object",e);
                 e.printStackTrace();
             }
         }
@@ -240,28 +245,33 @@ public class LogManager {
             JSONObject event = new JSONObject();
             try {
                 String val;
-                val = c.getString(c.getColumnIndex("id"));
-                // We replace null values with empty string, otherwise they are completely excluded from output JSON.
-                event.put("id", val==null ? "" : val );
-                val = c.getString(c.getColumnIndex("dataTime"));
-                event.put("dataTime", val==null ? "" : val);
-                val = c.getString(c.getColumnIndex("status"));
-                event.put("status", val==null ? "" : val);
-                val = c.getString(c.getColumnIndex("type"));
-                event.put("type", val==null ? "" : val);
-                val = c.getString(c.getColumnIndex("subType"));
-                event.put("subType", val==null ? "" : val);
-                val = c.getString(c.getColumnIndex("notes"));
-                event.put("desc", val==null ? "" : val);
-                val = c.getString(c.getColumnIndex("dataJSON"));
-                event.put("dataJSON", val==null ? "" : val);
-                val = c.getString(c.getColumnIndex("uploaded"));
-                event.put("uploaded", val==null ? "" : val);
+                try{
+                    val = c.getString(c.getColumnIndexOrThrow("id"));
+                    // We replace null values with empty string, otherwise they are completely excluded from output JSON.
+                    event.put("id", val == null ? "" : val);
+                    val = c.getString(c.getColumnIndexOrThrow("dataTime"));
+                    event.put("dataTime", val == null ? "" : val);
+                    val = c.getString(c.getColumnIndexOrThrow("status"));
+                    event.put("status", val == null ? "" : val);
+                    val = c.getString(c.getColumnIndexOrThrow("type"));
+                    event.put("type", val == null ? "" : val);
+                    val = c.getString(c.getColumnIndexOrThrow("subType"));
+                    event.put("subType", val == null ? "" : val);
+                    val = c.getString(c.getColumnIndexOrThrow("notes"));
+                    event.put("desc", val == null ? "" : val);
+                    val = c.getString(c.getColumnIndexOrThrow("dataJSON"));
+                    event.put("dataJSON", val == null ? "" : val);
+                    val = c.getString(c.getColumnIndexOrThrow("uploaded"));
+                    event.put("uploaded", val == null ? "" : val);
+                }
+                catch (IllegalArgumentException illegalArgumentException){
+                    Log.e(TAG + "_eventCursorToJson()", "Encountered -1 as return, skipping to next",illegalArgumentException);
+                }
                 c.moveToNext();
                 eventsArray.put(i, event);
                 i++;
             } catch (JSONException | NullPointerException e) {
-                Log.e(TAG, "eventCursor2Json(): error creating JSON Object");
+                Log.e(TAG, "eventCursor2Json(): error creating JSON Object",e);
                 e.printStackTrace();
             }
         }
@@ -289,7 +299,7 @@ public class LogManager {
                 }
             }
         } catch (SQLException e) {
-            Log.e(TAG, "Failed to open Database: " + e.toString());
+            Log.e(TAG, "Failed to open Database: " + e.toString(),e);
             return false;
         }
         return true;
@@ -305,7 +315,7 @@ public class LogManager {
             tableExists = true;
             c.close();
         } catch (Exception e) {
-            Log.d(TAG, osdTableName + " doesn't exist :(((");
+            Log.d(TAG, osdTableName + " doesn't exist :(((",e);
         }
         return tableExists;
     }
@@ -345,10 +355,10 @@ public class LogManager {
                 createLocalEvent(dateStr,sdData.alarmState,null, null, null, sdData.toSettingsJSON());
             }
         } catch (SQLException e) {
-            Log.e(TAG, "writeToLocalDb(): Error Writing Data: " + e.toString());
+            Log.e(TAG, "writeToLocalDb(): Error Writing Data: " + e.toString(),e);
             Log.e(TAG, "SQLStr was " + SQLStr);
         } catch (NullPointerException e) {
-            Log.e(TAG, "writeToLocalDb(): Null Pointer Exception: " + e.toString());
+            Log.e(TAG, "writeToLocalDb(): Null Pointer Exception: " + e.toString(),e);
         }
     }
 
@@ -388,7 +398,7 @@ public class LogManager {
             c = mOsdDb.rawQuery(selectStr, null);
             retVal = eventCursor2Json(c);
         } catch (Exception e) {
-            Log.d(TAG, "getLocalEventById(): Error Querying Database: " + e.getLocalizedMessage());
+            Log.d(TAG, "getLocalEventById(): Error Querying Database: " + e.getLocalizedMessage(),e);
             retVal = null;
         }
         Log.d(TAG, "getLocalEventById() - returning " + retVal);
@@ -411,7 +421,7 @@ public class LogManager {
             c = mOsdDb.rawQuery(selectStr, null);
             retVal = cursor2Json(c);
         } catch (Exception e) {
-            Log.d(TAG, "getDatapointById(): Error Querying Database: " + e.getLocalizedMessage());
+            Log.d(TAG, "getDatapointById(): Error Querying Database: " + e.getLocalizedMessage(),e);
             retVal = null;
         }
         return (retVal);
@@ -501,13 +511,19 @@ public class LogManager {
                 while (!cursor.isAfterLast()) {
                     HashMap<String, String> event = new HashMap<>();
                     //event.put("id", cursor.getString(cursor.getColumnIndex("id")));
-                    event.put("dataTime", cursor.getString(cursor.getColumnIndex("dataTime")));
-                    int status = cursor.getInt(cursor.getColumnIndex("status"));
-                    String statusStr = mUtil.alarmStatusToString(status);
-                    event.put("status", statusStr);
-                    event.put("uploaded", cursor.getString(cursor.getColumnIndex("uploaded")));
-                    //event.put("dataJSON", cursor.getString(cursor.getColumnIndex("dataJSON")));
-                    eventsList.add(event);
+
+                    int status = -1;
+                    try {
+                        event.put("dataTime", cursor.getString(cursor.getColumnIndexOrThrow("dataTime")));
+                        status = cursor.getInt(cursor.getColumnIndexOrThrow("status"));
+                        String statusStr = mUtil.alarmStatusToString(status);
+                        event.put("status", statusStr);
+                        event.put("uploaded", cursor.getString(cursor.getColumnIndexOrThrow("uploaded")));
+                        //event.put("dataJSON", cursor.getString(cursor.getColumnIndex("dataJSON")));
+                        eventsList.add(event);
+                    } catch (IllegalArgumentException illegalArgumentException){
+                        Log.e(TAG + "_getEventsList()", "Encountered -1 as index",illegalArgumentException);
+                    }
                     cursor.moveToNext();
                 }
             }
@@ -536,7 +552,7 @@ public class LogManager {
                 String[] selectArgs = {endDateStr};
                 retVal = mOsdDb.delete(tableName, selectStr, selectArgs);
             } catch (Exception e) {
-                Log.e(TAG, "Error deleting data " + e.toString());
+                Log.e(TAG, "Error deleting data " + e.toString(),e);
                 retVal = 0;
             }
             Log.d(TAG, String.format("pruneLocalDb() - deleted %d records from table %s", retVal, tableName));
@@ -737,13 +753,13 @@ public class LogManager {
                 resultSet.moveToFirst();
                 return (resultSet);
             } catch (SQLException e) {
-                Log.e(TAG, "SelectQueryTask.doInBackground(): Error selecting Data: " + e.toString());
+                Log.e(TAG, "SelectQueryTask.doInBackground(): Error selecting Data: " + e.toString(),e);
                 return (null);
             } catch (IllegalArgumentException e) {
-                Log.e(TAG, "SelectQueryTask.doInBackground(): Illegal Argument Exception: " + e.toString());
+                Log.e(TAG, "SelectQueryTask.doInBackground(): Illegal Argument Exception: " + e.toString(),e);
                 return (null);
             } catch (NullPointerException e) {
-                Log.e(TAG, "SelectQueryTask.doInBackground(): Null Pointer Exception: " + e.toString());
+                Log.e(TAG, "SelectQueryTask.doInBackground(): Null Pointer Exception: " + e.toString(),e);
                 return (null);
             }
         }
@@ -879,12 +895,12 @@ public class LogManager {
                         Log.d(TAG, "uploadSdData - data from local DB is:" + eventJsonStr + ", eventAlarmStatus="
                                 + eventAlarmStatus + ", eventDateStr=" + eventDateStr);
                     } catch (JSONException e) {
-                        Log.e(TAG, "uploadSdData(): ERROR parsing event JSON Data" + eventJsonStr);
+                        Log.e(TAG, "uploadSdData(): ERROR parsing event JSON Data" + eventJsonStr,e);
                         e.printStackTrace();
                         mUploadInProgress = false;
                         return;
                     } catch (NullPointerException e) {
-                        Log.e(TAG, "uploadSdData(): ERROR null pointer exception parsing event JSON Data: " + eventJsonStr);
+                        Log.e(TAG, "uploadSdData(): ERROR null pointer exception parsing event JSON Data: " + eventJsonStr,e);
                         e.printStackTrace();
                         mUploadInProgress = false;
                         return;
@@ -892,7 +908,7 @@ public class LogManager {
                     try {
                         eventDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(eventDateStr);
                     } catch (ParseException e) {
-                        Log.e(TAG, "UploadSdData(): Error parsing date " + eventDateStr);
+                        Log.e(TAG, "UploadSdData(): Error parsing date " + eventDateStr,e);
                         mUploadInProgress = false;
                         return;
                     }
@@ -939,7 +955,7 @@ public class LogManager {
                         String dateStr = eventObj.getString("dataTime");
                         eventDate = mUtil.string2date(dateStr);
                     } catch (JSONException | NullPointerException e) {
-                        Log.e(TAG, "createEventCallback() - Error parsing JSONObject: " + eventObj.toString());
+                        Log.e(TAG, "createEventCallback() - Error parsing JSONObject: " + eventObj.toString(),e);
                         finishUpload();
                         return;
                     }
@@ -998,7 +1014,7 @@ public class LogManager {
                 try {
                     mCurrentDatapointId = mDatapointsToUploadList.get(0).getInt("id");
                 } catch (JSONException | NullPointerException e) {
-                    Log.e(TAG, "uploadNextDatapoint(): Error reading currentDatapointID from mDatapointsToUploadList[0]" + e.getMessage());
+                    Log.e(TAG, "uploadNextDatapoint(): Error reading currentDatapointID from mDatapointsToUploadList[0]" + e.getMessage(),e);
                     Log.e(TAG, "uploadNextDatapoint(): Removing mDatapointsToUploadList[0] and trying the next datapoint");
                     mDatapointsToUploadList.remove(0);
                     uploadNextDatapoint();

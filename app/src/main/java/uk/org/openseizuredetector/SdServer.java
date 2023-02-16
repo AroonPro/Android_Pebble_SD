@@ -84,6 +84,7 @@ import java.util.Timer;
 public class SdServer extends Service implements SdDataReceiver {
     private String mUuidStr = "0f675b21-5a36-4fe7-9761-fd0c691651f3";  // UUID to Identify OSD.
 
+    Intent intent = new Intent("StartupActivity");
     // Notification ID
     private final int NOTIFICATION_ID = 1;
     private final int EVENT_NOTIFICATION_ID = 2;
@@ -94,6 +95,7 @@ public class SdServer extends Service implements SdDataReceiver {
     private String mEventNotChId = "OSD Event Notification Channel";
     private CharSequence mEventNotChName = "OSD Event Notification Channel";
     private String mEventNotChDesc = "OSD Event Notification Channel Description";
+    public powerUpdateReceiver mPowerUpdateManager = null;
 
     private NotificationManager mNM;
     private NotificationCompat.Builder mNotificationBuilder;
@@ -197,6 +199,7 @@ public class SdServer extends Service implements SdDataReceiver {
     @Override
     public IBinder onBind(Intent intent) {
         Log.i(TAG, "sdServer.onBind()");
+        if (Objects.equals(mPowerUpdateManager,null)) mPowerUpdateManager = new powerUpdateReceiver();
         return mBinder;
     }
 
@@ -216,6 +219,7 @@ public class SdServer extends Service implements SdDataReceiver {
         Log.i(TAG, "onCreate()");
         mHandler = new Handler();
         mSdData = new SdData();
+        mPowerUpdateManager = new powerUpdateReceiver();
         mToneGenerator = new ToneGenerator(AudioManager.STREAM_ALARM, 100);
 
         mUtil = new OsdUtil(getApplicationContext(), mHandler);
@@ -268,13 +272,15 @@ public class SdServer extends Service implements SdDataReceiver {
 
                 }
                 if (intent.getAction().equals(Intent.ACTION_BATTERY_CHANGED)) {
-                    int level = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+                    int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
 
-                    int scale = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+                    int scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
                     batteryPct = 100 * level /  scale;
                     if( mSdDataSourceName.equals("Phone") ) {
                         mSdData.batteryPc = (long) (batteryPct);
                     }
+                    if(mSdDataSourceName.equals("AndroidWear"))
+                        ((SdDataSourceAw)mSdDataSource).mobileBatteryPctUpdate();
 
                     mChargingState = batteryStatusIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
                     mIsCharging = mChargingState == BatteryManager.BATTERY_STATUS_CHARGING ||
@@ -325,22 +331,74 @@ public class SdServer extends Service implements SdDataReceiver {
 
     }
 
-    public BroadcastReceiver powerUpdateReceiver = new BroadcastReceiver() {
+
+    /**
+     * powerUpdateReceiver with coding from:
+     * https://stackoverflow.com/questions/2682043/how-to-check-if-receiver-is-registered-in-android
+     * */
+
+    public class powerUpdateReceiver  extends BroadcastReceiver {
+        public boolean isRegistered = false;
+
+        /**
+         * register receiver
+         * @param context - Context
+         * @param filter - Intent Filter
+         * @return see Context.registerReceiver(BroadcastReceiver,IntentFilter)
+         */
+        public Intent register(Context context, IntentFilter filter) {
+            try {
+                // ceph3us note:
+                // here I propose to create
+                // a isRegistered(Context) method
+                // as you can register receiver on different context
+                // so you need to match against the same one :)
+                // example  by storing a list of weak references
+                // see LoadedApk.class - receiver dispatcher
+                // its and ArrayMap there for example
+                return !isRegistered
+                        ? context.registerReceiver(this, filter)
+                        : null;
+            } finally {
+                isRegistered = true;
+            }
+        }
+
+        /**
+         * unregister received
+         * @param context - context
+         * @return true if was registered else false
+         */
+        public boolean unregister(Context context) {
+            // additional work match on context before unregister
+            // eg store weak ref in register then compare in unregister
+            // if match same instance
+            return isRegistered
+                    && unregisterInternal(context);
+        }
+
+        private boolean unregisterInternal(Context context) {
+            context.unregisterReceiver(this);
+            isRegistered = false;
+            return true;
+        }
+
         @Override
         public void onReceive(Context context, Intent intent) {
            powerUpdateReceiveAction(intent);
         }
 
-    };
+    }
 
 
-    private void bindBatteryEvents() {
+    protected void bindBatteryEvents() {
         batteryStatusIntentFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_POWER_CONNECTED));
-        registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
-        registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_BATTERY_LOW));
-        registerReceiver(powerUpdateReceiver, new IntentFilter(Intent.ACTION_BATTERY_OKAY));
-        batteryStatusIntent = registerReceiver(powerUpdateReceiver, batteryStatusIntentFilter);
+        if (mPowerUpdateManager.isRegistered)mPowerUpdateManager.unregister(this);
+        batteryStatusIntent = mPowerUpdateManager.register(this, batteryStatusIntentFilter);
+        mPowerUpdateManager.register(this, new IntentFilter(Intent.ACTION_POWER_CONNECTED));
+        mPowerUpdateManager.register(this, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
+        mPowerUpdateManager.register(this, new IntentFilter(Intent.ACTION_BATTERY_LOW));
+        mPowerUpdateManager.register(this, new IntentFilter(Intent.ACTION_BATTERY_OKAY));
 
     }
 
@@ -489,15 +547,18 @@ public class SdServer extends Service implements SdDataReceiver {
         }
 
         //check if battery value has a percentage
-        if (batteryPct <= 1l)
+        if (batteryPct <= 1l||batteryStatusIntent ==null)
             bindBatteryEvents();
 
         checkEvents();
-        if (!Objects.equals(intent.getData(),null)) {
-            if (Objects.equals(intent.getData(), Uri.parse("Start"))) bindBatteryEvents();
-            if (Objects.equals(intent.getData(), Uri.parse("Stop")))
-                unregisterReceiver(powerUpdateReceiver);
-        }
+        if (!Objects.equals(intent,null))
+            if (!Objects.equals(intent.getData(),null)) {
+                if (Objects.equals(intent.getData(), Uri.parse("Start"))) bindBatteryEvents();
+                if (Objects.equals(intent.getData(), Uri.parse("Stop")))
+                    if(!Objects.equals(mPowerUpdateManager,null))
+                        if (mPowerUpdateManager.isRegistered)
+                            mPowerUpdateManager.unregister(this);
+            }
 
         if (intent == null) return START_NOT_STICKY;
         return returnValueFromSuper;
@@ -512,7 +573,7 @@ public class SdServer extends Service implements SdDataReceiver {
         // battery drain.
         if (mWakeLock != null) {
             try {// TODO deside to ask if (mWakeLock.isHeld())
-                mWakeLock.release();
+                if (mWakeLock.isHeld() ) mWakeLock.release();
                 Log.d(TAG, "Released Wake Lock to allow device to sleep.");
             } catch (Exception e) {
                 Log.e(TAG, "Error Releasing Wakelock - " + e.toString(),e);
@@ -535,7 +596,9 @@ public class SdServer extends Service implements SdDataReceiver {
 
         //unbind batteryevents
         if (!Objects.equals(batteryStatusIntent,null )) {
-            unregisterReceiver(powerUpdateReceiver);
+            if (!Objects.equals(mPowerUpdateManager,null))
+            if (mPowerUpdateManager.isRegistered)
+                mPowerUpdateManager.unregister(this);
             batteryStatusIntent =null;
         }
 
@@ -732,6 +795,7 @@ public class SdServer extends Service implements SdDataReceiver {
         if (!serverInitialized) serverInitialized = true;
         if (mSdDataSourceName.equals("Phone")) sdData.batteryPc = (int) batteryPct;
         if (sdData.alarmState == 0) {
+
             if ((!mLatchAlarms) ||
                     (mLatchAlarms &&
                             (!mSdData.alarmStanding && !mSdData.fallAlarmStanding))) {

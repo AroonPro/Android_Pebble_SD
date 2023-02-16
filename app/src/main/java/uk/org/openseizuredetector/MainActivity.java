@@ -217,6 +217,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onNewIntent(Intent intent) {
         String actionStr;
         Log.i(TAG, "onNewIntent");
+        super.onNewIntent(intent);
         Bundle extras = intent.getExtras();
         // The background service might ask us to show the data sharing dialog if data sharing is not working correctly
         actionStr = getIntent().getAction();
@@ -473,6 +474,7 @@ public class MainActivity extends AppCompatActivity {
         } else {
             Log.v(TAG, "mOptionsMenu is null - not changing icons!");
         }
+
     }
 
     private void stopServer() {
@@ -645,11 +647,13 @@ public class MainActivity extends AppCompatActivity {
                     // Pebble Connected Phrase - use for HR if active instead.
                     tv = (TextView) findViewById(R.id.pebbleTv);
                     //if (mConnection.mSdServer.mSdData.mHRAlarmActive) {
-                    if (mConnection.mSdServer.mSdData.mO2Sat > 0) {
-                        tv.setText(getString(R.string.HR_Equals) + mConnection.mSdServer.mSdData.mHR + " bpm\n"
+                    if ((int)mConnection.mSdServer.mSdData.mO2Sat > 0) {
+                        tv.setText(getString(R.string.HR_Equals) + ((int) mConnection.mSdServer.mSdData.mHR >0
+                                ? (int) mConnection.mSdServer.mSdData.mHR : " --- " ) + " bpm\n"
                                 + "O2 Sat = " + mConnection.mSdServer.mSdData.mO2Sat + "%");
                     } else {
-                        tv.setText(getString(R.string.HR_Equals) + mConnection.mSdServer.mSdData.mHR + " bpm\n"
+                        tv.setText(getString(R.string.HR_Equals) + ((int) mConnection.mSdServer.mSdData.mHR >0
+                                ? (int) mConnection.mSdServer.mSdData.mHR : " --- " )+ " bpm\n"
                                 + "O2 Sat = ---%");
                     }
                     if (mConnection.mSdServer.mSdData.mHRAlarmStanding || mConnection.mSdServer.mSdData.mO2SatAlarmStanding) {
@@ -803,11 +807,11 @@ public class MainActivity extends AppCompatActivity {
                     pb = ((ProgressBar) findViewById(R.id.powerProgressBar));
                     pb.setMax(100);
                     pb.setProgress((int) powerPc);
-                    pbDrawable = getResources().getDrawable(R.drawable.progress_bar_blue);
+                    pbDrawable = mContext.getDrawable(R.drawable.progress_bar_blue);
                     if (powerPc > 75)
-                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_yellow);
+                        pbDrawable = mContext.getDrawable(R.drawable.progress_bar_yellow);
                     if (powerPc > 100)
-                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_red);
+                        pbDrawable = mContext.getDrawable(R.drawable.progress_bar_red);
 
                     //pb.getProgressDrawable().setColorFilter(colour, PorterDuff.Mode.SRC_IN);
 
@@ -816,22 +820,22 @@ public class MainActivity extends AppCompatActivity {
                     pb = ((ProgressBar) findViewById(R.id.spectrumProgressBar));
                     pb.setMax(100);
                     pb.setProgress((int) specPc);
-                    pbDrawable = getResources().getDrawable(R.drawable.progress_bar_blue);
+                    pbDrawable = mContext.getDrawable(R.drawable.progress_bar_blue);
                     if (specPc > 75)
-                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_yellow);
+                        pbDrawable = mContext.getDrawable(R.drawable.progress_bar_yellow);
                     if (specPc > 100)
-                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_red);
+                        pbDrawable = mContext.getDrawable(R.drawable.progress_bar_red);
                     //pb.getProgressDrawable().setColorFilter(colour, PorterDuff.Mode.SRC_IN);
                     pb.setProgressDrawable(pbDrawable);
 
                     pb = ((ProgressBar) findViewById(R.id.pSeizureProgressBar));
                     pb.setMax(100);
                     pb.setProgress((int) pSeizurePc);
-                    pbDrawable = getResources().getDrawable(R.drawable.progress_bar_blue);
+                    pbDrawable = mContext.getDrawable(R.drawable.progress_bar_blue);
                     if (pSeizurePc > 30)
-                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_yellow);
+                        pbDrawable = mContext.getDrawable(R.drawable.progress_bar_yellow);
                     if (pSeizurePc > 50)
-                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_red);
+                        pbDrawable = mContext.getDrawable(R.drawable.progress_bar_red);
                     //pb.getProgressDrawable().setColorFilter(colour, PorterDuff.Mode.SRC_IN);
                     pb.setProgressDrawable(pbDrawable);
 

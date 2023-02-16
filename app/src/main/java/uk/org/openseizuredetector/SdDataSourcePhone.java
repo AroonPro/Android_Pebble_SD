@@ -29,10 +29,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.net.Uri;
 import android.os.BatteryManager;
 import android.os.Handler;
 import android.os.PowerManager;
@@ -80,6 +83,7 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
     private Intent sdServerIntent = null;
     private List<Double> rawDataList;
     private List<Double> rawDataList3D;
+
 
     /**
      * Calculate the static values of requested mSdData.mSampleFreq, mSampleTimeUs and factorDownSampling  through
@@ -273,10 +277,7 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                     rawDataList.clear();
                     rawDataList3D.clear();
                     mSdData.mNsamp = Constants.SD_SERVICE_CONSTANTS.defaultSampleCount;
-                    int scale = ((SdServer)mSdDataReceiver).batteryStatusIntent.getIntExtra("scale",-1);
-                    int level = ((SdServer)mSdDataReceiver).batteryStatusIntent.getIntExtra("level",-1);
-                    // mSdData.batteryPc = (long) 100*(level/scale);
-                    mSdData.mHR = -1;
+                    mSdData.mHR = -1d;
                     mSdData.mHRAlarmActive = false;
                     mSdData.mHRAlarmStanding = false;
                     mSdData.mHRNullAsAlarm = false;
@@ -299,7 +300,15 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
                 }else if (mSdData.mNsamp > mCurrentMaxSampleCount - 1) {
                     Log.v(TAG, "onSensorChanged(): Received data during analysis - ignoring sample");
                     return;
-                } else {
+                } else if (rawDataList.size() >= mCurrentMaxSampleCount){
+                    Log.v(TAG, "onSensorChanged(): mSdData.mNSamp and mCurrentMaxSampleCount differ in size");
+                    rawDataList.remove(0);
+                    rawDataList3D.remove(0);
+                    rawDataList3D.remove(0);
+                    rawDataList3D.remove(0);
+                    return;
+                }
+                else{
                     Log.v(TAG, "onSensorChanged(): Received empty data during analysis - ignoring sample");
                 }
 

@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class SdAlgNn {
     private final static String TAG = "SdAlgNn";
@@ -63,7 +64,7 @@ public class SdAlgNn {
 
     public void close() {
         Log.d(TAG,"close()");
-        interpreter.close();
+        if(!Objects.equals(interpreter,null)) interpreter.close();
     }
 
     public float getPseizure(SdData sdData) {
@@ -73,7 +74,7 @@ public class SdAlgNn {
         for (int j = 0; j < 125; j++) {
             modelInput[0][j][0] = (float)sdData.rawData[j];
         }
-        interpreter.run(modelInput, modelOutput);
+        if (!Objects.equals(interpreter,null))interpreter.run(modelInput, modelOutput);
         Log.d(TAG,"run - pSeizure="+modelOutput[0][1]);
         return(modelOutput[0][1]);
     }

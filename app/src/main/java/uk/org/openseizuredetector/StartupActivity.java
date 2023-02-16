@@ -29,8 +29,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -54,6 +56,7 @@ import androidx.core.content.ContextCompat;
 
 import com.rohitss.uceh.UCEHandler;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -294,7 +297,29 @@ public class StartupActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+// remove from here
+        PackageManager pm=getPackageManager();
+        Intent main=new Intent(Intent.ACTION_MAIN, null);
 
+        main.addCategory(Intent.CATEGORY_LAUNCHER);
+
+        List<ResolveInfo> launchables=pm.queryIntentActivities(main, 0);
+
+        Intent launchIntent = new Intent(Intent.ACTION_MAIN);
+        launchIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+        launchIntent.setPackage(Constants.GLOBAL_CONSTANTS.mAppPackageNameWearReceiver);
+
+        ResolveInfo resolveInfo = new ResolveInfo();
+        ActivityInfo activityInfo = new ActivityInfo();
+        activityInfo.packageName = Constants.GLOBAL_CONSTANTS.mAppPackageNameWearReceiver;
+        activityInfo.name = "WearReceiver";
+        resolveInfo.activityInfo = activityInfo;
+
+        Intent sdWearIntent = new Intent(Intent.ACTION_MAIN);
+        PackageManager packageManager = getPackageManager();
+        List<ResolveInfo> resolveInfos = packageManager.queryIntentActivities(sdWearIntent,0 );
+        Intent testIntent = packageManager.getLaunchIntentForPackage(Constants.GLOBAL_CONSTANTS.mAppPackageNameWearReceiver);
+        //until here
         Log.i(TAG, "onCreate()");
         setContentView(R.layout.startup_activity);
         mContext = this;
@@ -303,7 +328,18 @@ public class StartupActivity extends AppCompatActivity {
         if (!Objects.equals(getIntent(),null))if (!Objects.equals(getIntent().getData(),null))
             if (Objects.equals(getIntent().getData() , Uri.parse("PASS")))
         {
-            Log.d(mStartUpActivityIntent.toString(),getIntent().getData().toString());
+            Intent thisReceivedIntent = getIntent();
+            Intent originalIntent = null;
+            if (!Objects.equals(thisReceivedIntent.getParcelableExtra("originalIntent"),null)) {
+                originalIntent = thisReceivedIntent.getParcelableExtra("originalIntent");
+                Log.i(TAG,"originalIntent: " + originalIntent);
+                Log.i(TAG,"testIntent: " + testIntent);
+                mContext.startActivity(originalIntent);
+                finish();
+                return;
+            }
+            Log.d(TAG+"_onCreate",getIntent().getData().toString());
+
             moveTaskToBack(true);
             setIntent(getIntent().setData(Uri.parse("")));
             if (mUtil.isServerRunning()) {
@@ -312,9 +348,13 @@ public class StartupActivity extends AppCompatActivity {
 
                 moveTaskToBack(true);
 
-                mConnection.mSdServer.mSdDataSource.updateFromJSON(getIntent().getStringExtra("mSdData"));
+                if (!Objects.equals(mConnection,null))
+                    if (!Objects.equals(mConnection.mSdServer,null))
+                        if (!Objects.equals(mConnection.mSdServer.mSdDataSource,null))
+                            mConnection.mSdServer.mSdDataSource.updateFromJSON(getIntent().getStringExtra("mSdData"));
             }
             finish();
+            return;
 
         }
 

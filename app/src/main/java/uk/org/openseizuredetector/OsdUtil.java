@@ -57,6 +57,7 @@ import org.apache.http.conn.util.InetAddressUtils;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.text.ParseException;
@@ -66,6 +67,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /**
@@ -96,6 +98,7 @@ public class OsdUtil {
     static private SQLiteDatabase mSysLogDb = null;   // SQLite Database for data and log entries.
     private final static Long mMinPruneInterval = new Long(5 * 60 * 1000); // minimum time between syslog pruning is 5 minutes
     private static Long mLastPruneMillis = new Long(0);   // Record of the last time we pruned the syslog db.
+    private SdServiceConnection activeSdServiceConnection = null;
 
     private static int mNbound = 0;
 
@@ -178,6 +181,7 @@ public class OsdUtil {
             Log.i(TAG, "Starting Normal Service (Pre-Android 8)");
             mContext.startService(sdServerIntent);
         }
+
     }
 
     /**
@@ -186,6 +190,15 @@ public class OsdUtil {
     public void stopServer() {
         Log.i(TAG, "OsdUtil.stopServer() - stopping Server... - mNbound=" + mNbound);
         writeToSysLogFile("stopserver() - stopping server");
+
+        //unbind batteryEvents
+        if (!Objects.equals(activeSdServiceConnection,null)) {
+            if (Objects.equals(activeSdServiceConnection.mSdServer.mPowerUpdateManager, null))
+               if (activeSdServiceConnection.mSdServer.mPowerUpdateManager.isRegistered)
+                activeSdServiceConnection.mSdServer.mPowerUpdateManager.unregister(activeSdServiceConnection.mSdServer);
+                activeSdServiceConnection = null;
+        }
+
 
         // then send an Intent to stop the service.
         Intent sdServerIntent;
@@ -213,6 +226,11 @@ public class OsdUtil {
         activity.bindService(intent, sdServiceConnection, Context.BIND_AUTO_CREATE);
         mNbound = mNbound + 1;
         Log.i(TAG, "OsdUtil.bindToServer() - mNbound = " + mNbound);
+        mHandler.postDelayed(()->{
+           if (!Objects.equals(sdServiceConnection,null))
+            if (!Objects.equals(sdServiceConnection.mSdServer,null))
+                sdServiceConnection.mSdServer.bindBatteryEvents();
+        },100);
     }
 
     /**
@@ -273,10 +291,10 @@ public class OsdUtil {
                     //Log.v(TAG,"ip1--:" + inetAddress);
                     //Log.v(TAG,"ip2--:" + inetAddress.getHostAddress());
 
+                    //updated from https://stackoverflow.com/questions/32141785/android-api-23-inetaddressutils-replacement
                     // for getting IPV4 format
                     if (!inetAddress.isLoopbackAddress()
-                            && InetAddressUtils.isIPv4Address(
-                            inetAddress.getHostAddress())) {
+                            && inetAddress instanceof Inet4Address) {
 
                         String ip = inetAddress.getHostAddress().toString();
                         //Log.v(TAG,"ip---::" + ip);
@@ -603,16 +621,20 @@ public class OsdUtil {
                 while (!cursor.isAfterLast()) {
                     HashMap<String, String> event = new HashMap<>();
                     //event.put("id", cursor.getString(cursor.getColumnIndex("id")));
-                    event.put("dataTime", cursor.getString(cursor.getColumnIndex("dataTime")));
-                    String loglevel = cursor.getString(cursor.getColumnIndex("logLevel"));
-                    event.put("loglevel", loglevel);
-                    event.put("dataJSON", cursor.getString(cursor.getColumnIndex("dataJSON")));
-                    //event.put("dataJSON", cursor.getString(cursor.getColumnIndex("dataJSON")));
-                    eventsList.add(event);
+                    try {
+                        event.put("dataTime", cursor.getString(cursor.getColumnIndexOrThrow("dataTime")));
+                        String loglevel = cursor.getString(cursor.getColumnIndexOrThrow("logLevel"));
+                        event.put("loglevel", loglevel);
+                        event.put("dataJSON", cursor.getString(cursor.getColumnIndexOrThrow("dataJSON")));
+                        //event.put("dataJSON", cursor.getString(cursor.getColumnIndex("dataJSON")));
+                        eventsList.add(event);
+                    }catch (IllegalArgumentException illegalArgumentException){
+                        Log.e(TAG,"getSysLogList(): Ignoring current event: Result of Cursor.getString: -1");
+                    }
                     cursor.moveToNext();
                 }
             }
-            callback.accept(eventsList);
+            callback.accept(eventsList); // .accept requires API_SDK_LEVEL >= ANDROID.VERSION_N
         }).execute();
         return (true);
     }
@@ -673,7 +695,7 @@ public class OsdUtil {
         @Override
         protected void onPostExecute(final Cursor result) {
             mCallback.accept(result);
-        }
+        } // .accept requires API_SDK_LEVEL >= ANDROID.VERSION_N
     }
 
 
