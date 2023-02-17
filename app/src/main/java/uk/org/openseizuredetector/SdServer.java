@@ -144,7 +144,6 @@ public class SdServer extends Service implements SdDataReceiver {
 
     private String mAuthToken = null;
     private final long mAutoPrunePeriod = 3600;  // Prune the database every hour
-    private long mEventsTimerPeriod = 60; // Number of seconds between checks to see if there are unvalidated remote events.
     private long mEventDuration = 120;   // event duration in seconds - uploads datapoints that cover this time range centred on the event time.
     private int mDefaultSampleCount = Constants.SD_SERVICE_CONSTANTS.defaultSampleCount;   // number of samples to take, part 1 of 2 of sampleFrequency. Number of samples / time sampling.
     private int mDfaultSampleTime = Constants.SD_SERVICE_CONSTANTS.defaultSampleTime;
@@ -168,7 +167,6 @@ public class SdServer extends Service implements SdDataReceiver {
                 break;
         }
     };
-    private long mAutoPrunePeriod = 3600;  // Prune the database every hour
     private boolean mAutoPruneDb;
 
     private String mOSDUrl = "";
@@ -177,7 +175,6 @@ public class SdServer extends Service implements SdDataReceiver {
     private OsdUtil mUtil;
     private Handler mHandler;
     private ToneGenerator mToneGenerator;
-    private boolean mCancelAudible = false;
     private boolean autoStart ;
 
     private NetworkBroadcastReceiver mNetworkBroadcastReceiver;
@@ -1156,26 +1153,7 @@ public class SdServer extends Service implements SdDataReceiver {
     }
 
 
-    /**
-     * smsCanelClickListener - onClickListener for the SMS cancel dialog box.   If the
-     * negative button is pressed, it cancels the SMS timer to prevent the SMS being sent.
-     */
-    DialogInterface.OnClickListener smsCancelClickListener = new DialogInterface.OnClickListener() {
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-            switch (which) {
-                case DialogInterface.BUTTON_POSITIVE:
-                    Log.v(TAG, "smsCancelClickListener - Positive button");
-                    //Yes button clicked
-                    break;
 
-                case DialogInterface.BUTTON_NEGATIVE:
-                    Log.v(TAG, "smsCancelClickListener - Negative button");
-                    //No button clicked
-                    break;
-            }
-        }
-    };
 
 
     /*
