@@ -25,6 +25,7 @@
 package uk.org.openseizuredetector;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -303,6 +304,7 @@ public class StartupActivity extends AppCompatActivity {
 
         main.addCategory(Intent.CATEGORY_LAUNCHER);
 
+
         List<ResolveInfo> launchables=pm.queryIntentActivities(main, 0);
 
         Intent launchIntent = new Intent(Intent.ACTION_MAIN);
@@ -425,6 +427,11 @@ public class StartupActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+        Intent receivedIntentOnStart = getIntent();
+        if (!Objects.equals(receivedIntentOnStart,null))
+            if (!Objects.equals(receivedIntentOnStart.getStringExtra(Constants.GLOBAL_CONSTANTS.returnPath),null))
+                if (Constants.GLOBAL_CONSTANTS.mAppPackageNameWearReceiver.equals(receivedIntentOnStart.getStringExtra(Constants.GLOBAL_CONSTANTS.returnPath)))
+                    Log.i(TAG,"gotIntentFromWear");
         Log.i(TAG, "onStart()");
         mUtil.writeToSysLogFile("StartupActivity.onStart()");
         TextView tv;

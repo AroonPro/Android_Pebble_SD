@@ -72,6 +72,15 @@
         <activity android:name=".RemoteDbActivity" />
         <activity android:name=".ReportSeizureActivity" />
 
+        <receiver android:name=".SdDataSourceAw$IntentBroadCastReceiver"
+            android:exported="true"
+            android:label="SdDat">
+            <intent-filter>
+                <action android:name="uk.org.openseizuredetector.broadcastTosdServer" />
+            </intent-filter>
+        </receiver>
+
+
         <receiver
             android:name=".BootBroadcastReceiver"
             android:exported="true"

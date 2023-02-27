@@ -310,8 +310,8 @@ public class SdServer extends Service implements SdDataReceiver {
                     boolean wirelessCharge = chargePlug == BatteryManager.BATTERY_PLUGGED_WIRELESS;
                    
                 }
-                if (intent.getAction().equals(Intent.ACTION_BATTERY_LOW) ||
-                        intent.getAction().equals(Intent.ACTION_BATTERY_OKAY)) {
+                if (Intent.ACTION_BATTERY_LOW.equals(intent.getAction()) ||
+                        Intent.ACTION_BATTERY_OKAY.equals(intent.getAction())) {
 
                     if (mSdData.watchConnected) {
                         if (batteryPct < 15f) {
@@ -418,16 +418,15 @@ public class SdServer extends Service implements SdDataReceiver {
         mPowerUpdateManager.register(this, new IntentFilter(Intent.ACTION_BATTERY_OKAY));
 
     }
-
-
     /**
      * onStartCommand - start the web server and the message loop for
      * communications with other processes.
      */
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    protected void onHandleIntent(Intent intent){
+
+
         Log.i(TAG, "onStartCommand() - SdServer service starting");
-        int returnValueFromSuper = super.onStartCommand(intent, flags, startId);
+
 
         mUtil.writeToSysLogFile("SdServer.onStartCommand()");
 
@@ -577,8 +576,6 @@ public class SdServer extends Service implements SdDataReceiver {
                             mPowerUpdateManager.unregister(this);
             }
 
-        if (intent == null) return START_NOT_STICKY;
-        return returnValueFromSuper;
 
     }
 

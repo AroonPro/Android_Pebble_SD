@@ -70,6 +70,7 @@ public abstract class SdDataSource {
     protected OsdUtil mUtil;
     protected Context mContext;
     protected static SdDataReceiver mSdDataReceiver;
+    private SdServer mSdServer = null;
     private String TAG = "SdDataSource";
 
     protected boolean mIsRunning = false;
@@ -118,7 +119,12 @@ public abstract class SdDataSource {
         mHandler = handler;
         mUtil = new OsdUtil(mContext, mHandler);
         mSdDataReceiver = sdDataReceiver;
+        mSdServer = (SdServer)mSdDataReceiver;
         mSdData = pullSdData();
+
+    }
+
+    public SdDataSource() {
 
     }
 

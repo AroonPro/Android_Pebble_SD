@@ -23,9 +23,16 @@ public class Constants {
         public final Uri mStartUri = Uri.parse("Start");
         public final Uri mStopUri = Uri.parse("Stop");
         public final Uri mPASSUri = Uri.parse("PASS");
+        public final Uri mRequestUri = Uri.parse("Request");
         public final String mPowerLevel = "powerLevel";
         public final String mSettingsString = "settingsJson";
         public final String mSdServerIntent = "sdServerIntent";
+        public final String intentReceiver = "intentReceiver";
+        public final String returnPath = " returnPath";
+        public final String intentAction = " intentAction";
+        public final String wearReceiverServiceIntent = "wearReceiverServiceIntent";
+        public final String mSdDataPath ="mSdDataPath";
+        public final String dataType = "dataType";
 
     }
 
@@ -34,6 +41,8 @@ public class Constants {
         public static String STOPFOREGROUND_ACTION = "uk.org.openseizuredetect.stopforeground";
         public static String BATTERYUPDATE_ACTION = "uk.org.openseizuredetector.onBatteryUpdate";
         public static String CONNECTIONUPDATE_ACTION = "uk.org.openseizuredetector.onConnectionUpdate";
+        public static String BROADCAST_TO_WEARRECEIVER = "uk.org.openseizuredetector.aw.broadcastToWearReceiver";
+        public static String BROADCAST_TO_SDSERVER = "uk.org.openseizuredetector.broadcastTosdServer";
         public static String PUSH_SETTINGS_ACTION = "uk.org.openseizuredetector.aw.wear.pushSettings";
         public static String PULL_SETTINGS_ACTION = "uk.org.openseizuredetector.aw.wear.pullSettings";
         public static String START_WEAR_APP_ACTION = "uk.org.openseizuredetector.aw.wear.startWear";
@@ -44,6 +53,10 @@ public class Constants {
         public static String START_MOBILE_SD_ACTION = "uk.org.openseizuredetector.aw.mobile.startSeizureDetectorServer";
         public static String REGISTER_START_INTENT_AW = "uk.org.openseizuredetector.aw.mobile.registerStartIntents";
         public static String REGISTER_START_INTENT = "uk.org.openseizuredetector.registerStartIntents";
+        public static String REGISTERED_START_INTENT_AW = "uk.org.openseizuredetector.aw.mobile.registeredStartIntents";
+        public static String REGISTERED_START_INTENT = "uk.org.openseizuredetector.registeredStartIntents";
+        public static String REGISTER_WEARRECEIVER_INTENT = "uk.org.openseizuredetector.aw.mobile.registerWearRecieverIntent";
+        public static String REGISTERED_WEARRECEIVER_INTENT = "uk.org.openseizuredetector.aw.mobile.registeredWearRecieverIntent";
     }
 
     public interface NOTIFICATION_ID {

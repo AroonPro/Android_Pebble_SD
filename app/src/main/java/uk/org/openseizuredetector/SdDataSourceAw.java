@@ -23,27 +23,34 @@
 */
 package uk.org.openseizuredetector;
 
+import static android.content.Intent.getIntentOld;
+import static android.content.Intent.parseIntent;
+import static android.content.Intent.parseUri;
+import static androidx.core.app.ActivityCompat.startActivityForResult;
+import static androidx.core.content.ContextCompat.RECEIVER_EXPORTED;
+import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
+
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Application;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.ComponentInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.net.Uri;
+import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceManager;
-import android.text.SpannableString;
-import android.text.util.Linkify;
 import android.util.Log;
 
-import androidx.appcompat.app.AlertDialog;
+
+import org.checkerframework.checker.units.qual.C;
+
 import java.util.Objects;
-;
+
+
 /**
  * order of boolean tracing
  * mConnection.mBound
@@ -59,12 +66,15 @@ import java.util.Objects;
  * function to send the data to this datasource.
  * SdWebServer expects POST requests to /data and /settings URLs to send data or watch settings.
  */
-public class SdDataSourceAw extends SdDataSource {
+public class SdDataSourceAw extends SdDataSource  {
     private String TAG = "SdDataSourceAw";
-    private final String mAppPackageName = "uk.org.openseizuredetector.aw";
-    //private final String mAppPackageName = "uk.org.openseizuredetector";
+    private Intent receivingIntent = null;
     private Intent aWIntent = null;
-
+    private Intent aWIntentBase = null;
+    private Intent activityIntent = null;
+    private Intent intentReceiver = null;
+    private Intent receivedIntentByBroadCast = null;
+    private String receivedAction = null;
 
 
     public SdDataSourceAw(Context context, Handler handler,
@@ -74,15 +84,40 @@ public class SdDataSourceAw extends SdDataSource {
         // Set default settings from XML files (mContext is set by super().
         PreferenceManager.setDefaultValues(mContext,
                 R.xml.network_passive_datasource_prefs, true);
+
+        mContext = context;
+
+        onStartReceived();
+
+    }
+
+
+    public Activity getActivityFromContext(Context context) {
+        if (context == null) {
+            mUtil.showToast("instantly failing get context wrapped context");
+            return null;
+        } else if (context instanceof ContextWrapper) {
+            if (context instanceof Activity) {
+                mUtil.showToast("instanceFound");
+                return (Activity) context;
+            } else {
+                mUtil.showToast("retrywithWrapper");
+                return getActivityFromContext(((ContextWrapper) context).getBaseContext());
+            }
+        }
+        return null;
     }
 
 
     /**
-     * powerUpdateReceiver with coding from:
+     * IntentBroadCastReceiver with coding from:
      * https://stackoverflow.com/questions/2682043/how-to-check-if-receiver-is-registered-in-android
      * */
 
     public class IntentBroadCastReceiver  extends BroadcastReceiver {
+        IntentBroadCastReceiver(){
+            Log.i("IntentBroadCastReceiver","BroadcastReceiverClass() in Constructor");
+        };
         public boolean isRegistered = false;
 
         /**
@@ -101,6 +136,7 @@ public class SdDataSourceAw extends SdDataSource {
                 // example  by storing a list of weak references
                 // see LoadedApk.class - receiver dispatcher
                 // its and ArrayMap there for example
+                receivingIntent = new Intent(context, getClass());
                 return !isRegistered
                         ? context.registerReceiver(this, filter)
                         : null;
@@ -130,17 +166,77 @@ public class SdDataSourceAw extends SdDataSource {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            intentReceivedAction(intent);
+            Log.i(TAG,"onReceive: received broadcast.");
+            if (!Objects.equals(intent,null))
+                if (Constants.ACTION.BROADCAST_TO_SDSERVER.equals(intent.getAction()))
+                    intentReceivedAction(intent);
+            goAsync();
         }
 
     }
 
+
+
     private IntentBroadCastReceiver intentBroadCastReceiver = null;
+
+    private void onStartReceived() {
+        try {
+            mHandler = new Handler();
+            mUtil = new OsdUtil(mContext, mHandler);
+            if (Objects.equals(intentBroadCastReceiver, null))
+                intentBroadCastReceiver = new IntentBroadCastReceiver();
+            if (intentBroadCastReceiver.isRegistered)
+                intentBroadCastReceiver.unregister(mContext);
+            IntentFilter broadCastToSdServer = new IntentFilter(Constants.ACTION.BROADCAST_TO_SDSERVER);
+            intentBroadCastReceiver.register(mContext, broadCastToSdServer);
+            Log.i(TAG, "onCreate(): reached");
+            if ( !Objects.equals(receivedIntentByBroadCast, null)) {
+                try {
+
+                    Log.i(TAG, "got intent and count of extras:" + receivedIntentByBroadCast.getExtras().size());
+                } catch (Exception e) {
+                    Log.e(TAG, "onCreate: ", e);
+                }
+
+                if (!Objects.equals(receivedIntentByBroadCast, null))
+                    if (receivedIntentByBroadCast.hasExtra(Constants.GLOBAL_CONSTANTS.returnPath)) {
+                        if (Constants.GLOBAL_CONSTANTS.mAppPackageNameWearReceiver.equals(receivedIntentByBroadCast.getStringExtra(Constants.GLOBAL_CONSTANTS.returnPath))) {
+                            mUtil.showToast("inOnStartWithIntent");
+                            Log.i(TAG, "inOnStartReceived");
+                            if (receivedIntentByBroadCast.hasExtra(Constants.GLOBAL_CONSTANTS.intentAction))
+                                receivedAction = receivedIntentByBroadCast.getStringExtra(Constants.GLOBAL_CONSTANTS.intentAction);
+
+                            if (Constants.ACTION.REGISTERED_WEARRECEIVER_INTENT.equals(receivedAction))
+
+                                mHandler.postDelayed(()-> {
+                                    aWIntent = aWIntentBase;
+                                    aWIntent.setAction(Constants.ACTION.BROADCAST_TO_WEARRECEIVER);
+                                    aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction, Constants.ACTION.PUSH_SETTINGS_ACTION);
+                                    aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.mSettingsString, getSdData().toSettingsJSON());
+                                    mContext.sendBroadcast(aWIntent);
+                                },100);
+
+                            if (Constants.ACTION.PUSH_SETTINGS_ACTION.equals(receivedAction))
+                                mHandler.postDelayed(()->startWearSDApp(),100);
+
+
+                            if (Constants.ACTION.PUSH_SETTINGS_ACTION.equals(receivedAction))
+                                startWearSDApp();
+
+                        }
+                    } else
+                        mUtil.showToast("inOnStartWithIntent");
+            }
+        }catch (Exception e){
+            Log.e(TAG,"onStartReceived(): ",e);
+        }
+    }
 
     /**
      * Start the datasource updating - initialises from sharedpreferences first to
      * make sure any changes to preferences are taken into account.
      */
+    @Override
     public void start() {
         Log.i(TAG, "start()");
         mUtil.writeToSysLogFile("SdDataSourceAw.start()");
@@ -156,32 +252,39 @@ public class SdDataSourceAw extends SdDataSource {
             installAwApp();
         } else {
             try {
-                aWIntent.setClassName(aWIntent.getPackage(),".WearReceiver");
+
+              //onStartReceived() unnecessary: receiveing end from here through broadcast.
+
+                aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.returnPath,Constants.GLOBAL_CONSTANTS.mAppPackageName);
+                aWIntent.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
+                aWIntentBase = aWIntent;
+                //aWIntent.setClassName(aWIntent.getPackage(),".WearReceiver");
                 //aWIntent = new Intent();
                 //aWIntent.setPackage(Constants.GLOBAL_CONSTANTS.mAppPackageNameWearReceiver);
-                //FIXME: tell me how to encorporate <data ######## /> with:
+                //FIXME: tell me how to incorporate <data ######## /> with:
                 // .setData()
                 // and: launch DebugActivity from debugger.
                 // (this is one way of 2 way communication.)
+                // Also tell me how to use activity without broadcast. In this context is no getActivity() or getIntent()
                 SdData sdData = getSdData();
-                aWIntent.putExtra("data","Start");
-                aWIntent.putExtra("mSdData", sdData.toSettingsJSON());
+                //aWIntent.setData(Constants.GLOBAL_CONSTANTS.mStartUri);
+                aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.dataType,Constants.GLOBAL_CONSTANTS.mStartUri);
+                aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentReceiver, receivingIntent);
+                aWIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK|Intent.FLAG_ACTIVITY_CLEAR_TASK|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
                 //aWIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 mContext.startActivity(aWIntent);
+
             } catch (Exception e){
                 Log.e(TAG,"start() encountered an error",e);
-                if (Objects.equals(intentBroadCastReceiver,null))
-                    intentBroadCastReceiver = new IntentBroadCastReceiver();
-                if (intentBroadCastReceiver.isRegistered)
-                    intentBroadCastReceiver.unregister(mContext);
                 mHandler.postDelayed(()->{
-                    intentBroadCastReceiver.register(mContext,new IntentFilter(Constants.GLOBAL_CONSTANTS.mSdServerIntent));
-                    aWIntent = new Intent(Constants.ACTION.REGISTER_START_INTENT_AW);
-                    aWIntent.putExtra("setContext","setByPebbleSD");
+                    aWIntent = new Intent(Constants.ACTION.BROADCAST_TO_WEARRECEIVER);
+                    aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.returnPath,Constants.GLOBAL_CONSTANTS.mAppPackageName);
                     mContext.sendBroadcast(aWIntent);
                 },100);
             }
         }
+
     }
 
     /**
@@ -194,6 +297,13 @@ public class SdDataSourceAw extends SdDataSource {
             aWIntent.putExtra("data","Stop");
             mContext.startActivity(aWIntent);
         }
+        if (!Objects.equals(intentBroadCastReceiver,null)) {
+            if (intentBroadCastReceiver.isRegistered)
+                intentBroadCastReceiver
+                        .unregister(mContext);
+            intentBroadCastReceiver = null;
+        }
+
         super.stop();
     }
 
@@ -201,11 +311,12 @@ public class SdDataSourceAw extends SdDataSource {
         // from https://stackoverflow.com/questions/11753000/how-to-open-the-google-play-store-directly-from-my-android-application
         // First tries to open Play Store, then uses URL if play store is not installed.
         try {
-            aWIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + mAppPackageName));
+            aWIntent = aWIntentBase;
+            aWIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + Constants.GLOBAL_CONSTANTS.mAppPackageName));
             aWIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             mContext.startActivity(aWIntent);
         } catch (android.content.ActivityNotFoundException anfe) {
-            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + mAppPackageName));
+            Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + Constants.GLOBAL_CONSTANTS.mAppPackageName));
             i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             mContext.startActivity(i);
         }
@@ -213,6 +324,7 @@ public class SdDataSourceAw extends SdDataSource {
 
     public void startWearReceiverApp(){
         try {
+            aWIntent = aWIntentBase;
             aWIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             aWIntent.addCategory(Intent.CATEGORY_LAUNCHER);
             SdData sdData = getSdData();
@@ -220,7 +332,7 @@ public class SdDataSourceAw extends SdDataSource {
             aWIntent.putExtra("mSdData", sdData.toSettingsJSON());
             mContext.startActivity(aWIntent);
         } catch (android.content.ActivityNotFoundException anfe) {
-            aWIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + mAppPackageName));
+            aWIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=" + Constants.GLOBAL_CONSTANTS.mAppPackageName));
             aWIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             mContext.startActivity(aWIntent);
         }
@@ -228,16 +340,16 @@ public class SdDataSourceAw extends SdDataSource {
     }
 
     public void intentReceivedAction(Intent intent){
-
+        receivedIntentByBroadCast = intent;
+        onStartReceived();
     }
+
     public void startWearSDApp(){
         try{
-
-            aWIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            aWIntent.addCategory(Intent.CATEGORY_LAUNCHER);
+            aWIntent = aWIntentBase;
             SdData sdData = getSdData();
-            aWIntent.putExtra("data",Uri.parse(Constants.ACTION.START_WEAR_APP_ACTION));
-            aWIntent.putExtra("mSdData", sdData.toSettingsJSON());
+            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction,Uri.parse(Constants.ACTION.START_WEAR_APP_ACTION));
+            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.mSdDataPath, sdData.toSettingsJSON());
             mContext.startActivity(aWIntent);
         }catch ( Exception e ){
             Log.e(TAG,"startWearSDApp: Error occoured",e);
@@ -247,26 +359,27 @@ public class SdDataSourceAw extends SdDataSource {
 
     public void startMobileSD(){
         try{
-
+            aWIntent = aWIntentBase;
             aWIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             aWIntent.addCategory(Intent.CATEGORY_LAUNCHER);
             SdData sdData = getSdData();
-            aWIntent.putExtra("data",Uri.parse(Constants.ACTION.PUSH_SETTINGS_ACTION));
-            aWIntent.putExtra("mSdData", sdData.toSettingsJSON());
+            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.dataType,Uri.parse(Constants.ACTION.PUSH_SETTINGS_ACTION));
+            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.mSdDataPath, sdData.toSettingsJSON());
             mContext.startActivity(aWIntent);
         }catch ( Exception e ){
             Log.e(TAG,"startWearSDApp: Error occoured",e);
         }
-    }
 
+
+    }
 
     public void mobileBatteryPctUpdate(){
         try{
-
+            aWIntent = aWIntentBase;
             aWIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
             aWIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-            aWIntent.putExtra("data",Uri.parse(Constants.ACTION.BATTERYUPDATE_ACTION));
-            aWIntent.putExtra("mobileBatteryPct", ((SdServer)mSdDataReceiver).batteryPct);
+            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.dataType,Uri.parse(Constants.ACTION.BATTERYUPDATE_ACTION));
+            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.mPowerLevel, ((SdServer)mSdDataReceiver).batteryPct);
             mContext.startActivity(aWIntent);
         }catch ( Exception e ){
             Log.e(TAG,"startWearSDApp: Error occoured",e);
