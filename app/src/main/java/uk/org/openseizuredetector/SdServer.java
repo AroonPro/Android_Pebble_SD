@@ -422,12 +422,18 @@ public class SdServer extends Service implements SdDataReceiver {
      * onStartCommand - start the web server and the message loop for
      * communications with other processes.
      */
-    protected void onHandleIntent(Intent intent){
-
-
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "onStartCommand() - SdServer service starting");
-
-
+        int returnValueFromSuper = super.onStartCommand(intent, flags, startId);
+        if (!Objects.equals(intent,null)) {
+            if (intent.hasExtra(Constants.GLOBAL_CONSTANTS.startId))
+                Log.d(TAG, "onStartCommand(): received  startId: " + startId +
+                        " and intent startId: " + intent.getIntExtra(Constants.GLOBAL_CONSTANTS.startId,-1) +
+                        " and with Action: " + intent.getData());
+            else
+                Log.e(TAG,"onStartCommand: running without startId",new Throwable());
+        }
         mUtil.writeToSysLogFile("SdServer.onStartCommand()");
 
         // Update preferences.
@@ -576,6 +582,8 @@ public class SdServer extends Service implements SdDataReceiver {
                             mPowerUpdateManager.unregister(this);
             }
 
+        if (intent == null) return START_NOT_STICKY;
+        return returnValueFromSuper;
 
     }
 
@@ -796,6 +804,7 @@ public class SdServer extends Service implements SdDataReceiver {
         sdData.alarmState = 5;
         onSdDataReceived(sdData);
     }
+
 
     /**
      * Process the data received from the SdData source.  On exit, the mSdData structure is populated with

@@ -82,7 +82,7 @@ public abstract class SdDataSource {
     private short mManAlarmPeriod;
     private short mPebbleSdMode;
     private int mDefaultSampleCount;
-    private short mSampleFreq;
+    public short mSampleFreq;
     private short mAlarmFreqMin;
     private short mAlarmFreqMax;
     private short mSamplePeriod;
@@ -125,7 +125,7 @@ public abstract class SdDataSource {
     }
 
     public SdDataSource() {
-
+        Log.i(TAG,"SdDataSource() entered Constructor");
     }
 
     protected SdData pullSdData() { return ((SdServer)mSdDataReceiver).mSdData; }

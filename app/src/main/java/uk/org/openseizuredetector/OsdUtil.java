@@ -100,6 +100,7 @@ public class OsdUtil {
     private static Long mLastPruneMillis = 0L;   // Record of the last time we pruned the syslog db.
     private SdServiceConnection activeSdServiceConnection = null;
 
+    private int wearReceiverStartId = 0;
     private static int mNbound = 0;
 
     public OsdUtil(Context context, Handler handler) {
@@ -163,15 +164,21 @@ public class OsdUtil {
 
     /**
      * Start the SdServer service
+     * without parameters allways sends Uri://Start
      */
-    public void startServer() {
+    public void  startServer(){
+        startServer(Constants.GLOBAL_CONSTANTS.mStartUri);
+    }
+    //overload startServer without parmeters
+    public void startServer(Uri setData ) {
         // Start the server
         Log.d(TAG, "OsdUtil.startServer()");
         writeToSysLogFile("startServer() - starting server");
         Intent sdServerIntent;
-        sdServerIntent = new Intent(mContext, SdServer.class);
+        sdServerIntent = new Intent(mContext, SdServer.class)
+                .putExtra(Constants.GLOBAL_CONSTANTS.startId,wearReceiverStartId);;
         sdServerIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-        sdServerIntent.setData(Uri.parse("Start"));
+        sdServerIntent.setData(setData);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             Log.i(TAG, "Starting Foreground Service (Android 8 and above)");
             mContext.startForegroundService(sdServerIntent);
@@ -179,6 +186,7 @@ public class OsdUtil {
             Log.i(TAG, "Starting Normal Service (Pre-Android 8)");
             mContext.startService(sdServerIntent);
         }
+        wearReceiverStartId++;
     }
 
     /**

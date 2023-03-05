@@ -40,7 +40,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.PowerManager;
-import android.preference.PreferenceManager;
 import android.text.Html;
 import android.text.SpannableString;
 import android.text.util.Linkify;
@@ -54,6 +53,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.preference.PreferenceManager;
 
 import com.rohitss.uceh.UCEHandler;
 

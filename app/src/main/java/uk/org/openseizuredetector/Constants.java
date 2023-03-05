@@ -14,6 +14,7 @@ public class Constants {
         public final String MESSAGE_ITEM_OSD_TEST_RECEIVED = "/testMsg-received";
         public final String MESSAGE_ITEM_OSD_DATA_REQUESTED = "/data-requested";
         public final String MESSAGE_ITEM_OSD_DATA_RECEIVED = "/data-received";
+        public final String MESSAGE_OSD_FUNCTION_RESTART = "/function-restart";
         public final String MESSAGE_ITEM_PATH = "/message-item";
         public final String APP_OPEN_WEARABLE_PAYLOAD_PATH = "/APP_OPEN_WEARABLE_PAYLOAD";
         public final String TAG_GET_NODES = "getnodes1";
@@ -24,6 +25,7 @@ public class Constants {
         public final Uri mStopUri = Uri.parse("Stop");
         public final Uri mPASSUri = Uri.parse("PASS");
         public final Uri mRequestUri = Uri.parse("Request");
+        public final Uri PreStart = Uri.parse("PreStart");
         public final String mPowerLevel = "powerLevel";
         public final String mSettingsString = "settingsJson";
         public final String mSdServerIntent = "sdServerIntent";
@@ -33,6 +35,7 @@ public class Constants {
         public final String wearReceiverServiceIntent = "wearReceiverServiceIntent";
         public final String mSdDataPath ="mSdDataPath";
         public final String dataType = "dataType";
+        public final String startId = "startId";
 
     }
 
@@ -57,6 +60,14 @@ public class Constants {
         public static String REGISTERED_START_INTENT = "uk.org.openseizuredetector.registeredStartIntents";
         public static String REGISTER_WEARRECEIVER_INTENT = "uk.org.openseizuredetector.aw.mobile.registerWearRecieverIntent";
         public static String REGISTERED_WEARRECEIVER_INTENT = "uk.org.openseizuredetector.aw.mobile.registeredWearRecieverIntent";
+        public static String CONNECT_WEARABLE_INTENT = "uk.org.openseizuredetector.aw.mobile.connectWearableIntent";
+        public static String CONNECTED_WEARABLE_INTENT = "uk.org.openseizuredetector.aw.mobile.connectedWearableIntent";
+        public static String DISCONNECT_WEARABLE_INTENT = "uk.org.openseizuredetector.aw.mobile.disConnectIntent";
+        public static String DISCONNECTED_WEARABLE_INTENT = "uk.org.openseizuredetector.aw.mobile.disConnectedIntent";
+        public static String CONNECTION_WEARABLE_CONNECTED = "uk.org.openseizuredetector.aw.wear.wearableConnected";
+        public static String CONNECTION_WEARABLE_RECONNECTED = "uk.org.openseizuredetector.aw.wear.wearableReConnected";
+        public static String CONNECTION_WEARABLE_DISCONNECTED = "uk.org.openseizuredetector.aw.wear.wearableDisConnected";
+        public static String SDDATA_TRANSFER_TO_SD_SERVER = "uk.org.openseizuredetector.sdDataTransfer";
     }
 
     public interface NOTIFICATION_ID {

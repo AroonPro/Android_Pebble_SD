@@ -88,6 +88,10 @@
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
+            <intent-filter>
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="uk.org.openseizuredetector.startforeground" android:host=".BootBroadcastReceiver" />
+            </intent-filter>
         </receiver>
 
         <uses-library
