@@ -2,14 +2,15 @@ package uk.org.openseizuredetector;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
-import android.os.Bundle;
 import android.os.Handler;
+import androidx.appcompat.app.AppCompatActivity;
+import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
-
-import androidx.appcompat.app.AppCompatActivity;
+import android.widget.TimePicker;
 
 import java.util.Calendar;
 
@@ -61,7 +62,7 @@ public class ExportDataActivity extends AppCompatActivity
         mMinute = c.get(Calendar.MINUTE);
 
         mDateTxt.setText(String.format("%02d-%02d-%04d", mDay, mMonth + 1, mYear));
-        mTimeTxt.setText(String.format("%02d:%02d:%02d", mHour, mMinute, 0));
+        mTimeTxt.setText(String.format("%02d:%02d:%02d", mHour, mMinute, 00));
         mDuration = 2.0;
         mDurationTxt.setText(String.format("%03.1f", mDuration));
 
@@ -72,27 +73,35 @@ public class ExportDataActivity extends AppCompatActivity
         Log.v(TAG, "onClick()");
         if (view == mDateBtn) {
             DatePickerDialog datePickerDialog = new DatePickerDialog(this,
-                    (view12, year, monthOfYear, dayOfMonth) -> {
+                    new DatePickerDialog.OnDateSetListener() {
+                        @Override
+                        public void onDateSet(DatePicker view, int year,
+                                              int monthOfYear, int dayOfMonth) {
                         mDay = dayOfMonth;
                         mMonth = monthOfYear;
                         mYear = year;
                         mDateTxt.setText(String.format("%02d-%02d-%04d", mDay, mMonth + 1, mYear));
+                        }
                     }, mYear, mMonth, mDay);
             datePickerDialog.show();
         }
         if (view == mTimeBtn) {
             // Launch Time Picker Dialog
             TimePickerDialog timePickerDialog = new TimePickerDialog(this,
-                    (view1, hourOfDay, minute) -> {
+                    new TimePickerDialog.OnTimeSetListener() {
+                        @Override
+                        public void onTimeSet(TimePicker view, int hourOfDay,
+                                              int minute) {
                         mHour = hourOfDay;
                         mMinute = minute;
                         mTimeTxt.setText(String.format("%02d:%02d:%02d", mHour, mMinute, 00));
+                        }
                     }, mHour, mMinute, false);
             timePickerDialog.show();
         }
         if (view == mExportBtn) {
             mDateTxt.setText(String.format("%02d-%02d-%04d", mDay, mMonth + 1, mYear));
-            mTimeTxt.setText(String.format("%02d:%02d:%02d", mHour, mMinute, 0));
+            mTimeTxt.setText(String.format("%02d:%02d:%02d", mHour, mMinute, 00));
             mDuration = Double.parseDouble(mDurationTxt.getText().toString());
 
 

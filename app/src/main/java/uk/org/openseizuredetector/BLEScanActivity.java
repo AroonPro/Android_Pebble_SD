@@ -47,6 +47,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.MenuItemCompat;
@@ -62,6 +63,7 @@ public class BLEScanActivity extends ListActivity {
     private BluetoothLeScanner mBluetoothLeScanner;
     private boolean mScanning;
     private Handler mHandler;
+    private boolean bleAvailable = false;
 
     private boolean mPermissionsRequested = false;
     private final String TAG = "BLEScanActivity";
@@ -92,7 +94,7 @@ public class BLEScanActivity extends ListActivity {
             Toast.makeText(this, R.string.ble_not_supported, Toast.LENGTH_SHORT).show();
             finish();
         } else {
-            boolean bleAvailable = true;
+            bleAvailable = true;
         }
 
         // Initializes a Bluetooth adapter.  For API level 18 and above, get a reference to
@@ -292,15 +294,18 @@ public class BLEScanActivity extends ListActivity {
 
         if (enable) {
             // Stops scanning after a pre-defined scan period.
-            mHandler.postDelayed(() -> {
+            mHandler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
                 mScanning = false;
                 mBluetoothLeScanner.stopScan(mLeScanCallback);
                 invalidateOptionsMenu();
-                TextView tv1 = (TextView) (findViewById(R.id.ble_scan_status_tv));
-                tv1.setText("Stopped");
+                    TextView tv = (TextView) (findViewById(R.id.ble_scan_status_tv));
+                    tv.setText("Stopped");
                 Button b = (Button) findViewById(R.id.startScanButton);
                 b.setEnabled(true);
 
+                }
             }, SCAN_PERIOD);
 
             mScanning = true;
@@ -328,7 +333,7 @@ public class BLEScanActivity extends ListActivity {
 
         public LeDeviceListAdapter() {
             super();
-            mLeDevices = new ArrayList<>();
+            mLeDevices = new ArrayList<BluetoothDevice>();
             mInflator = BLEScanActivity.this.getLayoutInflater();
         }
 

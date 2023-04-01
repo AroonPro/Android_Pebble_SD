@@ -35,6 +35,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.List;
+import java.util.Objects;
 
 /* based on http://stackoverflow.com/questions/2139134/how-to-send-an-object-from-one-android-activity-to-another-using-intents */
 
@@ -159,34 +160,42 @@ public class SdData implements Parcelable {
             // FIXME - this doesn't work!!!
             dataTime.setToNow();
             Log.v(TAG, "fromJSON(): dataTime = " + dataTime.toString());
-            mDefaultSampleCount = jo.optInt("defaultSampleCount");
-            maxVal = jo.optInt("maxVal");
-            maxFreq = jo.optInt("maxFreq");
-            analysisPeriod = jo.optInt("analysisPeriod");
-            mSampleFreq = jo.optLong("sampleFreq", 25);
-            specPower = jo.optInt("specPower");
-            roiPower = jo.optInt("roiPower");
-            batteryPc = jo.optInt("batteryPc");
-            watchConnected = jo.optBoolean("watchConnected");
-            watchAppRunning = jo.optBoolean("watchAppRunning");
-            alarmState = jo.optInt("alarmState");
-            alarmPhrase = jo.optString("alarmPhrase");
-            alarmThresh = jo.optInt("alarmThresh");
-            alarmRatioThresh = jo.optInt("alarmRatioThresh");
-            mHRAlarmActive = jo.optBoolean("hrAlarmActive");
-            mHRAlarmStanding = jo.optBoolean("hrAlarmStanding");
-            mHRThreshMax = jo.optDouble("hrThreshMax");
-            mHRThreshMin = jo.optDouble("hrThreshMin");
-            mHR = jo.optDouble("hr");
+            if (Constants.GLOBAL_CONSTANTS.dataTypeSettings.equals(mDataType)){
+                mDefaultSampleCount = jo.optInt("defaultSampleCount");
+                batteryPc = jo.optInt("batteryPc");
+                watchConnected = jo.optBoolean("watchConnected");
+                watchAppRunning = jo.optBoolean("watchAppRunning");
+                haveSettings = jo.optBoolean("haveSettings");
+                maxVal = jo.optInt("maxVal");
+                maxFreq = jo.optInt("maxFreq");
+                analysisPeriod = jo.optInt("analysisPeriod");
+                mSampleFreq = jo.optLong("sampleFreq", 25);
+                alarmState = jo.optInt("alarmState");
+                alarmPhrase = jo.optString("alarmPhrase");
+                alarmThresh = jo.optInt("alarmThresh");
+                alarmRatioThresh = jo.optInt("alarmRatioThresh");
+                mHRAlarmActive = jo.optBoolean("hrAlarmActive");
+                mHRAlarmStanding = jo.optBoolean("hrAlarmStanding");
+                mHRThreshMax = jo.optDouble("hrThreshMax");
+                mHRThreshMin = jo.optDouble("hrThreshMin");
+                mDataType = jo.optString("dataType");
+                phoneName = jo.optString("phoneName");
+
+            }
+            if (Constants.GLOBAL_CONSTANTS.dataTypeRaw.equals(mDataType)) {
+                specPower = jo.optInt("specPower");
+                roiPower = jo.optInt("roiPower");
+                mHR = jo.optDouble("hr");
             /*if (mHR >= 0.0) {
                 mHRAlarmActive = true;
             }*/
 
-            mDataType = jo.optString("dataType", "raw");
-            phoneName = jo.optString("phoneName");
-            specArr = jo.optJSONArray("simpleSpec");
-            for (int i = 0; i < specArr.length(); i++) {
-                simpleSpec[i] = specArr.optInt(i);
+                specArr = jo.optJSONArray("simpleSpec");
+                if (!Objects.equals(specArr, null)) {
+                    for (int i = 0; i < specArr.length(); i++) {
+                        simpleSpec[i] = specArr.optInt(i);
+                    }
+                }
             }
             haveData = true;
             Log.v(TAG, "fromJSON(): sdData = " + this.toString());

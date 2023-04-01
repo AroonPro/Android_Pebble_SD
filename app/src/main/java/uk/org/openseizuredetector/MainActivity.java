@@ -644,6 +644,7 @@ public class MainActivity extends AppCompatActivity {
                     tv.setBackgroundColor(okColour);
                     tv.setTextColor(okTextColour);
 
+                    //edit: HR also changing <40 to --- or (HR)
                     // Pebble Connected Phrase - use for HR if active instead.
                     tv = (TextView) findViewById(R.id.pebbleTv);
                     //if (mConnection.mSdServer.mSdData.mHRAlarmActive) {

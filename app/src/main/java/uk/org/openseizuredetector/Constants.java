@@ -21,6 +21,7 @@ public class Constants {
         public final String mAppPackageName = "uk.org.openseizuredetector";
         public final String mAppPackageNameWearReceiver = "uk.org.openseizuredetector.aw";
         public final String mAppPackageNameWearSD = "uk.org.openseizuredetector.aw";
+        public final String mServiceWearSdName = "uk.org.openseizuredetector.aw.AWSdService";
         public final Uri mStartUri = Uri.parse("Start");
         public final Uri mStopUri = Uri.parse("Stop");
         public final Uri mPASSUri = Uri.parse("PASS");
@@ -35,14 +36,21 @@ public class Constants {
         public final String wearReceiverServiceIntent = "wearReceiverServiceIntent";
         public final String mSdDataPath ="mSdDataPath";
         public final String dataType = "dataType";
+        public final String dataTypeSettings = "settings";
+        public final String dataTypeRaw = "raw";
         public final String startId = "startId";
+        public final double maxHeartRefreshRate = 300d;//measured in , 60bpm equals 1Hz
+        //equals 1/s seconds = 40ms  , 300bpm is unlikely but will translate to 300/60 5Hz
+        // 1/5 = 0,2 seconds. 200ms
+        public final double getMaxHeartRefreshRate = (1d/(maxHeartRefreshRate/60d))*1000;
 
     }
 
     public interface ACTION {
-        public static String STARTFOREGROUND_ACTION = "uk.org.openseizuredetect.startforeground";
-        public static String STOPFOREGROUND_ACTION = "uk.org.openseizuredetect.stopforeground";
+        public static String STARTFOREGROUND_ACTION = "uk.org.openseizuredetector.startforeground";
+        public static String STOPFOREGROUND_ACTION = "uk.org.openseizuredetector.stopforeground";
         public static String BATTERYUPDATE_ACTION = "uk.org.openseizuredetector.onBatteryUpdate";
+        public static String BIND_ACTION = "uk.org.openseizuredetector.bindAction";
         public static String CONNECTIONUPDATE_ACTION = "uk.org.openseizuredetector.onConnectionUpdate";
         public static String BROADCAST_TO_WEARRECEIVER = "uk.org.openseizuredetector.aw.broadcastToWearReceiver";
         public static String BROADCAST_TO_SDSERVER = "uk.org.openseizuredetector.broadcastTosdServer";
@@ -60,6 +68,8 @@ public class Constants {
         public static String REGISTERED_START_INTENT = "uk.org.openseizuredetector.registeredStartIntents";
         public static String REGISTER_WEARRECEIVER_INTENT = "uk.org.openseizuredetector.aw.mobile.registerWearRecieverIntent";
         public static String REGISTERED_WEARRECEIVER_INTENT = "uk.org.openseizuredetector.aw.mobile.registeredWearRecieverIntent";
+        public static String REGISTER_WEAR_LISTENER = "uk.org.openseizuredetector.aw.mobile.registerWearListener";
+        public static String REGISTERED_WEAR_LISTENER = "uk.org.openseizuredetector.aw.mobile.registeredWearListener";
         public static String CONNECT_WEARABLE_INTENT = "uk.org.openseizuredetector.aw.mobile.connectWearableIntent";
         public static String CONNECTED_WEARABLE_INTENT = "uk.org.openseizuredetector.aw.mobile.connectedWearableIntent";
         public static String DISCONNECT_WEARABLE_INTENT = "uk.org.openseizuredetector.aw.mobile.disConnectIntent";

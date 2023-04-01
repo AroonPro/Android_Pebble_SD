@@ -42,18 +42,19 @@ dependencies {
     implementation 'com.getpebble:pebblekit:3.1.0@aar'
     // Unit testing dependencies
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'com.google.android.material:material:1.7.0'
+    implementation 'com.google.android.material:material:1.8.0'
     implementation 'com.google.firebase:firebase-auth:21.1.0'
     implementation 'androidx.test:core:1.5.0'
     implementation 'com.google.android.gms:play-services-tflite-java:16.0.1'
     implementation 'com.google.android.gms:play-services-tflite-support:16.0.1'
     implementation 'androidx.preference:preference:1.2.0'
+    implementation 'androidx.work:work-runtime:2.8.1'
     testImplementation 'junit:junit:4.13.2'
     // Set this dependency if you want to use Mockito
     testImplementation 'org.mockito:mockito-core:4.9.0'
     // Set this dependency if you want to use Hamcrest matching
     testImplementation 'org.hamcrest:hamcrest-library:2.2'
-    implementation 'androidx.appcompat:appcompat:1.6.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'org.apache.commons:commons-math3:3.6.1'
     // google play services used for location finding for SMS alerts.

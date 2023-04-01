@@ -86,7 +86,9 @@ public final class UCEHandler {
                     }
                     application = (Application) context.getApplicationContext();
                     //Setup UCE Handler.
-                    Thread.setDefaultUncaughtExceptionHandler((thread, throwable) -> {
+                    Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+                        @Override
+                        public void uncaughtException(Thread thread, final Throwable throwable) {
                         if (isUCEHEnabled) {
                             Log.e(TAG, "App crashed, executing UCEHandler's UncaughtExceptionHandler", throwable);
                             if (hasCrashedInTheLastSeconds(application)) {
@@ -138,6 +140,7 @@ public final class UCEHandler {
                         } else if (oldHandler != null) {
                             //Pass control to old uncaught exception handler
                             oldHandler.uncaughtException(thread, throwable);
+                        }
                         }
                     });
                     application.registerActivityLifecycleCallbacks(new Application.ActivityLifecycleCallbacks() {

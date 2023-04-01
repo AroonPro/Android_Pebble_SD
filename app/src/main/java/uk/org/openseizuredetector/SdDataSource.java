@@ -55,7 +55,7 @@ interface SdDataReceiver {
  * network data source.
  */
 public abstract class SdDataSource {
-    protected Handler mHandler = new Handler();
+    protected static Handler mHandler = new Handler();
     private Timer mStatusTimer;
     private Timer mSettingsTimer;
     private Timer mFaultCheckTimer;
@@ -711,7 +711,7 @@ public abstract class SdDataSource {
         Log.v(TAG, "getStatus() - mWatchAppRunningCheck=" + mWatchAppRunningCheck + " tdiff=" + tdiff);
         Log.v(TAG, "getStatus() - tdiff=" + tdiff + ", mDataUpatePeriod=" + mDataUpdatePeriod + ", mAppRestartTimeout=" + mAppRestartTimeout);
 
-        mSdData.watchConnected = true;  // We can't check connection for passive network connection, so set it to true to avoid errors.
+        if (!((SdServer)mSdDataReceiver).mSdDataSourceName.equals("AndroidWear")) mSdData.watchConnected = true;  // We can't check connection for passive network connection, so set it to true to avoid errors.
         // And is the watch app running?
         // set mWatchAppRunningCheck has been false for more than 10 seconds
         // the app is not talking to us

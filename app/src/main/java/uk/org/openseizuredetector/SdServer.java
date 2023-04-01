@@ -59,8 +59,12 @@ import android.telephony.SmsManager;
 import android.text.format.Time;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.NotificationCompat;
+import androidx.work.WorkManager;
+import androidx.work.Worker;
+import androidx.work.WorkerParameters;
 
 import com.rohitss.uceh.UCEHandler;
 
@@ -74,6 +78,7 @@ import java.text.NumberFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.Timer;
+
 
 /**
  * Based on example at:
@@ -150,6 +155,7 @@ public class SdServer extends Service implements SdDataReceiver {
     private int mDefaultSampleRate = Constants.SD_SERVICE_CONSTANTS.defaultSampleTime;
     public long mDataRetentionPeriod = 1; // Prunes the local db so it only retains data younger than this duration (in days)
     public int mFlag_Intent = PendingIntent.FLAG_UPDATE_CURRENT;
+    private Context mContext;
     /**
      * smsCanelClickListener - onClickListener for the SMS cancel dialog box.   If the
      * negative button is pressed, it cancels the SMS timer to prevent the SMS being sent.
@@ -194,6 +200,8 @@ public class SdServer extends Service implements SdDataReceiver {
     public IntentFilter batteryStatusIntentFilter = null;
     public Intent batteryStatusIntent;
     private boolean serverInitialized = false;
+
+
 
     /**
      * class to handle binding the MainApp activity to this service
@@ -549,7 +557,6 @@ public class SdServer extends Service implements SdDataReceiver {
             startEventsTimer();
         }
 
-
         // Start the web server
         mUtil.writeToSysLogFile("SdServer.onStartCommand() - starting web server");
         startWebServer();
@@ -692,8 +699,6 @@ public class SdServer extends Service implements SdDataReceiver {
             Log.e(TAG, "Error in onDestroy() - " + e.toString(),e);
             mUtil.writeToSysLogFile("SdServer.onDestroy() -error " + e.toString());
         }
-
-
 
         super.onDestroy();
 
@@ -1159,10 +1164,7 @@ public class SdServer extends Service implements SdDataReceiver {
     }
 
 
-
-
-
-    /*
+    /**
      * Start the timer that will send and SMS alert after a given period.
      */
     private void startSmsTimer() {
@@ -1332,7 +1334,7 @@ public class SdServer extends Service implements SdDataReceiver {
 
             NetworkInfo activeNetwork = null;
             try {
-                activeNetwork = cm.getActiveNetworkInfo();
+                activeNetwork = cm.getNetworkInfo(cm.getActiveNetwork());
             } catch (Exception e) {
                 Log.e(TAG, "NetworkBroadcastReceiver - failed to retrieve active network info",e);
                 mUtil.writeToSysLogFile("NetworkBroadcastReceiver - failed to retrieve active network info");

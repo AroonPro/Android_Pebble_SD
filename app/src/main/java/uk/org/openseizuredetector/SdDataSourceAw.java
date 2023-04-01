@@ -213,6 +213,11 @@ public class SdDataSourceAw extends SdDataSource  {
                             if (Constants.ACTION.REGISTERED_START_INTENT.equals(receivedAction))
                             {
                                 sdBroadCastReceived = true;
+                                if (registeredAllBroadCastIntents()){
+                                    aWIntent = aWIntentBase;
+                                    aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction, Constants.ACTION.REGISTERED_WEARRECEIVER_INTENT);
+                                    mContext.sendBroadcast(aWIntent);
+                                }
                             }
 
                             if (Constants.ACTION.REGISTER_WEARRECEIVER_INTENT.equals(receivedAction)){
@@ -225,31 +230,28 @@ public class SdDataSourceAw extends SdDataSource  {
                                     sdAwBroadCastReceived = true;
                                     if (registeredAllBroadCastIntents()){
                                         aWIntent = aWIntentBase;
-                                        aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction, Constants.ACTION.REGISTERED_START_INTENT_AW);
+                                        aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction, Constants.ACTION.REGISTERED_WEARRECEIVER_INTENT);
                                         mContext.sendBroadcast(aWIntent);
-                                        startWearSDApp();
                                     }
                                 }else{
                                     Log.e(TAG,"onStartReceived(): registering WearReceiverIntent without intent attatched", new Throwable());
                                 }
                             }
 
-                            if (Constants.ACTION.REGISTERED_START_INTENT.equals(receivedAction)) {
+                            if (Constants.ACTION.REGISTERED_WEARRECEIVER_INTENT.equals(receivedAction)) {
 
                                 sdBroadCastReceived = true;
                                 if (registeredAllBroadCastIntents()){
-                                    startWearSDApp();
+                                    aWIntent = aWIntentBase;
+                                    aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction, Constants.ACTION.CONNECT_WEARABLE_INTENT);
+                                    mContext.sendBroadcast(aWIntent);
                                 }
                                 return;
                             }
-                            if (Constants.ACTION.REGISTER_WEARRECEIVER_INTENT.equals(receivedAction)) {
+                            if (Constants.ACTION.REGISTERED_WEAR_LISTENER.equals(receivedAction)) {
+                                mSdData = getSdData();
+                                mSdData.serverOK = true;
 
-                                mHandler.postDelayed(() -> {
-                                    aWIntent = aWIntentBase;
-                                    aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction, Constants.ACTION.PUSH_SETTINGS_ACTION);
-                                    aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.mSettingsString, getSdData().toSettingsJSON());
-                                    mContext.sendBroadcast(aWIntent);
-                                }, 100);
                                 sdBroadCastReceived = true;
                                 if (registeredAllBroadCastIntents()){
                                     aWIntent = aWIntentBase;
@@ -259,20 +261,31 @@ public class SdDataSourceAw extends SdDataSource  {
                                 return;
                             }
 
+
+
                             if (Constants.ACTION.CONNECTION_WEARABLE_CONNECTED.equals(receivedAction)){
                                 ((SdServer)mSdDataReceiver).mSdData.watchConnected = true;
+
+                                return;
                             }
 
                             if (Constants.ACTION.CONNECTION_WEARABLE_RECONNECTED.equals(receivedAction)){
                                 ((SdServer)mSdDataReceiver).mSdData.watchConnected = true;
+                                return;
                             }
 
                             if (Constants.ACTION.CONNECTION_WEARABLE_DISCONNECTED.equals(receivedAction)){
                                 ((SdServer)mSdDataReceiver).mSdData.watchConnected = false;
+                                return;
                             }
 
                             if (Constants.ACTION.PUSH_SETTINGS_ACTION.equals(receivedAction)) {
-                                mHandler.postDelayed(() -> startWearSDApp(), 100);
+                                mHandler.postDelayed(() -> {
+                                    aWIntent = aWIntentBase;
+                                    aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction, Constants.ACTION.PUSH_SETTINGS_ACTION);
+                                    aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.mSdDataPath, getSdData().toSettingsJSON());
+                                    mContext.sendBroadcast(aWIntent);
+                                }, 100);
                                 return;
                             }
 
@@ -287,10 +300,13 @@ public class SdDataSourceAw extends SdDataSource  {
                                             sendWatchSdSettings();
                                             getWatchSdSettings();
                                         }
+                                        if (a == "ERROR"){
+                                            Log.e(TAG,"Error in updateFromJSON: ");
+                                        }
                                     }
 
                                 } catch (Exception e) {
-
+                                    Log.e(TAG,"onStartReceived()",e);
                                 }
                             }
 
@@ -316,6 +332,7 @@ public class SdDataSourceAw extends SdDataSource  {
         super.start();
 
 
+        //START_WEAR_APP_ACTION.toLower()
         // Now start the AndroidWear companion app
         PackageManager manager = mContext.getPackageManager();
         aWIntent = manager.getLaunchIntentForPackage(Constants.GLOBAL_CONSTANTS.mAppPackageNameWearReceiver);
@@ -368,7 +385,7 @@ public class SdDataSourceAw extends SdDataSource  {
         mUtil.writeToSysLogFile("SdDataSourceAw.stop()");
         if (!Objects.equals(aWIntent, null)) {
             aWIntent.putExtra("data",Constants.GLOBAL_CONSTANTS.mStopUri);
-            mContext.startActivity(aWIntent);
+            mContext.sendBroadcast(aWIntent);
         }
         if (!Objects.equals(intentBroadCastReceiver,null)) {
             if (intentBroadCastReceiver.isRegistered)
@@ -399,7 +416,7 @@ public class SdDataSourceAw extends SdDataSource  {
         try {
             aWIntent = aWIntentBase;
             SdData sdData = getSdData();
-            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.dataType,Uri.parse(Constants.ACTION.START_MOBILE_RECEIVER_ACTION));
+            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction,Constants.ACTION.START_MOBILE_RECEIVER_ACTION);
             aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.mSdDataPath, sdData.toSettingsJSON());
             mContext.sendBroadcast(aWIntent);
         } catch (android.content.ActivityNotFoundException anfe) {
@@ -421,9 +438,10 @@ public class SdDataSourceAw extends SdDataSource  {
         try{
             aWIntent = aWIntentBase;
             SdData sdData = getSdData();
-            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction,Uri.parse(Constants.ACTION.START_WEAR_APP_ACTION));
+            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction, Uri.parse(Constants.ACTION.START_WEAR_APP_ACTION));
+            sdData.mDataType = Constants.GLOBAL_CONSTANTS.mSettingsString;
             aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.mSdDataPath, sdData.toSettingsJSON());
-            mContext.startActivity(aWIntent);
+            mContext.sendBroadcast(aWIntent);
         }catch ( Exception e ){
             Log.e(TAG,"startWearSDApp: Error occoured",e);
         }
@@ -433,12 +451,10 @@ public class SdDataSourceAw extends SdDataSource  {
     public void startMobileSD(){
         try{
             aWIntent = aWIntentBase;
-            aWIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            aWIntent.addCategory(Intent.CATEGORY_LAUNCHER);
             SdData sdData = getSdData();
-            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.dataType,Uri.parse(Constants.ACTION.PUSH_SETTINGS_ACTION));
+            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction,Constants.ACTION.PUSH_SETTINGS_ACTION);
             aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.mSdDataPath, sdData.toSettingsJSON());
-            mContext.startActivity(aWIntent);
+            mContext.sendBroadcast(aWIntent);
         }catch ( Exception e ){
             Log.e(TAG,"startWearSDApp: Error occoured",e);
         }
@@ -449,11 +465,9 @@ public class SdDataSourceAw extends SdDataSource  {
     public void mobileBatteryPctUpdate(){
         try{
             aWIntent = aWIntentBase;
-            aWIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
-            aWIntent.addCategory(Intent.CATEGORY_LAUNCHER);
-            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.dataType,Uri.parse(Constants.ACTION.BATTERYUPDATE_ACTION));
+            aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction,Uri.parse(Constants.ACTION.BATTERYUPDATE_ACTION));
             aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.mPowerLevel, ((SdServer)mSdDataReceiver).batteryPct);
-            mContext.startActivity(aWIntent);
+            mContext.sendBroadcast(aWIntent);
         }catch ( Exception e ){
             Log.e(TAG,"startWearSDApp: Error occoured",e);
         }

@@ -28,20 +28,22 @@ package uk.org.openseizuredetector;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Bundle;
 import android.os.Handler;
 import android.preference.PreferenceActivity;
+import android.os.Bundle;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import java.util.List;
 
 public class PrefActivity extends PreferenceActivity implements SharedPreferences.OnSharedPreferenceChangeListener, View.OnClickListener {
     private String TAG = "PreferenceActivity";
     private OsdUtil mUtil;
+    private boolean mPrefChanged = false;
     private Context mContext;
     private Handler mHandler;
     private Button mSelectBLEButton;

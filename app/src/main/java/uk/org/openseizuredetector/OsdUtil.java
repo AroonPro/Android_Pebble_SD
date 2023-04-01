@@ -53,8 +53,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import org.apache.http.conn.util.InetAddressUtils;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.net.Inet4Address;
@@ -96,12 +94,12 @@ public class OsdUtil {
     private static final String mSysLogTableName = "SysLog";
     //private LogManager mLm;
     static private SQLiteDatabase mSysLogDb = null;   // SQLite Database for data and log entries.
-    private final static Long mMinPruneInterval = Long.valueOf (5 * 60 * 1000); // minimum time between syslog pruning is 5 minutes
-    private static Long mLastPruneMillis = 0L;   // Record of the last time we pruned the syslog db.
-    private SdServiceConnection activeSdServiceConnection = null;
+    private final static Long mMinPruneInterval = new Long(5 * 60 * 1000); // minimum time between syslog pruning is 5 minutes
+    private static Long mLastPruneMillis = new Long(0);   // Record of the last time we pruned the syslog db.
 
-    private int wearReceiverStartId = 0;
     private static int mNbound = 0;
+    private int wearReceiverStartId;
+    private SdServiceConnection activeSdServiceConnection;
 
     public OsdUtil(Context context, Handler handler) {
         mContext = context;
@@ -176,7 +174,7 @@ public class OsdUtil {
         writeToSysLogFile("startServer() - starting server");
         Intent sdServerIntent;
         sdServerIntent = new Intent(mContext, SdServer.class)
-                .putExtra(Constants.GLOBAL_CONSTANTS.startId,wearReceiverStartId);;
+                .putExtra(Constants.GLOBAL_CONSTANTS.startId,wearReceiverStartId);
         sdServerIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
         sdServerIntent.setData(setData);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -198,10 +196,13 @@ public class OsdUtil {
 
         //unbind batteryEvents
         if (!Objects.equals(activeSdServiceConnection,null)) {
-            if (Objects.equals(activeSdServiceConnection.mSdServer.mPowerUpdateManager, null))
-               if (activeSdServiceConnection.mSdServer.mPowerUpdateManager.isRegistered)
-                activeSdServiceConnection.mSdServer.mPowerUpdateManager.unregister(activeSdServiceConnection.mSdServer);
+            if (Objects.equals(activeSdServiceConnection.mSdServer.mPowerUpdateManager, null)) {
+                if (activeSdServiceConnection.mSdServer.mPowerUpdateManager.isRegistered) {
+                    activeSdServiceConnection.mSdServer.mPowerUpdateManager.unregister(activeSdServiceConnection.mSdServer);
+
+                }
                 activeSdServiceConnection = null;
+            }
         }
 
 
@@ -634,7 +635,10 @@ public class OsdUtil {
                     cursor.moveToNext();
                 }
             }
-            callback.accept(eventsList); // .accept requires API_SDK_LEVEL >= ANDROID.VERSION_N
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                callback.accept(eventsList); // .accept requires API_SDK_LEVEL >= ANDROID.VERSION_N
+            }
+            else showToast("Not supported action at this version of Android. Please concider upgrading.");
         }).execute();
         return (true);
     }
@@ -694,7 +698,11 @@ public class OsdUtil {
 
         @Override
         protected void onPostExecute(final Cursor result) {
-            mCallback.accept(result);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                mCallback.accept(result);
+            }
+            else Toast.makeText(mContext,"Not supported action at this version of Android. Please concider upgrading.", Toast.LENGTH_SHORT).show();
+            //OsdUtil.showToast call will not be available in this function. Recreate new one.
         } // .accept requires API_SDK_LEVEL >= ANDROID.VERSION_N
     }
 

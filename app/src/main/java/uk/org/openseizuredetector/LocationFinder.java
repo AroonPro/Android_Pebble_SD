@@ -1,7 +1,7 @@
 package uk.org.openseizuredetector;
 
 
-/*
+/**
  */
 
 import android.content.Context;

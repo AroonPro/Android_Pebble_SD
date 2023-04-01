@@ -25,7 +25,6 @@ package uk.org.openseizuredetector;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.SQLException;
@@ -204,16 +203,12 @@ public class LogManager {
         while (!c.isAfterLast()) {
             JSONObject datapoint = new JSONObject();
             try {
-                try {
-                    datapoint.put("id", c.getString(c.getColumnIndexOrThrow("id")));
-                    datapoint.put("dataTime", c.getString(c.getColumnIndexOrThrow("dataTime")));
-                    datapoint.put("status", c.getString(c.getColumnIndexOrThrow("status")));
-                    datapoint.put("dataJSON", c.getString(c.getColumnIndexOrThrow("dataJSON")));
-                    datapoint.put("uploaded", c.getString(c.getColumnIndexOrThrow("uploaded")));
+                datapoint.put("id", c.getString(c.getColumnIndex("id")));
+                datapoint.put("dataTime", c.getString(c.getColumnIndex("dataTime")));
+                datapoint.put("status", c.getString(c.getColumnIndex("status")));
+                datapoint.put("dataJSON", c.getString(c.getColumnIndex("dataJSON")));
+                datapoint.put("uploaded", c.getString(c.getColumnIndex("uploaded")));
                     //Log.v(TAG,"cursor2json() - datapoint="+datapoint.toString());
-                }catch (IllegalArgumentException illegalArgumentException){
-                    Log.e(TAG + "_cursor2Json()", "Encountered -1 as return, skipping to next",illegalArgumentException);
-                }
                 c.moveToNext();
                 dataPointArray.put(i, datapoint);
                 i++;
@@ -271,7 +266,7 @@ public class LogManager {
                 eventsArray.put(i, event);
                 i++;
             } catch (JSONException | NullPointerException e) {
-                Log.e(TAG, "eventCursor2Json(): error creating JSON Object",e);
+                Log.e(TAG, "eventCursor2Json(): error creating JSON Object");
                 e.printStackTrace();
             }
         }

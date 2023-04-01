@@ -29,6 +29,7 @@ public class SdWebServer extends NanoHTTPD {
     private SdData mSdData;
     private SdServer mSdServer;
     private Context mContext;
+    private Handler mHandler;
     private OsdUtil mUtil;
 
     public SdWebServer(Context context, SdData sdData, SdServer sdServer) {
@@ -37,7 +38,7 @@ public class SdWebServer extends NanoHTTPD {
         mSdData = sdData;
         mContext = context;
         mSdServer = sdServer;
-        Handler mHandler = new Handler();
+        mHandler = new Handler();
         mUtil = new OsdUtil(mContext, mHandler);
     }
 

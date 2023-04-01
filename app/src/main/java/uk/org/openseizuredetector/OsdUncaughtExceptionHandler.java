@@ -2,6 +2,7 @@ package uk.org.openseizuredetector;
 
 import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -122,9 +123,18 @@ public class OsdUncaughtExceptionHandler implements Thread.UncaughtExceptionHand
                 builder.setTitle("Sorry...OpenSeizureDetector Crashed!");
                 builder.create();
                 builder.setNegativeButton("Cancel",
-                        (dialog, which) -> System.exit(0));
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog,
+                                                int which) {
+                                System.exit(0);
+                            }
+                        });
                 builder.setPositiveButton("Report by Email",
-                        (dialog, which) -> {
+                        new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog,
+                                                int which) {
                             Intent sendIntent = new Intent(
                                     Intent.ACTION_SEND);
                             sendIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -146,6 +156,7 @@ public class OsdUncaughtExceptionHandler implements Thread.UncaughtExceptionHand
                             mStaticContext.startActivity(sendIntent);
                             Log.e("sendEmail", "exiting...");
                             System.exit(0);
+                            }
                         });
                 builder.setMessage("Please report the " +
                         "problem by email using the button below so we can fix it.\n" +

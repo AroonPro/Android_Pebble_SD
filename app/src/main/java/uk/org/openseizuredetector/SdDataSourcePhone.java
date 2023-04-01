@@ -193,7 +193,7 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
         mUtil.writeToSysLogFile("SdDataSourcePhone.start()");
         super.start();
         Log.i(TAG,"onStart(): returned from SdDataSource.onStart");
-        mCurrentMaxSampleCount = ((SdServer)mSdDataReceiver).mSdData.mDefaultSampleCount;
+        mCurrentMaxSampleCount = getSdData().mDefaultSampleCount;
         bindSensorListeners();
         mIsRunning = true;
     }
