@@ -353,6 +353,11 @@ public abstract class SdDataSource {
                     // if we get 'null' HR (For example if the heart rate is not working)
                     mMute = 0;
                 }
+                try {
+                    mSdData.batteryPc = (short) dataObject.getInt("batteryPc");
+                }catch(Exception e){
+                    Log.e(TAG,"Error in getting battery percentage",e);
+                }
                 accelVals = dataObject.getJSONArray("rawData");
                 Log.v(TAG, "Received " + accelVals.length() + " acceleration values, rawData Length is " + mSdData.rawData.length);
                 if (accelVals.length() > mSdData.rawData.length) {
