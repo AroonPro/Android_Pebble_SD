@@ -249,8 +249,8 @@ public class SdDataSourceAw extends SdDataSource  {
                                 return;
                             }
                             if (Constants.ACTION.REGISTERED_WEAR_LISTENER.equals(receivedAction)) {
+                                ((SdServer)mSdDataReceiver).mSdData.serverOK = true;
                                 mSdData = getSdData();
-                                mSdData.serverOK = true;
 
                                 sdBroadCastReceived = true;
                                 if (registeredAllBroadCastIntents()){
@@ -280,6 +280,7 @@ public class SdDataSourceAw extends SdDataSource  {
                             }
 
                             if (Constants.ACTION.PUSH_SETTINGS_ACTION.equals(receivedAction)) {
+                                calculateStaticTimings();
                                 mHandler.postDelayed(() -> {
                                     aWIntent = aWIntentBase;
                                     aWIntent.putExtra(Constants.GLOBAL_CONSTANTS.intentAction, Constants.ACTION.PUSH_SETTINGS_ACTION);
@@ -303,6 +304,10 @@ public class SdDataSourceAw extends SdDataSource  {
                                         if (a == "ERROR"){
                                             Log.e(TAG,"Error in updateFromJSON: ");
                                         }
+                                        if (!getSdData().haveSettings)
+                                            ((SdServer)mSdDataReceiver).mSdData.haveSettings = true;
+                                        if (!getSdData().watchConnected)
+                                            ((SdServer)mSdDataReceiver).mSdData.watchConnected = true;
                                     }
 
                                 } catch (Exception e) {
@@ -513,6 +518,11 @@ public class SdDataSourceAw extends SdDataSource  {
     public void getWatchSdSettings() {
         Log.v(TAG, "getWatchSdSettings() - sending required settings to pebble");
         mUtil.writeToSysLogFile("SdDataSourceAw.getWatchSdSettings()");
+        try{
+            ((SdServer)mSdDataReceiver).mSdData.haveSettings = true;
+        }catch ( Exception e ){
+            Log.e(TAG,"startWearSDApp: Error occoured",e);
+        }
         //sendMessage(Constants.GLOBAL_CONSTANTS.MESSAGE_ITEM_OSD_DATA_REQUESTED, "Would you please give me your settings?");
 
 

@@ -85,44 +85,7 @@ public class SdDataSourcePhone extends SdDataSource implements SensorEventListen
     private List<Double> rawDataList3D;
 
 
-    /**
-     * Calculate the static values of requested mSdData.mSampleFreq, mSampleTimeUs and factorDownSampling  through
-     * mSdData.analysisPeriod and mSdData.mDefaultSampleCount .
-     */
-    private void calculateStaticTimings(){
-        // default sampleCount : mSdData.mDefaultSampleCount
-        // default sampleTime  : mSdData.analysisPeriod
-        // sampleFrequency = sampleCount / sampleTime:
-        mSdData.mSampleFreq = (long) mCurrentMaxSampleCount / mSdDataSettings.analysisPeriod;
 
-        // now we have mSampleFreq in number samples / second (Hz) as default.
-        // to calculate sampleTimeUs: (1 / mSampleFreq) * 1000 [1s == 1000000us]
-        mSampleTimeUs = (1d / (double) mSdData.mSampleFreq) * 1e6d;
-
-        // num samples == fixed final 250 (NSAMP)
-        // time seconds in default == 10 (SIMPLE_SPEC_FMAX)
-        // count samples / time = 25 samples / second == 25 Hz max.
-        // 1 Hz == 1 /s
-        // 25 Hz == 0,04s
-        // 1s == 1.000.000 us (sample interval)
-        // sampleTime = 40.000 uS == (SampleTime (s) * 1000)
-        if (mSdDataSettings.rawData.length>0 && mSdDataSettings.dT >0d){
-            double mSDDataSampleTimeUs = 1d/(double) (Constants.SD_SERVICE_CONSTANTS.defaultSampleCount / Constants.SD_SERVICE_CONSTANTS.defaultSampleTime) * 1.0e6;
-            mConversionSampleFactor = mSampleTimeUs / mSDDataSampleTimeUs;
-        }
-        else
-            mConversionSampleFactor = 1d;
-        if (accelerationCombined != -1d) {
-            gravityScaleFactor = (Math.round(accelerationCombined / SensorManager.GRAVITY_EARTH) % 10d);
-
-        }
-        else
-        {
-            gravityScaleFactor = 1d;
-        }
-        miliGravityScaleFactor = gravityScaleFactor * 1e3;
-
-    }
 
     /**
      * SdDataSourcePhone Class. This class handles simulation data for

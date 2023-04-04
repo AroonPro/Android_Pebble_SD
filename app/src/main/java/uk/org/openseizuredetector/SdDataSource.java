@@ -27,6 +27,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.os.Handler;
 import android.preference.PreferenceManager;
@@ -111,6 +112,8 @@ public abstract class SdDataSource {
     private int mAlarmCount;
     protected String mBleDeviceAddr;
     protected String mBleDeviceName;
+    private double mConversionSampleFactor;
+    private double mSampleTimeUs;
 
 
     public SdDataSource(Context context, Handler handler, SdDataReceiver sdDataReceiver) {
@@ -136,6 +139,45 @@ public abstract class SdDataSource {
      */
     public SdData getSdData() {
         return mSdData;
+    }
+
+    /**
+     * Calculate the static values of requested mSdData.mSampleFreq, mSampleTimeUs and factorDownSampling  through
+     * mSdData.analysisPeriod and mSdData.mDefaultSampleCount .
+     */
+    protected void calculateStaticTimings(){
+        // default sampleCount : mSdData.mDefaultSampleCount
+        // default sampleTime  : mSdData.analysisPeriod
+        // sampleFrequency = sampleCount / sampleTime:
+        mSdData.mSampleFreq = (long) mSdData.mNsamp/ getSdData().analysisPeriod;
+
+        // now we have mSampleFreq in number samples / second (Hz) as default.
+        // to calculate sampleTimeUs: (1 / mSampleFreq) * 1000 [1s == 1000000us]
+        mSampleTimeUs = (1d / (double) mSdData.mSampleFreq) * 1e6d;
+
+        // num samples == fixed final 250 (NSAMP)
+        // time seconds in default == 10 (SIMPLE_SPEC_FMAX)
+        // count samples / time = 25 samples / second == 25 Hz max.
+        // 1 Hz == 1 /s
+        // 25 Hz == 0,04s
+        // 1s == 1.000.000 us (sample interval)
+        // sampleTime = 40.000 uS == (SampleTime (s) * 1000)
+        if (getSdData().rawData.length>0 && getSdData().dT >0d){
+            double mSDDataSampleTimeUs = 1d/(double) (Constants.SD_SERVICE_CONSTANTS.defaultSampleCount / Constants.SD_SERVICE_CONSTANTS.defaultSampleTime) * 1.0e6;
+            mConversionSampleFactor = mSampleTimeUs / mSDDataSampleTimeUs;
+        }
+        else
+            mConversionSampleFactor = 1d;
+        if (accelerationCombined != -1d) {
+            gravityScaleFactor = (Math.round(accelerationCombined / SensorManager.GRAVITY_EARTH) % 10d);
+
+        }
+        else
+        {
+            gravityScaleFactor = 1d;
+        }
+        miliGravityScaleFactor = gravityScaleFactor * 1e3;
+
     }
 
     /**
@@ -311,7 +353,7 @@ public abstract class SdDataSource {
                     // if we get 'null' HR (For example if the heart rate is not working)
                     mMute = 0;
                 }
-                accelVals = dataObject.getJSONArray("data");
+                accelVals = dataObject.getJSONArray("rawData");
                 Log.v(TAG, "Received " + accelVals.length() + " acceleration values, rawData Length is " + mSdData.rawData.length);
                 if (accelVals.length() > mSdData.rawData.length) {
                     mUtil.writeToSysLogFile("ERROR:  Received " + accelVals.length() + " acceleration values, but rawData storage length is "
@@ -324,7 +366,7 @@ public abstract class SdDataSource {
                 mSdData.mNsamp = accelVals.length();
                 //Log.d(TAG,"accelVals[0]="+accelVals.getDouble(0)+", mSdData.rawData[0]="+mSdData.rawData[0]);
                 try {
-                    accelVals3D = dataObject.getJSONArray("data3D");
+                    accelVals3D = dataObject.getJSONArray("rawData3D");
                     Log.v(TAG, "Received " + accelVals3D.length() + " acceleration 3D values, rawData Length is " + mSdData.rawData3D.length);
                     if (accelVals3D.length() > mSdData.rawData3D.length) {
                         mUtil.writeToSysLogFile("ERROR:  Received " + accelVals3D.length() + " 3D acceleration values, but rawData3D storage length is "
@@ -386,8 +428,8 @@ public abstract class SdDataSource {
             }
         } catch (Exception e) {
             Log.e(TAG, "updateFromJSON - Error Parsing JSON String - " + jsonStr + " - " + e.toString(),e);
-            mUtil.writeToSysLogFile("updateFromJSON - Error Parsing JSON String - " + jsonStr + " - " + e.toString());
-            mUtil.writeToSysLogFile("updateFromJSON: Exception at Line Number: " + e.getCause().getStackTrace()[0].getLineNumber() + ", " + e.getCause().getStackTrace()[0].toString());
+            //mUtil.writeToSysLogFile("updateFromJSON - Error Parsing JSON String - " + jsonStr + " - " + e.toString());
+            // mUtil.writeToSysLogFile("updateFromJSON: Exception at Line Number: " + e.getCause().getStackTrace()[0].getLineNumber() + ", " + e.getCause().getStackTrace()[0].toString());
             if (accelVals == null) {
                 mUtil.writeToSysLogFile("updateFromJSON: accelVals is null when exception thrown");
             } else {
@@ -478,6 +520,7 @@ public abstract class SdDataSource {
                 simpleSpec[ifreq] = simpleSpec[ifreq] / (binMax - binMin);
             }
 
+            if (gravityScaleFactor == 0) calculateStaticTimings();
             // Populate the mSdData structure to communicate with the main SdServer service.
             mDataStatusTime.setToNow();
             mSdData.specPower = (long) (specPower / gravityScaleFactor);
