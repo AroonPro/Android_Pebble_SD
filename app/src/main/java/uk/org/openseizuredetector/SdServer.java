@@ -62,6 +62,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.NotificationCompat;
+import androidx.work.multiprocess.RemoteWorkerService;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -86,7 +87,7 @@ import java.util.Timer;
  * and
  * http://developer.android.com/guide/components/services.html#ExtendingService
  */
-public class SdServer extends Service implements SdDataReceiver {
+public class SdServer extends RemoteWorkerService implements SdDataReceiver {
     private String mUuidStr = "0f675b21-5a36-4fe7-9761-fd0c691651f3";  // UUID to Identify OSD.
 
     Intent intent = new Intent("StartupActivity");
