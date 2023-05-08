@@ -2,7 +2,9 @@ package uk.org.openseizuredetector;
 
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.robolectric.Shadows.shadowOf;
@@ -37,6 +39,9 @@ import org.robolectric.shadows.ShadowActivityManager;
 import org.robolectric.shadows.ShadowApplication;
 import org.robolectric.shadows.ShadowContextImpl;
 
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Objects;
 import java.util.Random;
 
@@ -66,6 +71,7 @@ public class OsdInstrumentalTest {
                 .setData(Constants.GLOBAL_CONSTANTS.mStartUri);
         sdServiceConnection = new SdServiceConnection(context);
     }
+
     @Test
     public void testOsdUtil() throws Exception {
         testIsServerNotRunning();
@@ -118,9 +124,39 @@ public class OsdInstrumentalTest {
             Thread.sleep(9000);
             testIsServerRunning();
         }
+        try {
+            testIsMobileDataActive();
+        }catch (Exception exception){
+            Log.e(this.getClass().getName(),"Exception testingMobileDataActive. TO IMPLEMENT");
+        }
+        try {
+            testIsMobileDataNotActive();
+        }catch (Exception exception){
+            Log.e(this.getClass().getName(),"Exception testIsMobileDataNotActive. TO IMPLEMENT");
+        }
+        try {
+            testIsNetworkConnected();
+        }catch (Exception exception){
+            Log.e(this.getClass().getName(),"Exception testIsNetworkConnected. TO IMPLEMENT");
+        }
+        testGetAppVersionName();
         testStopServer();
         testIsServerNotRunning();
     }
+
+    @Test
+    public void testGetAppVersionName(){
+        String equalStringNull = null;
+        String equalStringAppVersionName = Constants.GLOBAL_CONSTANTS.mAppPackageName;
+        assertNotEquals(util.getAppVersionName(),equalStringNull);
+        assertEquals(equalStringAppVersionName,util.getAppVersionName());
+    }
+
+    @Test
+    public void testGetLocalIpAddress() throws UnknownHostException {
+        InetAddress equalStringGetLocalIpAddress = InetAddress.getByName( util.getLocalIpAddress());
+    }
+
     @Test
     public void testIsServerNotRunning() throws Exception {
         assertFalse(util.isServerRunning());
@@ -130,6 +166,7 @@ public class OsdInstrumentalTest {
     public void testStartServer() throws Exception {
         util.startServer();
     }
+
     @Test
     public void testIsServerRunning() throws Exception {
         try
@@ -143,8 +180,24 @@ public class OsdInstrumentalTest {
             if (Objects.nonNull(sdServer)) assertTrue(sdServer.bindService(sdServerIntent,sdServiceConnection,Service.BIND_EXTERNAL_SERVICE));
         }
 
+    }
 
-       }
+    @Test
+    public void testIsMobileDataActive(){
+        assertTrue(util.isMobileDataActive());
+
+    }
+
+    @Test
+    public void testIsMobileDataNotActive(){
+        assertFalse(util.isMobileDataActive());
+    }
+
+    @Test
+    public void testIsNetworkConnected(){
+        assertTrue(util.isNetworkConnected());
+    }
+
     @Test
     public void testStopServer() throws Exception {
         util.stopServer();

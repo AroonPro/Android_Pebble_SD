@@ -100,6 +100,8 @@ public class OsdUtil {
     private static int mNbound = 0;
     private int wearReceiverStartId;
     private SdServiceConnection activeSdServiceConnection;
+    private SdServiceConnection testServiceConnection;
+    Intent sdServerIntent;
 
     public OsdUtil(Context context, Handler handler) {
         mContext = context;
@@ -144,6 +146,8 @@ public class OsdUtil {
 
 
     public boolean isServerRunning() {
+        boolean returnValue ;
+        boolean mountValue = false;
         int nServers = 0;
         /* Log.v(TAG,"isServerRunning()...."); */
         ActivityManager manager =
@@ -156,8 +160,23 @@ public class OsdUtil {
                 nServers = nServers + 1;
             }
         }
+
+        sdServerIntent = new Intent(
+                Constants.ACTION.BIND_ACTION,
+                Constants.GLOBAL_CONSTANTS.mStartUri,
+                mContext,
+                SdServer.class);
+
+        activeSdServiceConnection = new SdServiceConnection(mContext);
+        mountValue = bindToServer(mContext, activeSdServiceConnection );
+        unbindFromServer(mContext, activeSdServiceConnection );
+        activeSdServiceConnection = null;
+        mContext = null;
+        sdServerIntent = null;
+
         //Log.v(TAG, "isServerRunning() - " + nServers + " instances are running");
-        return nServers != 0;
+        returnValue = (nServers != 0 || mountValue);
+        return returnValue;
     }
 
     /**
@@ -225,18 +244,23 @@ public class OsdUtil {
     /**
      * bind an activity to to an already running server.
      */
-    public void bindToServer(Context activity, SdServiceConnection sdServiceConnection) {
+    public boolean bindToServer(Context activity, SdServiceConnection sdServiceConnection) {
+        boolean returnValue;
         Log.i(TAG, "OsdUtil.bindToServer() - binding to SdServer");
         writeToSysLogFile("bindToServer() - binding to SdServer");
         Intent intent = new Intent(sdServiceConnection.mContext, SdServer.class);
-        activity.bindService(intent, sdServiceConnection, Context.BIND_AUTO_CREATE);
+        returnValue = activity.bindService(intent, sdServiceConnection, Context.BIND_AUTO_CREATE);
         mNbound = mNbound + 1;
         Log.i(TAG, "OsdUtil.bindToServer() - mNbound = " + mNbound);
-        mHandler.postDelayed(()->{
-           if (!Objects.equals(sdServiceConnection,null))
-            if (!Objects.equals(sdServiceConnection.mSdServer,null))
-                sdServiceConnection.mSdServer.bindBatteryEvents();
-        },100);
+        if (returnValue){
+            mHandler.postDelayed(() -> {
+                if (!Objects.equals(sdServiceConnection, null))
+                    if (!Objects.equals(sdServiceConnection.mSdServer, null))
+                        sdServiceConnection.mSdServer.bindBatteryEvents();
+            }, 100);
+        }
+        return returnValue;
+
     }
 
     /**
