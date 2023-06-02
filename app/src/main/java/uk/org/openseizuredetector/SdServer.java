@@ -705,7 +705,7 @@ public class SdServer extends RemoteWorkerService implements SdDataReceiver {
             mToneGenerator.release();
             mToneGenerator = null;
 
-            this.stopForeground(true);
+            SdServer.this.stopForeground(true);
             // Cancel the notification.
             Log.d(TAG, "onDestroy(): cancelling notification");
             mUtil.writeToSysLogFile("SdServer.onDestroy - cancelling notification");
@@ -770,11 +770,11 @@ public class SdServer extends RemoteWorkerService implements SdDataReceiver {
             soundUri = null;
         }
 
-        Intent i = new Intent(getApplicationContext(), MainActivity.class);
+        Intent i = new Intent(SdServer.this, MainActivity.class);
         i.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
         PendingIntent contentIntent =
                 PendingIntent.getActivity(SdServer.this,
-                        0, i, PendingIntent.FLAG_MUTABLE);
+                        0, i, PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_MUTABLE);
         String smsStr;
         if (mSMSAlarm) {
             smsStr = getString(R.string.sms_location_alarm_active);
@@ -819,9 +819,9 @@ public class SdServer extends RemoteWorkerService implements SdDataReceiver {
             mUtil.writeToSysLogFile("SdServer.showMainActivity - Activity is already shown on top, not doing anything");
         } else {
             Log.i(TAG, "showMainActivity(): Showing Main Activity");
-            Intent i = new Intent(getApplicationContext(), MainActivity.class);
+            Intent i = new Intent(SdServer.this, MainActivity.class);
             i.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NEW_TASK);
-            this.startActivity(i);
+            SdServer.this.startActivity(i);
         }
     }
 
