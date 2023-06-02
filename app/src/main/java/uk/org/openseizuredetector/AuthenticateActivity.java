@@ -32,6 +32,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Arrays;
+import java.util.Objects;
 
 public class AuthenticateActivity extends AppCompatActivity {
     private String TAG = "AuthenticateActivity";
@@ -119,7 +120,8 @@ public class AuthenticateActivity extends AppCompatActivity {
         if (LogManager.USE_FIREBASE_BACKEND) {
             updateUi();
         } else {
-            mUtil.bindToServer(getApplicationContext(), mConnection);
+            if (Objects.nonNull(mConnection))
+                if (!mConnection.mBound) mUtil.bindToServer(this, mConnection);
             waitForConnection();
         }
     }

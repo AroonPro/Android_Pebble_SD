@@ -33,6 +33,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -66,6 +67,7 @@ import com.rohitss.uceh.UCEHandler;
 import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -122,14 +124,17 @@ public class MainActivity extends AppCompatActivity {
         try {
             Log.v(TAG, "trying menubar fiddle...");
             ViewConfiguration config = ViewConfiguration.get(this);
-            Field menuKeyField =
-                    ViewConfiguration.class.getDeclaredField("sHasPermanentMenuKey");
-            if (menuKeyField != null) {
-                Log.v(TAG, "menuKeyField is not null - configuring....");
-                menuKeyField.setAccessible(true);
-                menuKeyField.setBoolean(config, false);
-            } else {
-                Log.v(TAG, "menuKeyField is null - doing nothing...");
+            if ( Build.VERSION.SDK_INT <= Build.VERSION_CODES.P ) {
+
+                Field menuKeyField =
+                        ViewConfiguration.class.getDeclaredField("sHasPermanentMenuKey");
+                if (menuKeyField != null) {
+                    Log.v(TAG, "menuKeyField is not null - configuring....");
+                    menuKeyField.setAccessible(true);
+                    menuKeyField.setBoolean(config, false);
+                } else {
+                    Log.v(TAG, "menuKeyField is null - doing nothing...");
+                }
             }
         } catch (Exception e) {
             Log.v(TAG, "menubar fiddle exception: " + e.toString());
@@ -288,7 +293,8 @@ public class MainActivity extends AppCompatActivity {
                     startServer();
                     // and bind to it so we can see its data
                     Log.i(TAG, "Binding to Server");
-                    mUtil.bindToServer(getApplicationContext(), mConnection);
+                    if (Objects.nonNull(mConnection))
+                        if (!mConnection.mBound) mUtil.bindToServer(this, mConnection);
                 }
                 return true;
             /* fault beep test does not work with fault timer, so disable test option.
@@ -433,8 +439,8 @@ public class MainActivity extends AppCompatActivity {
         tv.setTextColor(okTextColour);
 
         if (mUtil.isServerRunning()) {
-            mUtil.writeToSysLogFile("MainActivity.onStart - Binding to Server");
-            mUtil.bindToServer(getApplicationContext(), mConnection);
+            mUtil.writeToSysLogFile("MainActivity.onStart - Binding to Server");if (Objects.nonNull(mConnection))
+                if (!mConnection.mBound) mUtil.bindToServer(this, mConnection);
         } else {
             Log.i(TAG, "onStart() - Server Not Running");
             mUtil.writeToSysLogFile("MainActivity.onStart - Server Not Running");

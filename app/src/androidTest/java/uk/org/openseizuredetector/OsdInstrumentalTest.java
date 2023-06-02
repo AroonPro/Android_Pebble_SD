@@ -200,7 +200,13 @@ public class OsdInstrumentalTest {
 
     @Test
     public void testStopServer() throws Exception {
-        util.stopServer();
+        Looper mLooper = context.getMainLooper();
+        Handler mHandler = new Handler(mLooper);
+        SdServiceConnection testSdConnection = new SdServiceConnection(context);
+        if (util.bindToServer(context,testSdConnection)) {
+            util.unbindFromServer(context,testSdConnection);
+            util.stopServer();
+        }
     }
 
     @After

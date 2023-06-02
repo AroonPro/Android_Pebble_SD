@@ -31,8 +31,6 @@ allprojects {
 }
 
 
-dependencies {
-}
 
 
 if (hasProperty('buildScan')) {

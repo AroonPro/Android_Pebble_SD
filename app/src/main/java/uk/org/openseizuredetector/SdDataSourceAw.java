@@ -27,8 +27,6 @@ import static android.content.Intent.getIntentOld;
 import static android.content.Intent.parseIntent;
 import static android.content.Intent.parseUri;
 import static androidx.core.app.ActivityCompat.startActivityForResult;
-import static androidx.core.content.ContextCompat.RECEIVER_EXPORTED;
-import static androidx.test.core.app.ApplicationProvider.getApplicationContext;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;

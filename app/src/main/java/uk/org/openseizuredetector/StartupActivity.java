@@ -56,6 +56,7 @@ import androidx.core.text.HtmlCompat;
 
 import com.rohitss.uceh.UCEHandler;
 
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -178,7 +179,7 @@ public class StartupActivity extends AppCompatActivity {
             }
         });
 
-        mConnection = new SdServiceConnection(getApplicationContext());
+        if (Objects.isNull(mConnection)) mConnection = new SdServiceConnection(this);
     }
 
     @Override
@@ -187,6 +188,8 @@ public class StartupActivity extends AppCompatActivity {
         Log.i(TAG, "onStart()");
         mUtil.writeToSysLogFile("StartupActivity.onStart()");
         TextView tv;
+
+
 
         String versionName = mUtil.getAppVersionName();
         tv = (TextView) findViewById(R.id.appNameTv);
@@ -208,16 +211,16 @@ public class StartupActivity extends AppCompatActivity {
             Log.i(TAG, "onStart() - server not running - isServerRunning="+mUtil.isServerRunning());
         }
         // Wait 0.1 second to give the server chance to shutdown in case we have just shut it down below, then start it
-        mHandler.postDelayed(new Runnable() {
-            public void run() {
-                mUtil.writeToSysLogFile("StartupActivity.onStart() - starting server after delay - isServerRunning="+mUtil.isServerRunning());
-                Log.i(TAG, "onStart() - starting server after delay -isServerRunning="+mUtil.isServerRunning());
-                mUtil.startServer();
-                // Bind to the service.
-                Log.i(TAG, "onStart() - binding to server");
-                mUtil.writeToSysLogFile("StartupActivity.onStart() - binding to server");
-                mUtil.bindToServer(getApplicationContext(), mConnection);
-            }
+        mHandler.postDelayed(() -> {
+            mUtil.writeToSysLogFile("StartupActivity.onStart() - starting server after delay - isServerRunning="+mUtil.isServerRunning());
+            Log.i(TAG, "onStart() - starting server after delay -isServerRunning="+mUtil.isServerRunning());
+            mUtil.startServer();
+            // Bind to the service.
+            Log.i(TAG, "onStart() - binding to server");
+            mUtil.writeToSysLogFile("StartupActivity.onStart() - binding to server");
+            if (Objects.nonNull(mConnection))
+                if (!mConnection.mBound) mUtil.bindToServer(this, mConnection);
+
         }, 100);
 
         // Check power management settings
