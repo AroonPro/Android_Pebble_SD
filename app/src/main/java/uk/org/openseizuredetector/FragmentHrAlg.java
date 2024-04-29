@@ -131,7 +131,7 @@ public class FragmentHrAlg extends FragmentOsdBaseClass {
             tvCurrent = mRootView.findViewById(R.id.textView2);
             if (Objects.nonNull(tvCurrent)) {
                 if (Objects.nonNull(tvHr))
-                    tvHr.setText(String.valueOf((short) mConnection.mSdServer.mSdData.mHR));
+                    tvHr.setText(String.valueOf((short) mConnection.mSdServer.mSdData.mHr));
                 if (Objects.nonNull(tvAvgAHr))
                     tvAvgAHr.setText(String.valueOf((short) mConnection.mSdServer.mSdData
                             .mAdaptiveHrAverage));

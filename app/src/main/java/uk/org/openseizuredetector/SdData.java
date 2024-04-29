@@ -88,10 +88,10 @@ public class SdData implements Parcelable {
     private JSONArray specArr;
 
     /* Heart Rate Alarm Settings */
-    public boolean mHRAlarmActive = false;
-    public boolean mHRNullAsAlarm = false;
-    public double mHRThreshMin = 40.0;
-    public double mHRThreshMax = 150.0;
+    public boolean mHrAlarmActive = false;
+    public boolean mHrNullAsAlarm = false;
+    public double mHrThreshMin = 40.0;
+    public double mHrThreshMax = 150.0;
 
     /* Oxygen Saturation Alarm Settings */
     public boolean mO2SatAlarmActive = false;
@@ -121,7 +121,7 @@ public class SdData implements Parcelable {
     public CircBuf mHistoricHrBuf;
     public CircBuf mAdaptiveHrBuf;
     public CircBuf mAverageHrBuf;
-    public boolean mHRFrozenFaultStanding = false;
+    public boolean mHrFrozenFaultStanding = false;
     int mNsamp = 0;
 
     /* Analysis results */
@@ -144,11 +144,11 @@ public class SdData implements Parcelable {
 
     public String mDataType;
     public String phoneName = "";
-    public boolean mHRAlarmStanding = false;
-    public boolean mHRFaultStanding = false;
+    public boolean mHrAlarmStanding = false;
+    public boolean mHrFaultStanding = false;
     public boolean mAdaptiveHrAlarmStanding = false;
     public boolean mAverageHrAlarmStanding = false;
-    public double mHR = 0;
+    public double mHr = 0;
 
     public boolean mO2SatAlarmStanding = false;
     public boolean mO2SatFaultStanding = false;
@@ -209,10 +209,10 @@ public class SdData implements Parcelable {
                 alarmPhrase = jo.optString("alarmPhrase");
                 alarmThresh = jo.optInt("alarmThresh");
                 alarmRatioThresh = jo.optInt("alarmRatioThresh");
-                mHRAlarmActive = jo.optBoolean("hrAlarmActive");
-                mHRAlarmStanding = jo.optBoolean("hrAlarmStanding");
-                mHRThreshMax = jo.optDouble("hrThreshMax");
-                mHRThreshMin = jo.optDouble("hrThreshMin");
+                mHrAlarmActive = jo.optBoolean("hrAlarmActive");
+                mHrAlarmStanding = jo.optBoolean("hrAlarmStanding");
+                mHrThreshMax = jo.optDouble("hrThreshMax");
+                mHrThreshMin = jo.optDouble("hrThreshMin");
                 if (jo.has("adaptiveHrAlarmActive") &&
                         jo.has("averageHrAlarmActive") &&
                         jo.has("adaptiveHrAlarmStanding" )){
@@ -224,7 +224,7 @@ public class SdData implements Parcelable {
                     mAdaptiveHrAlarmStanding = jo.optBoolean("averageHrAlarmStanding");
                     mAverageHrAlarmThreshMin = jo.optInt("averageHrAlarmThreshMin", -1);
                     mAverageHrAlarmThreshMax = jo.optInt("averageHrAlarmThreshMax", -1);
-                    mHRAlarmActive = (mAdaptiveHrAlarmActive||mAverageHrAlarmActive);
+                    mHrAlarmActive = (mAdaptiveHrAlarmActive||mAverageHrAlarmActive);
                 }
                 phoneName = jo.optString("phoneName");
                 dT = jo.optDouble("dT",dT);//FIXME
@@ -234,9 +234,9 @@ public class SdData implements Parcelable {
             if (Constants.GLOBAL_CONSTANTS.dataTypeRaw.equals(mDataType)) {
                 specPower = jo.optInt("specPower");
                 roiPower = jo.optInt("roiPower");
-                mHR = jo.optDouble("hr");
-            /*if (mHR >= 0.0) {
-                mHRAlarmActive = true;
+                mHr = jo.optDouble("hr");
+            /*if (mHr >= 0.0) {
+                mHrAlarmActive = true;
             }*/
 
                 specArr = jo.optJSONArray("simpleSpec");
@@ -297,7 +297,7 @@ public class SdData implements Parcelable {
             jsonObj.put("alarmState", alarmState);
             jsonObj.put("alarmPhrase", alarmPhrase);
             jsonObj.put("alarmCause", alarmCause);
-            jsonObj.put("hr", mHR);
+            jsonObj.put("hr", mHr);
             jsonObj.put("adaptiveHrAv", mAdaptiveHrAverage);
             jsonObj.put("averageHrAv", mAverageHrAverage);
             jsonObj.put("o2Sat", mO2Sat);
@@ -371,10 +371,10 @@ public class SdData implements Parcelable {
             jsonObj.put("alarmRatioThresh", alarmRatioThresh);
             jsonObj.put("osdAlarmActive", mOsdAlarmActive);
             jsonObj.put("cnnAlarmActive", mCnnAlarmActive);
-            jsonObj.put("hrAlarmActive", mHRAlarmActive);
-            jsonObj.put("hrAlarmStanding", mHRAlarmStanding);
-            jsonObj.put("hrThreshMin", mHRThreshMin);
-            jsonObj.put("hrThreshMax", mHRThreshMax);
+            jsonObj.put("hrAlarmActive", mHrAlarmActive);
+            jsonObj.put("hrAlarmStanding", mHrAlarmStanding);
+            jsonObj.put("hrThreshMin", mHrThreshMin);
+            jsonObj.put("hrThreshMax", mHrThreshMax);
             jsonObj.put("adaptiveHrAlarmActive", mAdaptiveHrAlarmActive);
             jsonObj.put("adaptiveHrAlarmStanding", mAdaptiveHrAlarmStanding);
             jsonObj.put("adaptiveHrAlarmWindow", mAdaptiveHrAlarmWindowSecs);
@@ -433,16 +433,16 @@ public class SdData implements Parcelable {
             Log.v(TAG, "mSdData.dataTime = " + dataTime);
             jsonObj.put("Mute", mMute);
 
-            if (Double.isNaN(mHR)||Double.isInfinite(mHR)||mHR < 30d)
-                mHR = -1d;
-            jsonObj.put("hrAlarmActive", mHRAlarmActive);
-            jsonObj.put("hrAlarmStanding", mHRAlarmStanding);
+            if (Double.isNaN(mHr)||Double.isInfinite(mHr)||mHr < 30d)
+                mHr = -1d;
+            jsonObj.put("hrAlarmActive", mHrAlarmActive);
+            jsonObj.put("hrAlarmStanding", mHrAlarmStanding);
             jsonObj.put("adaptiveHrAlarmStanding", mAdaptiveHrAlarmStanding);
             jsonObj.put("averageHrAlarmStanding", mAverageHrAlarmStanding);
-            jsonObj.put("hrAlarmStanding", mHRAlarmStanding);
-            jsonObj.put("hrThreshMin", mHRThreshMin);
-            jsonObj.put("hrThreshMax", mHRThreshMax);
-            jsonObj.put("hr", mHR);
+            jsonObj.put("hrAlarmStanding", mHrAlarmStanding);
+            jsonObj.put("hrThreshMin", mHrThreshMin);
+            jsonObj.put("hrThreshMax", mHrThreshMax);
+            jsonObj.put("hr", mHr);
             jsonObj.put("adaptiveHrAv", mAdaptiveHrAverage);
             jsonObj.put("averageHrAv", mAverageHrAverage);
             jsonObj.put("o2SatAlarmActive", mO2SatAlarmActive);
@@ -509,16 +509,16 @@ public class SdData implements Parcelable {
             jsonObj.put("alarmFreqMax", alarmFreqMax);
             jsonObj.put("alarmThresh", alarmThresh);
             jsonObj.put("alarmRatioThresh", alarmRatioThresh);
-            jsonObj.put("hrAlarmActive", mHRAlarmActive);
-            jsonObj.put("hrAlarmStanding", mHRAlarmStanding);
+            jsonObj.put("hrAlarmActive", mHrAlarmActive);
+            jsonObj.put("hrAlarmStanding", mHrAlarmStanding);
             jsonObj.put("adaptiveHrAlarmStanding", mAdaptiveHrAlarmStanding);
             jsonObj.put("averageHrAlarmStanding", mAverageHrAlarmStanding);
-            jsonObj.put("hrAlarmStanding", mHRAlarmStanding);
-            jsonObj.put("hrThreshMin", mHRThreshMin);
-            jsonObj.put("hrThreshMax", mHRThreshMax);
-            if (Double.isNaN(mHR)||Double.isInfinite(mHR)||mHR < 30d)
-                mHR = -1d;
-            jsonObj.put("hr", mHR);
+            jsonObj.put("hrAlarmStanding", mHrAlarmStanding);
+            jsonObj.put("hrThreshMin", mHrThreshMin);
+            jsonObj.put("hrThreshMax", mHrThreshMax);
+            if (Double.isNaN(mHr)||Double.isInfinite(mHr)||mHr < 30d)
+                mHr = -1d;
+            jsonObj.put("hr", mHr);
             jsonObj.put("adaptiveHrAv", mAdaptiveHrAverage);
             jsonObj.put("averageHrAv", mAverageHrAverage);
             jsonObj.put("o2SatAlarmActive", mO2SatAlarmActive);
@@ -587,7 +587,7 @@ public class SdData implements Parcelable {
         retval = retval + ", " + roiPower;
         retval = retval + ", " + mSampleFreq;
         retval = retval + ", " + alarmPhrase;
-        retval = retval + ", " + mHR;
+        retval = retval + ", " + mHr;
         retval = retval + ", " + mO2Sat;
         if (includeRawData) {
             for (int i = 0; i < mNsamp; i++) {

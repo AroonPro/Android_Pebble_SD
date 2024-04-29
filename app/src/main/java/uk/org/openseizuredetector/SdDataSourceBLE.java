@@ -439,9 +439,9 @@ public class SdDataSourceBLE extends SdDataSource {
                 // We normally use -1 for fault indication, but the BLE standard is for one byte for heart
                 // rate services, so we can't send -1, so treat either 0 or 255 as fault.
                 if (heartRate == 255 || heartRate == 0) {
-                    mSdData.mHR = -1;
+                    mSdData.mHr = -1;
                 } else {
-                    mSdData.mHR = (double) heartRate;
+                    mSdData.mHr = (double) heartRate;
                 }
                 Log.d(TAG, String.format("onDataReceived(): CHAR_HEART_RATE_MEASUREMENT: %d", heartRate));
             } else if (characteristic.getUuid().toString().equals(CHAR_OSD_ACC_DATA)

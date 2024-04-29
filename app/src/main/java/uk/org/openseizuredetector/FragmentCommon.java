@@ -167,7 +167,7 @@ public class FragmentCommon extends FragmentOsdBaseClass {
                 }
                 tv = (TextView) mRootView.findViewById(R.id.hrAlgTv);
                 tv.setText("HR ");
-                if (mConnection.mSdServer.mSdData.mHRAlarmActive) {
+                if (mConnection.mSdServer.mSdData.mHrAlarmActive) {
                     tv.setBackgroundColor(okColour);
                     tv.setTextColor(okTextColour);
                     tv.setPaintFlags(tv.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);

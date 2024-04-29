@@ -1174,7 +1174,7 @@ public class SdServer extends RemoteWorkerService implements SdDataReceiver {
 
         }
         // Handle heart rate alarm
-        if ((sdData.mHRAlarmActive) && (sdData.mHRAlarmStanding)) {
+        if ((sdData.mHrAlarmActive) && (sdData.mHrAlarmStanding)) {
             sdData.alarmPhrase = "HR ABNORMAL";
             if (mLogAlarms) {
                 Log.v(TAG, "***HEART RATE*** - Logging to SD Card");
@@ -1243,7 +1243,7 @@ public class SdServer extends RemoteWorkerService implements SdDataReceiver {
 
 
         // Fault
-        if ((sdData.alarmState) == 4 || (sdData.alarmState == 7) || (sdData.mHRFaultStanding) || (sdData.mHRFrozenFaultStanding)) {
+        if ((sdData.alarmState) == 4 || (sdData.alarmState == 7) || (sdData.mHrFaultStanding) || (sdData.mHrFrozenFaultStanding)) {
             sdData.alarmPhrase = "FAULT";
             //writeAlarmToSD();
             faultWarningBeep();
