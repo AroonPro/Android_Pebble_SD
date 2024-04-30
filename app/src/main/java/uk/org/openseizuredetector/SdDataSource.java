@@ -169,7 +169,6 @@ public abstract class SdDataSource {
     public SdDataSource(Context context, Handler handler, SdDataReceiver sdDataReceiver) {
         Log.v(TAG, "SdDataSource() Constructor");
         mHandler = handler;
-        mUtil = new OsdUtil(useSdServerBinding(), mHandler);
         mSdDataReceiver = sdDataReceiver;
         mUtil = new OsdUtil(useSdServerBinding(), mHandler);
         if(Objects.isNull((mSdData)))
