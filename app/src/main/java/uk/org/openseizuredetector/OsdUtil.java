@@ -934,8 +934,7 @@ public class OsdUtil {
     public static double parseToDouble(String userInput) {
         try {
             // Replace any user-defined decimal separator with the system default (e.g., '.' or ',')
-            String cleanedInput = userInput.replaceFirst("[.,]", String.valueOf(Constants.GLOBAL_CONSTANTS.CURRENT_USER_DECIMAL_CHARACTER));
-
+            String cleanedInput = userInput.replaceFirst(String.valueOf(Constants.GLOBAL_CONSTANTS.CURRENT_USER_DECIMAL_CHARACTER), ".");
             // Parse the cleaned input to a double
             double parsedValue = Double.parseDouble(cleanedInput);
             return parsedValue;
