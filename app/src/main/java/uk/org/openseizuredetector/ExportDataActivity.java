@@ -198,7 +198,7 @@ public class ExportDataActivity extends AppCompatActivity
         if (view == mExportBtn) {
             mDateTxt.setText(String.format("%02d-%02d-%04d", mDay, mMonth + 1, mYear));
             mTimeTxt.setText(String.format("%02d:%02d:%02d", mHour, mMinute, 00));
-            mDuration = Double.parseDouble(mDurationTxt.getText().toString());
+            mDuration = OsdUtil.parseToDouble(mDurationTxt.getText().toString());
 
             String dateTimeStr = String.format("%04d-%02d-%02dT%02d:%02d:%02dZ", mYear, mMonth + 1, mDay, mHour, mMinute, 00);
             //mUtil.showToast(dateTimeStr);
