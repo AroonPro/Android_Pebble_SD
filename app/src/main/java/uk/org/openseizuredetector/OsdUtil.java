@@ -54,6 +54,8 @@ import androidx.preference.PreferenceManager;
 import android.text.format.Time;
 import android.util.Log;
 import android.widget.Toast;
+
+import java.text.DecimalFormatSymbols;
 import java.util.List;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -97,7 +99,7 @@ public class OsdUtil {
     /**
      * Based on http://stackoverflow.com/questions/7440473/android-how-to-check-if-the-intent-service-is-still-running-or-has-stopped-running
      */
-    private static Context mContext;
+    private static Context mContext; //Memory leak warning. Cause: static
     private Handler mHandler;
     private static String TAG = "OsdUtil";
     private boolean mLogAlarms = true;
@@ -829,6 +831,7 @@ public class OsdUtil {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 mCallback.accept(result);
             }
+            //next makeText use of mContext causes memory leak, because of declaration mContext requiring static.
             else Toast.makeText(mContext,"Not supported action at this version of Android. Please concider upgrading.", Toast.LENGTH_SHORT).show();
             //OsdUtil.showToast call will not be available in this function. Recreate new one.
         } // .accept requires API_SDK_LEVEL >= ANDROID.VERSION_N
@@ -873,7 +876,7 @@ public class OsdUtil {
         public static final String DATABASE_NAME = "OsdSysLog.db";
         private static final String TAG = "LogManager.OsdSysLogHelper";
 
-        public OsdSysLogHelper(Context context) {
+        public OsdSysLogHelper(Context context) { // OsdSysLogHelper is static. requiring context to be static. Causing memory leak.
             super(context, DATABASE_NAME, null, DATABASE_VERSION);
             Log.d(TAG, "OsdSysLogHelper constructor");
         }
@@ -918,6 +921,27 @@ public class OsdUtil {
                     waitForConnection(mConnection);
                 }
             }, 100);
+        }
+    }
+
+    /**
+     *
+     * parseToDouble internal OsdUtil Function to read string user input and safely
+     * use in further programming, without crashing the main program.
+     *
+     * Source: Chat with Bing© AI Sources: StackOverFlow
+     * */
+    public static double parseToDouble(String userInput) {
+        try {
+            // Replace any user-defined decimal separator with the system default (e.g., '.' or ',')
+            String cleanedInput = userInput.replaceFirst("[.,]", String.valueOf(Constants.GLOBAL_CONSTANTS.CURRENT_USER_DECIMAL_CHARACTER));
+
+            // Parse the cleaned input to a double
+            double parsedValue = Double.parseDouble(cleanedInput);
+            return parsedValue;
+        } catch (NumberFormatException e) {
+            // Handle invalid input (e.g., non-numeric characters)
+            throw new IllegalArgumentException("Invalid input. Please enter a valid numeric value.");
         }
     }
 

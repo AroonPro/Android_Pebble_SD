@@ -4,10 +4,12 @@ import android.app.PendingIntent;
 import android.content.Intent;
 import android.net.Uri;
 
+import java.text.DecimalFormatSymbols;
 import java.util.concurrent.TimeUnit;
 
 public class Constants {
     public interface GLOBAL_CONSTANTS {
+        char CURRENT_USER_DECIMAL_CHARACTER = DecimalFormatSymbols.getInstance().getDecimalSeparator();
         public final int ALARMS_OFF = 6;
         public final int ALARMS_ON = 0;
         // Request codes

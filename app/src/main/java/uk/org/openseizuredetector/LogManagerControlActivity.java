@@ -581,9 +581,9 @@ public class LogManagerControlActivity extends AppCompatActivity {
             new View.OnClickListener(){
                 @Override
                 public void onClick(View v) {
-                    String myPath = getExternalFilesDir(null).toString();
-                    Intent i = new Intent ("android.intent.action.VIEW", Uri.parse(myPath));
-                    //Intent i = new Intent ("android.intent.action.VIEW", Uri.parse("content://com.android.externalstorage.documents/root/primary"));
+                    //String myPath = getExternalFilesDir(null).toString();
+                    //Intent i = new Intent ("android.intent.action.VIEW", Uri.parse(myPath));
+                    Intent i = new Intent ("android.intent.action.VIEW", Uri.parse("content://com.android.externalstorage.documents/root/primary"));
                     startActivity(i);
                 }
             };
