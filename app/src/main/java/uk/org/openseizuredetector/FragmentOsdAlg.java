@@ -13,6 +13,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.content.ContextCompat;
 
 import com.github.mikephil.charting.charts.BarChart;
@@ -129,6 +130,23 @@ public class FragmentOsdAlg extends FragmentOsdBaseClass {
                 pbDrawable = ContextCompat.getDrawable(getActivity(), R.drawable.progress_bar_yellow);
             if (specPc > 100)
                 pbDrawable = ContextCompat.getDrawable(getActivity(), R.drawable.progress_bar_red);
+            pb.setProgressDrawable(pbDrawable);
+
+            ////////////////////////////////////////////////////////////
+            // set progressbar seizure probability
+
+            long pSeizurePc;
+            pSeizurePc = (long) (mConnection.mSdServer.mSdData.mPseizure * 100);
+
+            pb = ((ProgressBar) mRootView.findViewById(R.id.pSeizureProgressBarM2));
+            pb.setMax(100);
+            pb.setProgress((int) pSeizurePc);
+            pbDrawable = ContextCompat.getDrawable(getActivity(),R.drawable.progress_bar_blue);
+            if (pSeizurePc > 30)
+                pbDrawable = ContextCompat.getDrawable(getActivity(),R.drawable.progress_bar_yellow);
+            if (pSeizurePc > 50)
+                pbDrawable = ContextCompat.getDrawable(getActivity(),R.drawable.progress_bar_red);
+            //pb.getProgressDrawable().setColorFilter(colour, PorterDuff.Mode.SRC_IN);
             pb.setProgressDrawable(pbDrawable);
 
             ////////////////////////////////////////////////////////////
