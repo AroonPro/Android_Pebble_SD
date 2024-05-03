@@ -570,4 +570,9 @@
     <string name="watch_batt_hist">Watch Battery History (%)</string>
     <string name="select_phone_power_graph">Switch on to display phone power graph \nor off for watch</string>
     <string name="server_Mobile_localhost">Mobile data is active: webserver interface is http://localhost:8080</string>
+    <string name="fragment_osdalg">Fragment_OsdAlg</string>
+    <string name="osd_algorithm_status">OSD Algorithm Status</string>
+    <string name="empty_dashes">---</string>
+    <string name="openseizuredetector_common_components_status">OpenSeizureDetector Common Components Status</string>
+    <string name="fragment_system">Fragment_System</string>
 </resources>

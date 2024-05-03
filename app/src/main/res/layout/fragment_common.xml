@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main_frame_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".FragmentOsdBaseClass">
@@ -8,45 +9,42 @@
     <androidx.appcompat.widget.LinearLayoutCompat
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
         android:background="@color/okBackgroundColor"
-        >
+        android:orientation="vertical">
 
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="OpenSeizureDetector Common Components Status"
-            android:textColor="@color/okTextColor"
-            />
+            android:text="@string/openseizuredetector_common_components_status"
+            android:textColor="@color/okTextColor" />
 
         <TextView
             android:id="@+id/versionTv"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/app_name"
-            android:textColor="@color/okTextColor"
-            />
+            android:textColor="@color/okTextColor" />
 
         <TextView
             android:id="@+id/dataSourceInfoTv"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="---"
+            android:text="@string/Dashes"
             android:textColor="@color/okTextColor" />
 
         <TextView
             android:id="@+id/serverStatusTv"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="---"
+            android:text="@string/Dashes"
             android:textColor="@color/okTextColor" />
 
         <TextView
             android:id="@+id/data_time_tv"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="---"
+            android:text="@string/Dashes"
             android:textColor="@color/okTextColor" />
 
         <TextView
@@ -54,7 +52,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center"
-            android:text="---"
+            android:text="@string/Dashes"
             android:textColor="@color/okTextColor"
             android:textSize="32sp" />
 
@@ -68,7 +66,7 @@
                 android:id="@+id/algsTv"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Algorithms: "
+                android:text="@string/algorithms"
                 android:textColor="@color/okTextColor" />
 
             <LinearLayout
@@ -80,28 +78,28 @@
                     android:id="@+id/osdAlgTv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="---"
+                    android:text="@string/Dashes"
                     android:textColor="@color/okTextColor" />
 
                 <TextView
                     android:id="@+id/cnnAlgTv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="---"
+                    android:text="@string/Dashes"
                     android:textColor="@color/okTextColor" />
 
                 <TextView
                     android:id="@+id/hrAlgTv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="---"
+                    android:text="@string/Dashes"
                     android:textColor="@color/okTextColor" />
 
                 <TextView
                     android:id="@+id/o2AlgTv"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="---"
+                    android:text="@string/Dashes"
                     android:textColor="@color/okTextColor" />
 
                 <!--<TextView
@@ -122,16 +120,18 @@
             <Button
                 android:id="@+id/acceptAlarmButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="@string/AcceptAlarmBtnTxt" />
+                android:text="@string/AcceptAlarmBtnTxt"
+                style="?android:attr/buttonBarButtonStyle" />
 
             <Button
                 android:id="@+id/cancelAudibleButton"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/CancelAudibleButtonTxt" />
+                android:text="@string/CancelAudibleButtonTxt"
+                style="?android:attr/buttonBarButtonStyle" />
 
             <Button
                 android:id="@+id/manualAlarmButton"
@@ -139,17 +139,17 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:backgroundTint="#ff0000"
-                android:text="@string/ManualAlarmBtnTxt" />
+                android:text="@string/ManualAlarmBtnTxt"
+                style="?android:attr/buttonBarButtonStyle" />
         </LinearLayout>
 
         <TextView
             android:id="@+id/fragment_common_tv1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Fragment_System"
+            android:text="@string/fragment_system"
             android:textColor="@color/okTextColor" />
 
     </androidx.appcompat.widget.LinearLayoutCompat>
-
 
 </FrameLayout>

@@ -10,13 +10,6 @@
         android:layout_height="match_parent"
         android:background="@color/okBackgroundColor"
         android:orientation="vertical">
-        <!-- TODO: Update blank fragment layout -->
-        <TextView
-            android:id="@+id/fragment_osdalg_tv1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Fragment_OsdAlg"
-            android:textColor="@color/okTextColor" />
 
 
         <TextView
@@ -24,14 +17,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="@color/okTextColor"
-            android:text="OSD Algorithm Status" />
+            android:text="@string/osd_algorithm_status" />
 
         <TextView
             android:id="@+id/powerTv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/okTextColor"
-            android:text="---" />
+            android:text="@string/empty_dashes" />
 
         <ProgressBar
             android:id="@+id/powerProgressBar"
@@ -45,7 +38,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/okTextColor"
-            android:text="---" />
+            android:text="@string/empty_dashes" />
 
         <ProgressBar
             android:id="@+id/spectrumProgressBar"
@@ -54,6 +47,19 @@
             android:layout_height="wrap_content"
             android:indeterminate="false"
             android:minHeight="20dp" />
+
+        <TextView
+            android:id="@+id/pSeizureTvM2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/seizure_probability"
+            android:textColor="@color/okTextColor" />
+
+        <ProgressBar
+            android:id="@+id/pSeizureProgressBarM2"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
 
         <com.github.mikephil.charting.charts.BarChart
             android:id="@+id/chart1"
