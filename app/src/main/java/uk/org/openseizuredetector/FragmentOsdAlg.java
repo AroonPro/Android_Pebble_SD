@@ -134,6 +134,7 @@ public class FragmentOsdAlg extends FragmentOsdBaseClass {
 
             ////////////////////////////////////////////////////////////
             // set progressbar seizure probability
+            ////////////////////////////////////////////////////////////
 
             long pSeizurePc;
             pSeizurePc = (long) (mConnection.mSdServer.mSdData.mPseizure * 100);
