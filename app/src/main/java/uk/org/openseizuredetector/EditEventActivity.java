@@ -3,9 +3,7 @@ package uk.org.openseizuredetector;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
-
-import androidx.appcompat.app.AppCompatActivity;
-
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -13,11 +11,12 @@ import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.TextView;
 
+import androidx.appcompat.app.AppCompatActivity;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -26,338 +25,283 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * EditEventActivity - Handles editing of seizure events via the Web API.
+ * Refactored for universal SdServiceConnection architecture.
+ */
 public class EditEventActivity extends AppCompatActivity {
-    private String TAG = "EditEventActivity";
-    private Context mContext;
+    private static final String TAG = "EditEventActivity";
+    private OsdUtil mUtil;
     private WebApiConnection mWac;
     private LogManager mLm;
     private SdServiceConnection mConnection;
-    final Handler serverStatusHandler = new Handler();
-    private OsdUtil mUtil;
+    private final Handler serverStatusHandler = new Handler(Looper.getMainLooper());
+
     private List<String> mEventTypesList = null;
     private HashMap<String, ArrayList<String>> mEventSubTypesHashMap = null;
-    private String mEventTypeStr = null;
-    private String mEventSubTypeStr = null;
     private String mEventId;
-    private String mEventNotes = "";
-    //private Date mEventDateTime;
     private RadioGroup mEventTypeRg;
     private boolean mEventTypesListChanged = false;
     private RadioGroup mEventSubTypeRg;
     private boolean mEventSubTypesListChanged = false;
     private JSONObject mEventObj;
 
+    // --- 1. DYNAMIC RESOURCE HELPERS ---
+    private int resId(String name, String type) {
+        return getResources().getIdentifier(name, type, getPackageName());
+    }
 
+    private View safeFind(String idName) {
+        int id = resId(idName, "id");
+        return (id != 0) ? findViewById(id) : null;
+    }
+
+    // --- 2. LIFECYCLE ---
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.v(TAG, "onCreate()");
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_edit_event);
+
+        int layoutId = resId("activity_edit_event", "layout");
+        if (layoutId != 0) setContentView(layoutId);
+
         mUtil = new OsdUtil(getApplicationContext(), serverStatusHandler);
-        mConnection = new SdServiceConnection(getApplicationContext());
 
-        //mWac = new WebApiConnection(this, this, this, this);
-        //mLm = new LogManager(this);
-
+        // FIX: Use the new generic constructor
+        mConnection = new SdServiceConnection(this);
 
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
-            String eventId = extras.getString("eventId");
-            mEventId = eventId;
+            mEventId = extras.getString("eventId");
             Log.v(TAG, "onCreate - mEventId=" + mEventId);
         }
 
+        View cancelBtn = safeFind("cancelBtn");
+        if (cancelBtn != null) cancelBtn.setOnClickListener(onCancel);
 
-        Button cancelBtn =
-                (Button) findViewById(R.id.cancelBtn);
-        cancelBtn.setOnClickListener(onCancel);
-        Button OKBtn = (Button) findViewById(R.id.loginBtn);
-        OKBtn.setOnClickListener(onOK);
+        View okBtn = safeFind("loginBtn"); // Note: OSD uses loginBtn id for OK in some layouts
+        if (okBtn != null) okBtn.setOnClickListener(onOK);
 
-        mEventTypeRg = findViewById(R.id.eventTypeRg);
-        mEventTypeRg.setOnCheckedChangeListener(onEventTypeChange);
-        mEventSubTypeRg = findViewById(R.id.eventSubTypeRg);
-        mEventSubTypeRg.setOnCheckedChangeListener(onEventSubTypeChange);
+        mEventTypeRg = (RadioGroup) safeFind("eventTypeRg");
+        if (mEventTypeRg != null) mEventTypeRg.setOnCheckedChangeListener(onEventTypeChange);
 
-
+        mEventSubTypeRg = (RadioGroup) safeFind("eventSubTypeRg");
+        if (mEventSubTypeRg != null) mEventSubTypeRg.setOnCheckedChangeListener(onEventSubTypeChange);
     }
 
     @Override
     protected void onStart() {
         super.onStart();
         Log.i(TAG, "onStart()");
-        if (Objects.nonNull(mConnection))
-            if (!mConnection.mBound) mUtil.bindToServer(EditEventActivity.this, mConnection);
+        if (mConnection != null && !mConnection.mBound) {
+            mConnection.doBindService();
+        }
         waitForConnection();
-
-        updateUi();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        Log.i(TAG, "onStop()");
-        mUtil.unbindFromServer(getApplicationContext(), mConnection);
+        Log.i(TAG, "onStop() - Cleaning up the 2012 Eggshell");
+
+        /* en_GB Java Explanation:
+         * We don't use 'getService()' here; that was for the Binder.
+         * We use the parked mSdServer to ensure the LogManager (mLm)
+         * flushes all data to the disk for your LSA records.
+         */
+        if (mConnection != null && mConnection.mBound) {
+            if (mConnection.mSdServer != null && mConnection.mSdServer.mLm != null) {
+                // Zorg dat de 2012 data veilig wordt weggeschreven
+                mConnection.mSdServer.mLm.stop();
+                Log.d(TAG, "onStop: LogManager flushed successfully.");
+            }
+
+            // De 'Kirk' manier om de verbinding los te laten
+            // unbindService(mConnection); // Alleen als je de verbinding echt wilt verbreken
+        }
     }
 
-
+    // --- 3. CONNECTION LOGIC ---
     private void waitForConnection() {
-        // We want the UI to update as soon as it is displayed, but it takes a finite time for
-        // the mConnection to bind to the service, so we delay half a second to give it chance
-        // to connect before trying to update the UI for the first time (it happens again periodically using the uiTimer)
-        if (mConnection.mBound) {
+        if (mConnection != null && mConnection.mBound && mConnection.mSdService != null) {
             Log.v(TAG, "waitForConnection - Bound!");
             initialiseServiceConnection();
         } else {
             Log.v(TAG, "waitForConnection - waiting...");
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    waitForConnection();
-                }
-            }, 100);
+            new Handler(Looper.getMainLooper()).postDelayed(this::waitForConnection, 100);
         }
     }
 
     private void initialiseServiceConnection() {
-        mLm = mConnection.mSdServer.mLm;
-        mWac = mConnection.mSdServer.mLm.mWac;
+        // FIX: Cast to AndroidSdService to access mLm
+        if (mConnection.mSdService instanceof AndroidSdService) {
+            mLm = ((AndroidSdService) mConnection.mSdService).mLm;
+            if (mLm != null) {
+                mWac = mLm.mWac;
+            }
+        }
 
-        // Retrieve the JSONObject containing the standard event types.
-        // Note this obscure syntax is to avoid having to create another interface, so it is worth it :)
-        // See https://medium.com/@pra4mesh/callback-function-in-java-20fa48b27797
-        mWac.getEventTypes(new WebApiConnection.JSONObjectCallback() {
-            @Override
-            public void accept(JSONObject eventTypesObj) {
-                Log.v(TAG, "initialiseServiceConnection().onEventTypesReceived");
-                if (eventTypesObj == null) {
-                    Log.e(TAG, "initialiseServiceConnection().getEventTypes Callback:  Error Retrieving event types");
-                    mUtil.showToast("Error Retrieving Event Types from Server - Please Try Again Later!");
-                } else {
-                    Iterator<String> keys = eventTypesObj.keys();
-                    mEventTypesList = new ArrayList<String>();
-                    mEventSubTypesHashMap = new HashMap<String, ArrayList<String>>();
-                    while (keys.hasNext()) {
-                        String key = keys.next();
-                        Log.v(TAG, "initialiseServiceConnection().getEventTypes Callback: key=" + key);
-                        mEventTypesList.add(key);
-                        try {
-                            JSONArray eventSubTypes = eventTypesObj.getJSONArray(key);
-                            ArrayList<String> eventSubtypesList = new ArrayList<String>();
-                            for (int i = 0; i < eventSubTypes.length(); i++) {
-                                eventSubtypesList.add(eventSubTypes.getString(i));
-                            }
-                            mEventSubTypesHashMap.put(key, eventSubtypesList);
-                            mEventTypesListChanged = true;
-                        } catch (JSONException e) {
-                            Log.e(TAG, "initialiseServiceConnection().getEventTypes Callback: Error parsing JSONObject" + e.getMessage() + e.toString(), e);
-                        }
-                    }
-                    updateUi();
-                }
+        if (mWac == null) {
+            Log.e(TAG, "initialiseServiceConnection: WebApiConnection is NULL");
+            return;
+        }
+
+        // Fetch Event Types
+        mWac.getEventTypes(eventTypesObj -> {
+            Log.v(TAG, "onEventTypesReceived");
+            if (eventTypesObj == null) {
+                mUtil.showToast("Error Retrieving Event Types from Server");
+            } else {
+                parseEventTypes(eventTypesObj);
+                updateUi();
             }
         });
 
-        // Retrieve the event data to edit
+        // Fetch Specific Event
         try {
-            mWac.getEvent(mEventId, new WebApiConnection.JSONObjectCallback() {
-                @Override
-                public void accept(JSONObject eventObj) {
-                    Log.v(TAG, "initialiseServiceConnection.getEvent");
-                    if (eventObj != null) {
-                        mEventObj = eventObj;
-                        Log.v(TAG, "initialiseServiceConnection.getEvent:  eventObj=" + eventObj.toString());
-                        updateUi();
-                        // FIXME: modify updateUi to use mEventObj
-                    } else {
-                        mUtil.showToast("Failed to Retrieve Event from Remote Database");
-                        finish();
-                    }
+            mWac.getEvent(mEventId, eventObj -> {
+                if (eventObj != null) {
+                    mEventObj = eventObj;
+                    updateUi();
+                } else {
+                    mUtil.showToast("Failed to Retrieve Event");
+                    finish();
                 }
             });
         } catch (Exception e) {
-            Log.e(TAG, "ERROR:" + e.getMessage());
-            e.printStackTrace();
+            Log.e(TAG, "Error fetching event: " + e.getMessage());
         }
     }
 
+    private void parseEventTypes(JSONObject eventTypesObj) {
+        Iterator<String> keys = eventTypesObj.keys();
+        mEventTypesList = new ArrayList<>();
+        mEventSubTypesHashMap = new HashMap<>();
+        while (keys.hasNext()) {
+            String key = keys.next();
+            mEventTypesList.add(key);
+            try {
+                JSONArray eventSubTypes = eventTypesObj.getJSONArray(key);
+                ArrayList<String> subList = new ArrayList<>();
+                for (int i = 0; i < eventSubTypes.length(); i++) {
+                    subList.add(eventSubTypes.getString(i));
+                }
+                mEventSubTypesHashMap.put(key, subList);
+                mEventTypesListChanged = true;
+            } catch (JSONException e) {
+                Log.e(TAG, "JSON Parse Error: " + e.getMessage());
+            }
+        }
+    }
+
+    // --- 4. UI UPDATE ---
     private void updateUi() {
         Log.v(TAG, "updateUI");
-        TextView tv;
-        RadioButton b;
+        if (mEventObj == null) return;
 
-        // Populate event type button group if necessary
+        // Populate Event Type RadioGroup
         if (mEventTypesList != null && mEventTypesListChanged) {
-            Log.v(TAG, "updateUi: " + mEventTypesList.toString());
             mEventTypeRg.removeAllViews();
-            for (String eventTypeStr : mEventTypesList) {
-                b = new RadioButton(this);
-                b.setText(eventTypeStr);
+            for (String type : mEventTypesList) {
+                RadioButton b = new RadioButton(this);
+                b.setText(type);
                 mEventTypeRg.addView(b);
             }
             mEventTypesListChanged = false;
         }
 
-
         try {
-            if (mEventObj != null) {
-                tv = (TextView) findViewById(R.id.eventIdTv);
-                tv.setText(mEventId);
-                tv = (TextView) findViewById(R.id.eventAlarmStateTv);
-                String alarmStateStr = mEventObj.getString("osdAlarmState");
-                try {
-                    int alarmStateVal = Integer.parseInt(alarmStateStr);
-                    alarmStateStr = mUtil.alarmStatusToString(alarmStateVal);
-                } catch (Exception e) {
-                    Log.v(TAG, "updateUi: alarmState does not parse to int so displaying it as string: " + alarmStateStr);
-                }
-                tv.setText(alarmStateStr);
-                tv = (TextView) findViewById(R.id.eventNotsTv);
-                tv.setText(mEventObj.getString("desc"));
+            TextView idTv = (TextView) safeFind("eventIdTv");
+            if (idTv != null) idTv.setText(mEventId);
 
-
-                tv = (TextView) findViewById(R.id.eventDateTv);
-                try {
-                    String dateStr = mEventObj.getString("dataTime");
-                    Date dataTime = mUtil.string2date(dateStr);
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                    tv.setText(dateFormat.format(dataTime));
-                } catch (Exception e) {
-                    Log.e(TAG, "updateUI: Error Parsing dataDate " + e.getLocalizedMessage());
-                    tv.setText("---");
-                }
-
-                // Check the correct seizure type button in the event type group
-                for (int index = 0; index < mEventTypeRg.getChildCount(); index++) {
-                    b = (RadioButton) mEventTypeRg.getChildAt(index);
-                    String buttonText = b.getText().toString();
-                    if (buttonText.equals(mEventObj.getString("type"))) {
-                        Log.v(TAG, "updateUi - selecting button " + mEventObj.getString("type"));
-                        b.setChecked(true);
-                    }
-                }
-
-                // Populate the event sub-types radio button list.
-                Log.v(TAG, "updateUi() - meventsubtypeshashmap=" + mEventSubTypesHashMap + ", mEventSubtypesListChanged=" + mEventSubTypesListChanged);
-                if (mEventSubTypesHashMap != null && mEventSubTypesListChanged) {
-                    Log.v(TAG, "UpdateUi() - populating event sub types list");
-                    if (mEventObj.getString("type") != null) {
-                        // based on https://androidexample.com/create-a-simple-listview
-                        ArrayList<String> subtypesArrayList = mEventSubTypesHashMap.get(mEventObj.getString("type"));
-                        Log.v(TAG, "updateUi() - eventType=" + mEventObj.getString("type") + ", subtypes=" + subtypesArrayList);
-                        mEventSubTypeRg.removeAllViews();
-                        for (String eventSubTypeStr : subtypesArrayList) {
-                            b = new RadioButton(this);
-                            b.setText(eventSubTypeStr);
-                            mEventSubTypeRg.addView(b);
-                        }
-                        mEventSubTypesListChanged = false;
-                    }
-                }
-
-
-                // And show the correct sub-type selected.
-                for (int index = 0; index < mEventSubTypeRg.getChildCount(); index++) {
-                    b = (RadioButton) mEventSubTypeRg.getChildAt(index);
-                    String buttonText = b.getText().toString();
-                    if (buttonText.equals(mEventObj.getString("subType"))) {
-                        Log.v(TAG, "updateUi - selecting button " + mEventObj.getString("subType"));
-                        b.setChecked(true);
-                    }
-                }
-
-
+            TextView stateTv = (TextView) safeFind("eventAlarmStateTv");
+            if (stateTv != null) {
+                String stateStr = mEventObj.optString("osdAlarmState", "0");
+                stateTv.setText(mUtil.alarmStatusToString(Integer.parseInt(stateStr)));
             }
-        } catch (JSONException e) {
-            Log.e(TAG, "Error Parsing mEventObj: " + e.getMessage());
+
+            TextView notesTv = (TextView) safeFind("eventNotsTv"); // Matches your XML typo 'Nots'
+            if (notesTv != null) notesTv.setText(mEventObj.optString("desc", ""));
+
+            TextView dateTv = (TextView) safeFind("eventDateTv");
+            if (dateTv != null) {
+                String dateStr = mEventObj.optString("dataTime", "");
+                Date d = mUtil.string2date(dateStr);
+                dateTv.setText(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(d));
+            }
+
+            // Sync Seizure Type Selection
+            String currentType = mEventObj.getString("type");
+            for (int i = 0; i < mEventTypeRg.getChildCount(); i++) {
+                RadioButton b = (RadioButton) mEventTypeRg.getChildAt(i);
+                if (b.getText().toString().equals(currentType)) b.setChecked(true);
+            }
+
+            // Populate Sub-Types
+            if (mEventSubTypesHashMap != null && mEventSubTypesListChanged) {
+                ArrayList<String> subTypes = mEventSubTypesHashMap.get(currentType);
+                if (subTypes != null) {
+                    mEventSubTypeRg.removeAllViews();
+                    for (String sub : subTypes) {
+                        RadioButton b = new RadioButton(this);
+                        b.setText(sub);
+                        mEventSubTypeRg.addView(b);
+                    }
+                    mEventSubTypesListChanged = false;
+                }
+            }
+
+            // Sync Sub-Type Selection
+            String currentSub = mEventObj.optString("subType", "");
+            for (int i = 0; i < mEventSubTypeRg.getChildCount(); i++) {
+                RadioButton b = (RadioButton) mEventSubTypeRg.getChildAt(i);
+                if (b.getText().toString().equals(currentSub)) b.setChecked(true);
+            }
+
+        } catch (Exception e) {
+            Log.e(TAG, "UI Update error: " + e.getMessage());
         }
+    }
 
+    // --- 5. LISTENERS ---
+    private final View.OnClickListener onCancel = v -> finish();
 
-    }  // updateUi()
+    private final View.OnClickListener onOK = v -> {
+        TextView notesTv = (TextView) safeFind("eventNotsTv");
+        try {
+            mEventObj.put("desc", notesTv != null ? notesTv.getText() : "");
+            mEventObj.put("id", mEventId);
 
-    View.OnClickListener onCancel =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    Log.v(TAG, "onCancel");
-                    //m_status=false;
+            mWac.updateEvent(mEventObj, result -> {
+                if (result != null) {
+                    mUtil.showToast("Event Updated OK");
                     finish();
+                } else {
+                    mUtil.showToast("Error Updating Event");
                 }
-            };
+            });
+        } catch (Exception e) {
+            Log.e(TAG, "Save Error: " + e.getMessage());
+        }
+    };
 
-    View.OnClickListener onOK =
-            new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    //m_status=true;
-                    TextView tv = (TextView) findViewById(R.id.eventNotsTv);
-                    try {
-                        mEventObj.put("desc", tv.getText());
-                        mEventObj.put("id", mEventId);   // Add event Id to event object manually because firestore does not include it by default.
-                    } catch (JSONException e) {
-                        Log.e(TAG, "Error writing mEventObj: " + e.getMessage());
-                    }
-                    Log.v(TAG, "onOK() - eventObj=" + mEventObj.toString());
+    private final RadioGroup.OnCheckedChangeListener onEventTypeChange = (group, checkedId) -> {
+        RadioButton b = findViewById(checkedId);
+        if (b != null) {
+            try {
+                mEventObj.put("type", b.getText().toString());
+                mEventSubTypesListChanged = true;
+                updateUi();
+            } catch (JSONException e) { e.printStackTrace(); }
+        }
+    };
 
-                    try {
-                        mWac.updateEvent(mEventObj, new WebApiConnection.JSONObjectCallback() {
-                            @Override
-                            public void accept(JSONObject eventObj) {
-                                Log.v(TAG, "onOk.updateEvent");
-                                //mEventObj = eventObj;
-                                if (eventObj != null) {
-                                    Log.v(TAG, "onOk.getEvent:  eventObj=" + eventObj.toString());
-                                    mUtil.showToast("Event Updated OK");
-                                    finish();
-                                } else {
-                                    Log.e(TAG, "onOk.updateEvent - Error - returned NULL");
-                                    mUtil.showToast("Error Updating Event");
-                                    updateUi();
-                                }
-                            }
-                        });
-                    } catch (Exception e) {
-                        Log.e(TAG, "onOK() - ERROR: " + e.getMessage() + " : " + e.toString());
-                        e.printStackTrace();
-                        mUtil.showToast("Error Updating Event");
-                        updateUi();
-                    }
-                }
-            };
-
-
-    RadioGroup.OnCheckedChangeListener onEventTypeChange =
-            new RadioGroup.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(RadioGroup group, int checkedId) {
-                    Log.v(TAG, "onEventTypeChange() - id=" + checkedId);
-                    RadioButton b = (RadioButton) findViewById(group.getCheckedRadioButtonId());
-                    String selectedEventType = b.getText().toString();
-                    try {
-                        mEventObj.put("type", selectedEventType);
-                    } catch (JSONException e) {
-                        Log.e(TAG, "Error setting mEventObj.type: " + e.getMessage());
-                    }
-                    mEventSubTypesListChanged = true;
-                    Log.v(TAG, "onEventTypeChange() - mEventSubTypesListChanged=" + mEventSubTypesListChanged);
-                    updateUi();
-                }
-            };
-    RadioGroup.OnCheckedChangeListener onEventSubTypeChange =
-            new RadioGroup.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(RadioGroup group, int checkedId) {
-                    Log.v(TAG, "onEventSubTypeChange() - id=" + checkedId);
-                    RadioButton b = (RadioButton) findViewById(group.getCheckedRadioButtonId());
-                    String selectedEventSubType = b.getText().toString();
-                    try {
-                        mEventObj.put("subType", selectedEventSubType);
-                    } catch (JSONException e) {
-                        Log.e(TAG, "Error setting mEventObj.type: " + e.getMessage());
-                    }
-                    updateUi();
-                }
-            };
-
-
+    private final RadioGroup.OnCheckedChangeListener onEventSubTypeChange = (group, checkedId) -> {
+        RadioButton b = findViewById(checkedId);
+        if (b != null) {
+            try {
+                mEventObj.put("subType", b.getText().toString());
+            } catch (JSONException e) { e.printStackTrace(); }
+        }
+    };
 }

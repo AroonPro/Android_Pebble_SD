@@ -2,11 +2,10 @@ package uk.org.openseizuredetector;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-
-import androidx.preference.PreferenceManager;
-
 import android.graphics.Color;
 import android.util.Log;
+
+import androidx.preference.PreferenceManager;
 
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
@@ -15,8 +14,6 @@ import com.github.mikephil.charting.utils.ColorTemplate;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.TimeZone;
-import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
@@ -24,279 +21,134 @@ import java.util.concurrent.TimeUnit;
 public class SdAlgHr {
     private final static String TAG = "SdAlgHr";
     private Context mContext;
+
+    // Algorithm Settings
     protected boolean mSimpleHrAlarmActive;
     private double mSimpleHrAlarmThreshMin;
     private double mSimpleHrAlarmThreshMax;
 
     protected boolean mAdaptiveHrAlarmActive;
-    private double mAdaptiveHrAlarmWindowSecs;
     private int mAdaptiveHrAlarmWindowDp;
     private int mAHistoricHrAlarmWindowDp;
     private double mAdaptiveHrAlarmThresh;
+
     protected boolean mAverageHrAlarmActive;
-    private double mAverageHrAlarmWindowSecs;
     private int mAverageHrAlarmWindowDp;
     private double mAverageHrAlarmThreshMin;
     private double mAverageHrAlarmThreshMax;
-    private long initialTimeInMillis = Calendar.getInstance(TimeZone.getDefault()).getTimeInMillis();
+
+    // Buffers
     private List<Entry> mHistoricHrBuff;
-
-
     private CircBuf mAdaptiveHrBuff;
     private CircBuf mAverageHrBuff;
-    private CircBuf mHrHist;
-    //private List<Entry> mAverageHrBuff;
+    private CircBuf mHRHist;
 
-    private LineData lineData = new LineData();
-    private LineData lineDataAverage = new LineData();
-    private LineDataSet lineDataSet ;
-    private LineDataSet lineDataSetAverage ;
-    List<String> hrHistoryStrings = new ArrayList<>();
-    List<String> hrHistoryStringsAverage = new ArrayList<>();
+    // Chart Data
+    private LineDataSet lineDataSet;
+    private LineDataSet lineDataSetAverage;
 
-    /**
-     * Constructor of class SdAlgHr.
-     * Here is the main algorithm housed for monitoring heart rateas.
-     *
-     * One warning of construct: During alpha phase AroonPro has
-     * builded here the current running historical graph as
-     * pre-valuead in Entry of Phil's graph library.
-     * Each roll's time-stamp is added in the dataset.
-     *
-     * Post v4.2.x is based upon CircBuf. This needs an extra set
-     * of timestamps for the user to track when an event could have
-     * been.
-     * */
     public SdAlgHr(Context context) {
         Log.i(TAG, "SdAlgHr Constructor");
         mContext = context;
         updatePrefs();
+
         mHistoricHrBuff = new ArrayList<>(mAHistoricHrAlarmWindowDp);
         mAdaptiveHrBuff = new CircBuf(mAdaptiveHrAlarmWindowDp, -1.0);
         mAverageHrBuff = new CircBuf(mAverageHrAlarmWindowDp, -1.0);
-        // FIXME - this is a hard coded 3 hour period (at 5 second intervals)
-        // FIXME - Use the AroonPro OsdUtil convertTime
-        mHrHist = new CircBuf((int) (3 * 3600 / 5), -1);
-        //mAverageHrBuff = new ArrayList<>(mAverageHrAlarmWindowDp);
-        lineDataSet = new LineDataSet(new ArrayList<Entry>(),"Heart rate history" );
+
+        // 3 hour period at 5s intervals
+        int threeHourDp = (int) (3 * 3600 / 5);
+        mHRHist = new CircBuf(threeHourDp, -1);
+
+        // Initialize DataSets with MPAndroidChart 3.x styling
+        lineDataSet = new LineDataSet(new ArrayList<>(), "Heart rate history");
         lineDataSet.setColors(ColorTemplate.JOYFUL_COLORS);
-        lineDataSet.setValueTextColor(R.color.okTextColor);
+        lineDataSet.setValueTextColor(Color.LTGRAY); // Fixed: avoided R.color to prevent package errors
         lineDataSet.setValueTextSize(18f);
-        lineDataSetAverage = new LineDataSet(new ArrayList<Entry>(),"Heart rate history" );
-        lineDataSetAverage.setColors(ColorTemplate.JOYFUL_COLORS);
-        lineDataSetAverage.setValueTextColor(R.color.okTextColor);
+
+        lineDataSetAverage = new LineDataSet(new ArrayList<>(), "Average HR history");
+        lineDataSetAverage.setColors(ColorTemplate.PASTEL_COLORS);
+        lineDataSetAverage.setValueTextColor(Color.LTGRAY);
         lineDataSetAverage.setValueTextSize(18f);
     }
 
-    public void close() {
-        Log.d(TAG, "close()");
-    }
-
-    public float getAlarmState(SdData sdData) {
-        return (0);
-    }
-
-    private double readDoublePref(SharedPreferences SP, String prefName, String defVal) {
-        String prefValStr;
-        double retVal = -1;
-        try {
-            prefValStr = SP.getString(prefName, defVal);
-            retVal = Double.parseDouble(prefValStr);
-        } catch (Exception ex) {
-            Log.v(TAG, "readDoublePref() - Problem with preference!");
-            //mUtil.showToast(TAG+":"+mContext.getString(R.string.problem_parsing_preferences));
-        }
-        return retVal;
-    }
-
     private void updatePrefs() {
-        /**
-         * updatePrefs() - update basic settings from the SharedPreferences
-         * - defined in res/xml/prefs.xml
-         */
-        Log.i(TAG, "updatePrefs()");
+        SharedPreferences SP = PreferenceManager.getDefaultSharedPreferences(mContext);
 
-        SharedPreferences SP = PreferenceManager
-                .getDefaultSharedPreferences(mContext);
         mSimpleHrAlarmActive = SP.getBoolean("HRAlarmActive", false);
-        mSimpleHrAlarmThreshMin = readDoublePref(SP, "HRThreshMin", "20");
-        mSimpleHrAlarmThreshMax = readDoublePref(SP, "HRThreshMax", "150");
-        Log.d(TAG, "updatePrefs(): mSimpleHrAlarmActive=" + mSimpleHrAlarmActive);
-        Log.d(TAG, "updatePrefs(): mSimpleHrAlarmThreshMin=" + mSimpleHrAlarmThreshMin);
-        Log.d(TAG, "updatePrefs(): mSimpleHrAlarmThreshMax=" + mSimpleHrAlarmThreshMax);
+        mSimpleHrAlarmThreshMin = Double.parseDouble(SP.getString("HRThreshMin", "20"));
+        mSimpleHrAlarmThreshMax = Double.parseDouble(SP.getString("HRThreshMax", "150"));
 
-        mAHistoricHrAlarmWindowDp = (int)Math.round(OsdUtil.convertTimeUnit(9, TimeUnit.HOURS,TimeUnit.SECONDS)/5.0);
-        Log.d(TAG,"updatePrefs(): mAHistoricHrAlarmWindowDp="+mAHistoricHrAlarmWindowDp + " \nSetting for 9Hrs for playback");
+        // Use OsdUtil for time conversion
+        mAHistoricHrAlarmWindowDp = (int) Math.round(OsdUtil.convertTimeUnit(9, TimeUnit.HOURS, TimeUnit.SECONDS) / 5.0);
+
         mAdaptiveHrAlarmActive = SP.getBoolean("HRAdaptiveAlarmActive", false);
-        mAdaptiveHrAlarmWindowSecs = readDoublePref(SP, "HRAdaptiveAlarmWindowSecs", "30");
-        mAdaptiveHrAlarmWindowDp = (int) Math.round(mAdaptiveHrAlarmWindowSecs / 5.0);
-        mAdaptiveHrAlarmThresh = readDoublePref(SP, "HRAdaptiveAlarmThresh", "20");
-        Log.d(TAG, "updatePrefs(): mAdaptiveHrAlarmActive=" + mAdaptiveHrAlarmActive);
-        Log.d(TAG, "updatePrefs(): mAdaptiveHrWindowSecs=" + mAdaptiveHrAlarmWindowSecs);
-        Log.d(TAG, "updatePrefs(): mAdaptiveHrWindowDp=" + mAdaptiveHrAlarmWindowDp);
-        Log.d(TAG, "updatePrefs(): mAdaptiveHrAlarmThresh=" + mAdaptiveHrAlarmThresh);
+        double adaptiveSecs = Double.parseDouble(SP.getString("HRAdaptiveAlarmWindowSecs", "30"));
+        mAdaptiveHrAlarmWindowDp = (int) Math.round(adaptiveSecs / 5.0);
+        mAdaptiveHrAlarmThresh = Double.parseDouble(SP.getString("HRAdaptiveAlarmThresh", "20"));
 
         mAverageHrAlarmActive = SP.getBoolean("HRAverageAlarmActive", false);
-        mAverageHrAlarmWindowSecs = readDoublePref(SP, "HRAverageAlarmWindowSecs", "120");
-        mAverageHrAlarmWindowDp = (int) Math.round(mAverageHrAlarmWindowSecs / 5.0);
-        mAverageHrAlarmThreshMin = readDoublePref(SP, "HRAverageAlarmThreshMin", "40");
-        mAverageHrAlarmThreshMax = readDoublePref(SP, "HRAverageAlarmThreshMax", "120");
-        Log.d(TAG, "updatePrefs(): mAverageHrAlarmActive=" + mAverageHrAlarmActive);
-        Log.d(TAG, "updatePrefs(): mAverageHrAlarmWindowSecs=" + mAverageHrAlarmWindowSecs);
-        Log.d(TAG, "updatePrefs(): mAverageHrAlarmWindowDp=" + mAverageHrAlarmWindowDp);
-        Log.d(TAG, "updatePrefs(): mAverageHrAlarmThreshMin=" + mAverageHrAlarmThreshMin);
-        Log.d(TAG, "updatePrefs(): mAverageHrAlarmThreshMax=" + mAverageHrAlarmThreshMax);
-
+        double averageSecs = Double.parseDouble(SP.getString("HRAverageAlarmWindowSecs", "120"));
+        mAverageHrAlarmWindowDp = (int) Math.round(averageSecs / 5.0);
+        mAverageHrAlarmThreshMin = Double.parseDouble(SP.getString("HRAverageAlarmThreshMin", "40"));
+        mAverageHrAlarmThreshMax = Double.parseDouble(SP.getString("HRAverageAlarmThreshMax", "120"));
     }
 
-
-    private boolean checkSimpleHr(double hrVal) {
-        /**
-         * Check heart rate value against simple thresholds
-         */
-        boolean retVal = false;
-        if (mSimpleHrAlarmActive) {
-            if ((hrVal > mSimpleHrAlarmThreshMax)
-                    || (hrVal < mSimpleHrAlarmThreshMin)) {
-                retVal = true;
-            }
-        }
-        return (retVal);
-    }
-
-
-    /**
-     * Returns the simple average heart rate being used by the Adaptive heart rate algorithm
-     * @return simple Average Heart rate in bpm.
-     */
     public double getSimpleHrAverage() {
         return OsdUtil.getAverageValueFromListOfEntry(lineDataSet);
     }
 
-    /**
-     * Returns the average heart rate being used by the Adaptive heart rate algorithm
-     * @return Average Heart rate in bpm.
-     */
-    public double getAdaptiveHrAverage() {
-        return mAdaptiveHrBuff.getAverageVal();
+    public void addLineDataSetAverage(float newValue) {
+        // v3.x Fix: use getEntryCount() instead of getYVals().size()
+        int index = lineDataSetAverage.getEntryCount();
+        lineDataSetAverage.addEntry(new Entry(index, newValue));
     }
 
-    public void addLineDataSetAverage(Float newValue) {
-        int currentLineDataSetSize =lineDataSetAverage.getYVals().size();
-        lineDataSetAverage.addEntry(new Entry(newValue , currentLineDataSetSize));
-        hrHistoryStringsAverage.add(Calendar.getInstance(TimeZone.getDefault()).getTime().toString());
+    public LineData getLineData(boolean isAverage) {
+        // v3.x Fix: Constructor only takes ILineDataSet, not String labels
+        return new LineData(isAverage ? lineDataSetAverage : lineDataSet);
     }
-
-    public List<Entry> getmHistoricHrBuff() {
-        return mHistoricHrBuff;
-    }
-
-
-    /*
-    /**
-      * Extention currently barred out.
-       @return: return internal private mAverageHrBuff
-    *-/
-
-    public List<Entry> getAverageHrBuff() {
-        return mAverageHrBuff;
-    }*/
-
-    public CircBuf getAverageHrBuff() {
-        return mAverageHrBuff;
-    }
-
-    public CircBuf getAdaptiveHrBuff() {
-        return mAdaptiveHrBuff;
-    }
-
-    public CircBuf getHrHistBuff() {
-        return mHrHist;
-    }
-
-    /**
-     * Returns the average heart rate being used by the Average heart rate algorithm
-     *
-     * @return Average Heart rate in bpm.
-     */
-    public double getAverageHrAverage() {
-        return mAverageHrBuff.getAverageVal();
-    }
-
-    public LineData getLineData(boolean isAverage){
-        return new LineData(isAverage?hrHistoryStringsAverage:hrHistoryStrings,getLineDataSet(isAverage));
-    }
-    /*public double getAverageHrAverage() {
-        return OsdUtil.getAverageValueFromListOfEntry(lineDataSetAverage);
-    }*/
-
-    public LineDataSet getLineDataSet(boolean isAverage){
-        return isAverage?lineDataSetAverage :lineDataSet;
-    }
-    private boolean checkAdaptiveHr(double hrVal) {
-        boolean retVal;
-        retVal = false;
-        
-        if (mAdaptiveHrAlarmActive) {
-            double hrThreshMin;
-            double hrThreshMax;
-            double avHr = getAdaptiveHrAverage();
-            hrThreshMin = avHr - mAdaptiveHrAlarmThresh;
-            hrThreshMax = avHr + mAdaptiveHrAlarmThresh;
-    
-        
-            if (hrVal < hrThreshMin) {
-                retVal = true;
-            }
-            if (hrVal > hrThreshMax) {
-                retVal = true;
-            }
-            Log.d(TAG, "checkAdaptiveHr() - hrVal=" + hrVal + ", avHr=" + avHr + ", thresholds=(" + hrThreshMin + ", " + hrThreshMax + "): Alarm=" + retVal);
-        }
-        return (retVal);
-    }
-
-    private boolean checkAverageHr(double hrVal) {
-        boolean retVal;
-        retVal = false;
-        if (mAverageHrAlarmActive) {
-            double avHr = getAverageHrAverage();
-            if (avHr < mAverageHrAlarmThreshMin) {
-                retVal = true;
-            }
-            if (avHr > mAverageHrAlarmThreshMax) {
-                retVal = true;
-            }
-            Log.d(TAG, "checkAverageHr() - hrVal=" + hrVal + ", avHr=" + avHr + ", thresholds=(" + mAverageHrAlarmThreshMin + ", " + mAverageHrAlarmThreshMin + "): Alarm=" + retVal);
-        }
-        return (retVal);
-    }
-
 
     public ArrayList<Boolean> checkHr(double hrVal) {
-        /**
-         * Checks the current Heart Rate reading hrVal against the
-         * three possible heart rate alarm algorithms (simple, adaptive, average)
-         * and returns an ArrayList of the alarm status of each algorithm in the above order.
-         * true=ALARM, false=OK.
-         */
         Log.v(TAG, "checkHr(" + hrVal + ")");
         mAdaptiveHrBuff.add(hrVal);
         mAverageHrBuff.add(hrVal);
-        mHrHist.add(hrVal);
-        int mAverageHrBuffSize = lineDataSet.getYVals().size();
-        int mHistoricHrBuffSize = mHistoricHrBuff.size();
-        //mAverageHrBuff.add(mAverageHrBuffSize,new Entry(mAverageHrBuffSize,OsdUtil.getAverageValueFromListOfEntry(lineDataSet)));
-        hrHistoryStrings.add(mHistoricHrBuffSize, Calendar.getInstance(TimeZone.getDefault()).getTime().toString());
-        mHistoricHrBuff.add(new Entry(mHistoricHrBuff.size(),(int)hrVal));
-        lineDataSet.addEntry(new Entry((float) hrVal,mHistoricHrBuffSize));
+        mHRHist.add(hrVal);
 
-        ArrayList<Boolean> retVal = new ArrayList<Boolean>();
+        // Update the Chart History
+        int index = lineDataSet.getEntryCount();
+        Entry newEntry = new Entry(index, (float) hrVal);
+
+        lineDataSet.addEntry(newEntry);
+        mHistoricHrBuff.add(newEntry);
+
+        ArrayList<Boolean> retVal = new ArrayList<>();
         retVal.add(checkSimpleHr(hrVal));
         retVal.add(checkAdaptiveHr(hrVal));
         retVal.add(checkAverageHr(hrVal));
-        
-        return (retVal);
+
+        return retVal;
     }
 
+    private boolean checkSimpleHr(double hrVal) {
+        if (!mSimpleHrAlarmActive) return false;
+        return (hrVal > mSimpleHrAlarmThreshMax || hrVal < mSimpleHrAlarmThreshMin);
+    }
+
+    private boolean checkAdaptiveHr(double hrVal) {
+        if (!mAdaptiveHrAlarmActive) return false;
+        double avHr = mAdaptiveHrBuff.getAverageVal();
+        return (hrVal < (avHr - mAdaptiveHrAlarmThresh) || hrVal > (avHr + mAdaptiveHrAlarmThresh));
+    }
+
+    private boolean checkAverageHr(double hrVal) {
+        if (!mAverageHrAlarmActive) return false;
+        double avHr = mAverageHrBuff.getAverageVal();
+        return (avHr < mAverageHrAlarmThreshMin || avHr > mAverageHrAlarmThreshMax);
+    }
+
+    // Getters
+    public CircBuf getAverageHrBuff() { return mAverageHrBuff; }
+    public CircBuf getAdaptiveHrBuff() { return mAdaptiveHrBuff; }
+    public CircBuf getHrHistBuff() { return mHRHist; }
 }

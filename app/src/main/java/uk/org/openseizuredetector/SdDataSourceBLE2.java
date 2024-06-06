@@ -35,9 +35,12 @@ import android.bluetooth.le.ScanResult;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.text.format.Time;
 import android.util.Log;
+
+import androidx.annotation.Nullable;
 
 import com.welie.blessed.BluetoothBytesParser;
 import com.welie.blessed.BluetoothCentralManager;
@@ -121,17 +124,45 @@ public class SdDataSourceBLE2 extends SdDataSource {
     private BluetoothGatt mGatt;
     private BluetoothGattCharacteristic mOsdChar;
     private BluetoothGattCharacteristic mStatusChar;
-    BluetoothGattCharacteristic mHrChar;
+    BluetoothGattCharacteristic mHRChar;
     BluetoothGattCharacteristic mBattChar;
     private BluetoothCentralManager mBluetoothCentralManager;
     private boolean mShutdown = false;
+
+    /**
+     *
+     */
+    @Override
+    public void ClearAlarmCount() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void handleSendingHelp() {
+
+    }
 
     public SdDataSourceBLE2(Context context, Handler handler,
                             SdDataReceiver sdDataReceiver) {
         super(context, handler, sdDataReceiver);
         mName = "BLE2";
-    }
+        }
 
+    /* * en_GB Java Documentation:
+     * These members store the Bluetooth Low Energy (BLE) identity.
+     * mBleDeviceAddr: The MAC address (e.g., AA:BB:CC:DD:EE:FF).
+     * mBleDeviceName: The human-readable name (e.g., 'Garmin Venu').
+     * mWatchAppRunningCheck: Heartbeat monitor for the remote app.
+     * * LSA Audit Significance:
+     * These identify the exact hardware source of the seizure logs.
+     */
+    String mBleDeviceAddr = "";
+    String mBleDeviceName = "";
+    boolean mWatchAppRunningCheck = false;
+    long mDataStatusTime = 0L; // SDK 17: Use long for system millis
 
     /**
      * Start the datasource updating - initialises from sharedpreferences first to
@@ -159,6 +190,14 @@ public class SdDataSourceBLE2 extends SdDataSource {
         boolean success = CurrentTimeService.startServer(mContext);
 
         bleConnect();
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void startPebbleApp() {
 
     }
 
@@ -262,7 +301,7 @@ public class SdDataSourceBLE2 extends SdDataSource {
                     // The generic heart rate measurement characteristic
                     if (charUuidStr.equals(CHAR_HEART_RATE_MEASUREMENT)) {
                         Log.v(TAG, "Subscribing to Heart Rate Measurement Change Notifications");
-                        mHrChar = gattCharacteristic;
+                        mHRChar = gattCharacteristic;
                         peripheral.setNotify(service.getUuid(), gattCharacteristic.getUuid(), true);
                     } else if (charUuidStr.equals(CHAR_OSD_ACC_DATA)) {
                         Log.i(TAG, "Subscribing to OSD Acceleration Data Change Notifications");
@@ -371,8 +410,8 @@ public class SdDataSourceBLE2 extends SdDataSource {
                 final boolean energyExpenditurePresent = (flags & 0x08) > 0;
                 final boolean rrIntervalPresent = (flags & 0x10) > 0;
                 // Parse heart rate
-                mSdData.mHr = (unit == 0) ? parser.getUInt8() : parser.getUInt16();
-                Log.d(TAG,"Received HR="+mSdData.mHr);
+                mSdData.mHR = (unit == 0) ? parser.getUInt8() : parser.getUInt16();
+                Log.d(TAG,"Received HR="+mSdData.mHR);
 
             } else if (charUuidStr.equals(CHAR_OSD_ACC_DATA)
                     || charUuidStr.equals(CHAR_INFINITIME_ACC_DATA)) {
@@ -424,7 +463,7 @@ public class SdDataSourceBLE2 extends SdDataSource {
                         }
                         mSdData.mNsamp = rawData.length;
                         mWatchAppRunningCheck = true;
-                        mDataStatusTime = new Time(Time.getCurrentTimezone());
+                        mDataStatusTime = System.currentTimeMillis();
                         // Process the data to do seizure detection
                         doAnalysis();
                         mBlePeripheral.readRemoteRssi();  // Update RSSI
@@ -520,11 +559,11 @@ public class SdDataSourceBLE2 extends SdDataSource {
                 } else {
                     Log.w(TAG, "bleDisconnect() - mOsdChar is null - not removing notification");
                 }
-                if (mHrChar != null) {
-                    Log.i(TAG, "bleDisconnect() - unregistering mHrChar");
-                    mBlePeripheral.setNotify(mHrChar, false);
+                if (mHRChar != null) {
+                    Log.i(TAG, "bleDisconnect() - unregistering mHRChar");
+                    mBlePeripheral.setNotify(mHRChar, false);
                 } else {
-                    Log.w(TAG, "bleDisconnect() - mHrChar is null - not removing notification");
+                    Log.w(TAG, "bleDisconnect() - mHRChar is null - not removing notification");
                 }
                 if (mBattChar != null) {
                     Log.i(TAG, "bleDisconnect() - unregistering mBattChar");
@@ -564,7 +603,55 @@ public class SdDataSourceBLE2 extends SdDataSource {
         }
     }
 
-        private short[] parseDataToAccVals(byte[] rawDataBytes) {
+    /**
+     *
+     */
+    @Override
+    public void muteCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    protected void getStatus() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    protected void faultCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void hrCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void o2SatCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void fallCheck() {
+
+    }
+
+    private short[] parseDataToAccVals(byte[] rawDataBytes) {
             short[] retArr;
             switch (mAccFmt) {
                 case ACC_FMT_8BIT:
@@ -592,5 +679,29 @@ public class SdDataSourceBLE2 extends SdDataSource {
         }
 
 
-
+    /**
+     * Return the communication channel to the service.  May return null if
+     * clients can not bind to the service.  The returned
+     * {@link IBinder} is usually for a complex interface
+     * that has been <a href="{@docRoot}guide/components/aidl.html">described using
+     * aidl</a>.
+     *
+     * <p><em>Note that unlike other application components, calls on to the
+     * IBinder interface returned here may not happen on the main thread
+     * of the process</em>.  More information about the main thread can be found in
+     * <a href="{@docRoot}guide/topics/fundamentals/processes-and-threads.html">Processes and
+     * Threads</a>.</p>
+     *
+     * @param intent The Intent that was used to bind to this service,
+     *               as given to {@link Context#bindService
+     *               Context.bindService}.  Note that any extras that were included with
+     *               the Intent at that point will <em>not</em> be seen here.
+     * @return Return an IBinder through which clients can call on to the
+     * service.
+     */
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
 }

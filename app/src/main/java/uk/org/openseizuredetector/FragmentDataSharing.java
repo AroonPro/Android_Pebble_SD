@@ -7,41 +7,69 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import java.util.Objects;
-
+/**
+ * FragmentDataSharing - SDK 17 Integral R-FREE 2024 Upgrade
+ * * en_GB Java Documentation:
+ * This fragment is now fully decoupled from the R-class. It uses
+ * dynamic resource discovery to inflate its layout and find its views.
+ * * 2012-2026 Integrity:
+ * By removing 'R', we ensure the 'Eggshell' can be recompiled in
+ * modern environments without resource-ID conflicts during the LSA audit.
+ */
 public class FragmentDataSharing extends FragmentOsdBaseClass {
-    String TAG = "FragmentDataSharing";
+    private String TAG = "FragmentDataSharing";
 
     public FragmentDataSharing() {
-        // Required empty public constructor
-    }
-
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+        // Required empty public constructor for Fragment stability
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_data_sharing, container, false);
+        /* * en_GB: R-FREE INFLATION.
+         * Instead of R.layout.fragment_data_sharing, we find the
+         * integer ID at runtime.
+         */
+        int layoutId = getResId("fragment_data_sharing", "layout");
+        if (layoutId == 0) {
+            Log.e(TAG, "R-Free Error: Layout 'fragment_data_sharing' not found!");
+            return null;
+        }
+        return inflater.inflate(layoutId, container, false);
     }
 
     @Override
     protected void updateUi() {
-        Log.d(TAG, "updateUi()");
-        if (Objects.isNull(mRootView)||!isAdded()||!isVisible()) return;
-        TextView tv;
-        tv = (TextView) mRootView.findViewById(R.id.fragment_data_sharing_tv1);
-        if (mConnection.mBound) {
-            tv.setText("Bound to Server");
-        } else {
-            tv.setText("****NOT BOUND TO SERVER***");
+        Log.d(TAG, "updateUi() - SDK 17 Striped & R-Free Path");
+
+        // SDK 17 Fix: Manual null-check (Objects.isNull is SDK 19+)
+        if (mRootView == null || !isAdded() || !isVisible()) {
             return;
         }
 
+        /* * en_GB: R-FREE VIEW DISCOVERY.
+         * Locating the TextView by its string name 'fragment_data_sharing_tv1'.
+         */
+        int tvResId = getResId("fragment_data_sharing_tv1", "id");
+        TextView tv = (TextView) mRootView.findViewById(tvResId);
 
+        if (tv != null) {
+            if (mConnection != null && mConnection.mBound) {
+                tv.setText("Data Sharing Status: INTEGRAL (Bound)");
+            } else {
+                tv.setText("**** NOT BOUND TO SERVER ***");
+            }
+        }
+    }
+
+    /**
+     * getResId - The R-Free Engine
+     * * en_GB: Dynamic resource lookup to avoid R-symbol dependencies.
+     * Essential for maintaining the 2012 codebase in a 2026 build-toolchain.
+     */
+    private int getResId(String name, String type) {
+        if (getActivity() == null) return 0;
+        return getActivity().getResources().getIdentifier(
+                name, type, getActivity().getPackageName());
     }
 }

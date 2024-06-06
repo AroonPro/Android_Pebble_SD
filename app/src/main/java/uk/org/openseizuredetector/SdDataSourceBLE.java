@@ -38,10 +38,12 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Handler;
+import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.text.format.Time;
 import android.util.Log;
 
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 
 import org.json.JSONArray;
@@ -123,7 +125,27 @@ public class SdDataSourceBLE extends SdDataSource {
     private BluetoothGatt mGatt;
     private BluetoothGattCharacteristic mOsdChar;
     private BluetoothGattCharacteristic mStatusChar;
+    private String mBleDeviceAddr = "";
+    private String mBleDeviceName = "";
+    private boolean mWatchAppRunningCheck = false;
+    private long mDataStatusTime = 0;
 
+
+    /**
+     *
+     */
+    @Override
+    public void ClearAlarmCount() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void handleSendingHelp() {
+
+    }
 
     public SdDataSourceBLE(Context context, Handler handler,
                            SdDataReceiver sdDataReceiver) {
@@ -158,6 +180,14 @@ public class SdDataSourceBLE extends SdDataSource {
         boolean success = CurrentTimeService.startServer(mContext);
 
         bleConnect();
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void startPebbleApp() {
 
     }
 
@@ -237,6 +267,54 @@ public class SdDataSourceBLE extends SdDataSource {
         bleDisconnect();
         CurrentTimeService.stopServer();
         super.stop();
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void muteCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    protected void getStatus() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    protected void faultCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void hrCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void o2SatCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void fallCheck() {
+
     }
 
 
@@ -539,7 +617,7 @@ public class SdDataSourceBLE extends SdDataSource {
                         }
                         mSdData.mNsamp = rawData.length;
                         mWatchAppRunningCheck = true;
-                        mDataStatusTime = new Time(Time.getCurrentTimezone());
+                        mDataStatusTime = System.currentTimeMillis();;
                         // Process the data to do seizure detection
                         doAnalysis();
                         // Re-start collecting raw data.
@@ -697,6 +775,32 @@ public class SdDataSourceBLE extends SdDataSource {
         if (mBluetoothGatt == null) return null;
 
         return mBluetoothGatt.getServices();
+    }
+
+    /**
+     * Return the communication channel to the service.  May return null if
+     * clients can not bind to the service.  The returned
+     * {@link IBinder} is usually for a complex interface
+     * that has been <a href="{@docRoot}guide/components/aidl.html">described using
+     * aidl</a>.
+     *
+     * <p><em>Note that unlike other application components, calls on to the
+     * IBinder interface returned here may not happen on the main thread
+     * of the process</em>.  More information about the main thread can be found in
+     * <a href="{@docRoot}guide/topics/fundamentals/processes-and-threads.html">Processes and
+     * Threads</a>.</p>
+     *
+     * @param intent The Intent that was used to bind to this service,
+     *               as given to {@link Context#bindService
+     *               Context.bindService}.  Note that any extras that were included with
+     *               the Intent at that point will <em>not</em> be seen here.
+     * @return Return an IBinder through which clients can call on to the
+     * service.
+     */
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 
     /**

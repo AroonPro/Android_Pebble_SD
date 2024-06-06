@@ -95,6 +95,14 @@
         android:key="AppVersionName"
         android:summary="@string/app_version_summary"
         android:title="@string/app_version_title" />
+
+    <ListPreference
+        android:key="pref_detection_profile"
+        android:title="Detection Profile"
+        android:summary="Select profile for specific seizure types"
+        android:entries="@array/profile_names"
+        android:entryValues="@array/profile_values"
+        android:defaultValue="default" />
 <!--
     <CheckBoxPreference
         android:defaultValue="false"

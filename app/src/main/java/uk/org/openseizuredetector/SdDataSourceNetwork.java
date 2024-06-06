@@ -1,10 +1,15 @@
 package uk.org.openseizuredetector;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Handler;
+
+import androidx.annotation.Nullable;
 import androidx.preference.PreferenceManager;
+
+import android.os.IBinder;
 import android.text.format.Time;
 import android.util.Log;
 
@@ -34,6 +39,22 @@ public class SdDataSourceNetwork extends SdDataSource {
     private int ALARM_STATE_NETFAULT = 7;
 
 
+    /**
+     *
+     */
+    @Override
+    public void ClearAlarmCount() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void handleSendingHelp() {
+
+    }
+
     public SdDataSourceNetwork(Context context, Handler handler, SdDataReceiver sdDataReceiver) {
         super(context, handler, sdDataReceiver);
         mName = "Network";
@@ -62,6 +83,14 @@ public class SdDataSourceNetwork extends SdDataSource {
             Log.v(TAG, "start(): data update timer already running.");
         }
 
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void startPebbleApp() {
 
     }
 
@@ -103,8 +132,56 @@ public class SdDataSourceNetwork extends SdDataSource {
         } catch (Exception ex) {
             Log.v(TAG, "updatePrefs() - Problem parsing preferences!");
             mUtil.writeToSysLogFile("SdDataSourceNetwork().updatePrefs() - " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()));
-            showToast("Problem Parsing Preferences - Something won't work");
+            mUtil.showToast("Problem Parsing Preferences - Something won't work");
         }
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void muteCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    protected void getStatus() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    protected void faultCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void hrCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void o2SatCheck() {
+
+    }
+
+    /**
+     *
+     */
+    @Override
+    public void fallCheck() {
+
     }
 
     /**
@@ -115,6 +192,32 @@ public class SdDataSourceNetwork extends SdDataSource {
     public void downloadSdData() {
         Log.v(TAG, "downloadSdData()");
         new DownloadSdDataTask().execute("http://" + mServerIP + ":8080/data");
+    }
+
+    /**
+     * Return the communication channel to the service.  May return null if
+     * clients can not bind to the service.  The returned
+     * {@link IBinder} is usually for a complex interface
+     * that has been <a href="{@docRoot}guide/components/aidl.html">described using
+     * aidl</a>.
+     *
+     * <p><em>Note that unlike other application components, calls on to the
+     * IBinder interface returned here may not happen on the main thread
+     * of the process</em>.  More information about the main thread can be found in
+     * <a href="{@docRoot}guide/topics/fundamentals/processes-and-threads.html">Processes and
+     * Threads</a>.</p>
+     *
+     * @param intent The Intent that was used to bind to this service,
+     *               as given to {@link Context#bindService
+     *               Context.bindService}.  Note that any extras that were included with
+     *               the Intent at that point will <em>not</em> be seen here.
+     * @return Return an IBinder through which clients can call on to the
+     * service.
+     */
+    @Nullable
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
     }
 
     private class DownloadSdDataTask extends AsyncTask<String, Void, SdData> {
@@ -166,38 +269,7 @@ public class SdDataSourceNetwork extends SdDataSource {
         }
     }
 
-    /**
-     * Accept an alarm remotely using a http GET request.
-     */
-    @Override
-    public void acceptAlarm() {
-        Log.v(TAG, "acceptAlarm()");
-        new AcceptAlarmTask().execute("http://" + mServerIP + ":8080/acceptalarm");
-    }
 
-    private class AcceptAlarmTask extends AsyncTask<String, Void, String> {
-        @Override
-        protected String doInBackground(String... urls) {
-            // params comes from the execute() call: params[0] is the url.
-            try {
-                String result = downloadUrl(urls[0]);
-                if (result.startsWith("Unable to retrieve web page")) {
-                    Log.v(TAG, "doInBackground() - Error accepting alarm");
-                } else {
-                    Log.v(TAG, "doInBackground(): Alarm Accepted");
-                }
-            } catch (IOException e) {
-                Log.v(TAG, "doInBackground(): IOException - " + e.toString());
-            }
-            return "Done";
-        }
-
-        // onPostExecute displays the results of the AsyncTask.
-        @Override
-        protected void onPostExecute(String s) {
-            Log.v(TAG, "onPostExecute() - s=" + s);
-        }
-    }
 
 
     // Given a URL, establishes an HttpUrlConnection and retrieves

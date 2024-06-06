@@ -8,10 +8,14 @@ import java.text.DecimalFormatSymbols;
 import java.util.concurrent.TimeUnit;
 
 public class Constants {
+    public static final String DATA_FILE_PREFIX = "";
+
     public interface GLOBAL_CONSTANTS {
         char CURRENT_USER_DECIMAL_CHARACTER = DecimalFormatSymbols.getInstance().getDecimalSeparator();
         public final int ALARMS_OFF = 6;
         public final int ALARMS_ON = 0;
+
+        public final short ALARM_MUTE_INFINATE_TIME = -1;
         // Request codes
         // CALENDAR GROUP
 
@@ -102,6 +106,26 @@ public class Constants {
         String JSON_TYPE_DATA = "data";
         String JSON_TYPE_BATTERY = "battery";
         int mTotalSdFragments = 5;
+        boolean debugStartAllowed = false;
+        String WEAR_EMULATED_IDENTIFIER = "";
+        int COM_SAMSUNG_WEAR_SENSOR_CONTINUOUS_SPO2 = 65541;
+    }
+
+    public interface VIBRATION {
+        /** * A short, subtle tick (150ms).
+         * Purpose: Non-startling confirmation for C-PTSD (Back press, button tap).
+         */
+        long[] SHORT_BUZZ = {0, 150};
+
+        /** * A double tap (100ms on, 50ms off, 100ms on).
+         * Purpose: Confirmation of state change (Login successful, Shutdown initiated).
+         */
+        long[] DOUBLE_TAP = {0, 100, 50, 100};
+
+        /** * A long, demanding vibration (1s on, 0.5s off).
+         * Purpose: Frontal Lobe (FE) focus. Overrides sensory background during a seizure.
+         */
+        long[] ALARM_VIBRATION = {0, 1000, 500, 1000};
     }
 
     public interface ACTION {

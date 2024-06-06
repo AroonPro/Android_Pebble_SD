@@ -576,4 +576,5 @@
     <string name="BTpermissions_required">Bluetooth Permissions Required</string>
     <string name="BT_permissions_rationale">Bluetooth permissions are required to communicate with the bluetooth (BLE) data source</string>
     <string name="restart_server">Restart Server</string>
+    <string name=""
 </resources>

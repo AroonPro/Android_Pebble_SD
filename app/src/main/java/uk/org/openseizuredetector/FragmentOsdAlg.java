@@ -1,6 +1,5 @@
 package uk.org.openseizuredetector;
 
-import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -12,198 +11,161 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.Description;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
-import com.github.mikephil.charting.utils.ValueFormatter;
+import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.List;
 
 public class FragmentOsdAlg extends FragmentOsdBaseClass {
-    String TAG = "FragmentOsdAlg";
+    private String TAG = "FragmentOsdAlg";
 
     public FragmentOsdAlg() {
         // Required empty public constructor
     }
 
+    /**
+     * Safely fetches a string resource by its name.
+     * Prevents "Resource Not Found" crashes during module migrations.
+     */
+    public String getStr(String key) {
+        if (mContext == null) return key; // Fallback to key name if context is null
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+        int id = resId(key, "string");
+        if (id != 0) {
+            return mContext.getString(id);
+        } else {
+            Log.w(TAG, "getStr: Resource not found for key: " + key);
+            return key; // Return the key string so the UI isn't empty
+        }
     }
-
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_osdalg, container, false);
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        // Use resId helper for en_GB standard
+        int layoutId = resId("fragment_osdalg", "layout");
+        return inflater.inflate(layoutId, container, false);
     }
 
     @Override
     protected void updateUi() {
-        //Log.d(TAG,"updateUi()");
-        TextView tv;
-
-        if (mConnection.mBound) {
-            /////////////////////////////////////////////////////
-            // Set ProgressBars to show margin to alarm.
-            long powerPc;
-            if (mConnection.mSdServer.mSdData.alarmThresh != 0)
-                powerPc = mConnection.mSdServer.mSdData.roiPower * 100 /
-                        mConnection.mSdServer.mSdData.alarmThresh;
-            else
-                powerPc = 0;
-
-            long specPc;
-            if (mConnection.mSdServer.mSdData.specPower != 0 &&
-                    mConnection.mSdServer.mSdData.alarmRatioThresh != 0)
-                specPc = 100 * (mConnection.mSdServer.mSdData.roiPower * 10 /
-                        mConnection.mSdServer.mSdData.specPower) /
-                        mConnection.mSdServer.mSdData.alarmRatioThresh;
-            else
-                specPc = 0;
-
-            long specRatio;
-            if (mConnection.mSdServer.mSdData.specPower != 0) {
-                specRatio = 10 * mConnection.mSdServer.mSdData.roiPower /
-                        mConnection.mSdServer.mSdData.specPower;
-            } else
-                specRatio = 0;
-
-            ((TextView) mRootView.findViewById(R.id.powerTv)).setText(getString(R.string.PowerEquals) + mConnection.mSdServer.mSdData.roiPower +
-                    " (" + getString(R.string.Threshold) + "=" + mConnection.mSdServer.mSdData.alarmThresh + ")");
-
-            ProgressBar pb;
-            Drawable pbDrawable;
-            pb = ((ProgressBar) mRootView.findViewById(R.id.powerProgressBar));
-            pb.setMax(100);
-            pb.setProgress((int) powerPc);
-            pbDrawable = mContext.getDrawable(R.drawable.progress_bar_blue);
-            //pbDrawable = mRootView.getResources().getDrawable(R.drawable.progress_bar_blue);
-            if (powerPc > 75)
-                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_yellow);
-            if (powerPc > 100)
-                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_red);
-            pb.setProgressDrawable(pbDrawable);
-
-            ((TextView) mRootView.findViewById(R.id.spectrumTv)).setText(getString(R.string.SpectrumRatioEquals) + specRatio +
-                    " (" + getString(R.string.Threshold) + "=" + mConnection.mSdServer.mSdData.alarmRatioThresh + ")");
-
-            pb = ((ProgressBar) mRootView.findViewById(R.id.spectrumProgressBar));
-            pb.setMax(100);
-            pb.setProgress((int) specPc);
-            //pbDrawable = mRootView.getResources().getDrawable(R.drawable.progress_bar_blue);
-            pbDrawable = mContext.getDrawable(R.drawable.progress_bar_blue);
-            if (specPc > 75)
-                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_yellow);
-            if (specPc > 100)
-                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_red);
-            pb.setProgressDrawable(pbDrawable);
-
-            ////////////////////////////////////////////////////////////
-            // set progressbar seizure probability
-            ////////////////////////////////////////////////////////////
-
-            long pSeizurePc;
-            pSeizurePc = (long) (mConnection.mSdServer.mSdData.mPseizure * 100);
-
-            pb = ((ProgressBar) mRootView.findViewById(R.id.pSeizureProgressBarM2));
-            pb.setMax(100);
-            pb.setProgress((int) pSeizurePc);
-            pbDrawable = mContext.getDrawable(R.drawable.progress_bar_blue);
-            if (pSeizurePc > 30)
-                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_yellow);
-            if (pSeizurePc > 50)
-                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_red);
-            //pb.getProgressDrawable().setColorFilter(colour, PorterDuff.Mode.SRC_IN);
-            pb.setProgressDrawable(pbDrawable);
-
-            ////////////////////////////////////////////////////////////
-            // Produce graph
-            BarChart mChart = (BarChart) mRootView.findViewById(R.id.chart1);
-            mChart.setDrawBarShadow(false);
-            mChart.setNoDataTextDescription("You need to provide data for the chart.");
-            mChart.setDescription("");
-
-            // X and Y Values
-            ArrayList<String> xVals = new ArrayList<String>();
-            ArrayList<BarEntry> yBarVals = new ArrayList<BarEntry>();
-            for (int i = 0; i < 10; i++) {
-                xVals.add(i + "-" + (i + 1) + " Hz");
-                if (mConnection.mSdServer != null) {
-                    yBarVals.add(new BarEntry(mConnection.mSdServer.mSdData.simpleSpec[i], i));
-                } else {
-                    yBarVals.add(new BarEntry(i, i));
-                }
-            }
-
-            // create a dataset and give it a type
-            BarDataSet barDataSet = new BarDataSet(yBarVals, "Spectrum");
-            try {
-                int[] barColours = new int[10];
-                for (int i = 0; i < 10; i++) {
-                    if ((i < mConnection.mSdServer.mSdData.alarmFreqMin) ||
-                            (i > mConnection.mSdServer.mSdData.alarmFreqMax)) {
-                        barColours[i] = Color.GRAY;
-                    } else {
-                        barColours[i] = Color.RED;
-                    }
-                }
-                barDataSet.setColors(barColours);
-            } catch (NullPointerException e) {
-                Log.e(TAG, "Null pointer exception setting bar colours");
-            }
-            barDataSet.setBarSpacePercent(20f);
-            barDataSet.setBarShadowColor(Color.WHITE);
-            BarData barData = new BarData(xVals, barDataSet);
-            barData.setValueFormatter(new ValueFormatter() {
-                @Override
-                public String getFormattedValue(float v) {
-                    DecimalFormat format = new DecimalFormat("####");
-                    return format.format(v);
-                }
-            });
-            mChart.setData(barData);
-
-            // format the axes
-            XAxis xAxis = mChart.getXAxis();
-            xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-            xAxis.setTextSize(10f);
-            xAxis.setDrawAxisLine(true);
-            xAxis.setDrawLabels(true);
-            // Note:  the default text colour is BLACK, so does not show up on black background!!!
-            //  This took a lot of finding....
-            xAxis.setTextColor(Color.WHITE);
-            xAxis.setDrawGridLines(false);
-
-            YAxis yAxis = mChart.getAxisLeft();
-            yAxis.setAxisMinValue(0f);
-            yAxis.setAxisMaxValue(3000f);
-            yAxis.setDrawGridLines(true);
-            yAxis.setDrawLabels(true);
-            yAxis.setTextColor(Color.WHITE);
-            yAxis.setValueFormatter(new ValueFormatter() {
-                @Override
-                public String getFormattedValue(float v) {
-                    DecimalFormat format = new DecimalFormat("#####");
-                    return format.format(v);
-                }
-            });
-
-            YAxis yAxis2 = mChart.getAxisRight();
-            yAxis2.setDrawGridLines(false);
-
-            try {
-                mChart.getLegend().setEnabled(false);
-            } catch (NullPointerException e) {
-                Log.e(TAG, "Null Pointer Exception setting legend");
-            }
-
-            mChart.invalidate();
-
+        if (mConnection == null || !mConnection.mBound || mConnection.mSdService == null) {
+            return;
         }
+
+        SdData data = mConnection.mSdService.mSdData;
+
+        // 1. Calculate Progress percentages
+        long powerPc = (data.alarmThresh != 0) ? (long)(data.roiPower * 100 / data.alarmThresh) : 0;
+
+        long specPc = (data.specPower != 0 && data.alarmRatioThresh != 0) ?
+                (long)(100 * (data.roiPower * 10 / data.specPower) / data.alarmRatioThresh) : 0;
+
+        long specRatio = (data.specPower != 0) ? (long)(10 * data.roiPower / data.specPower) : 0;
+        long pSeizurePc = (long) (data.mPseizure * 100);
+
+        // 2. Update TextViews and ProgressBars
+        updateAlgorithmRow("powerTv", "powerProgressBar", "PowerEquals", data.roiPower, "Threshold", data.alarmThresh, powerPc, 75, 100);
+        updateAlgorithmRow("spectrumTv", "spectrumProgressBar", "SpectrumRatioEquals", (double)specRatio, "Threshold", data.alarmRatioThresh, specPc, 75, 100);
+
+        // Seizure Probability Bar
+        ProgressBar pbSeizure = (ProgressBar) safeFind("pSeizureProgressBarM2");
+        if (pbSeizure != null) {
+            pbSeizure.setMax(100);
+            pbSeizure.setProgress((int) pSeizurePc);
+            pbSeizure.setProgressDrawable(getOsdDrawable(pSeizurePc, 30, 50));
+        }
+
+        // 3. Update Spectrum Chart (MPAndroidChart 3.x)
+        updateSpectrumChart(data);
+    }
+
+    private void updateAlgorithmRow(String tvId, String pbId, String labelKey, double val, String threshKey, double thresh, long pc, int warn, int crit) {
+        TextView tv = (TextView) safeFind(tvId);
+        ProgressBar pb = (ProgressBar) safeFind(pbId);
+        if (tv != null) {
+            tv.setText(getStr(labelKey) + " " + val + " (" + getStr(threshKey) + "=" + thresh + ")");
+        }
+        if (pb != null) {
+            pb.setMax(100);
+            pb.setProgress((int) pc);
+            pb.setProgressDrawable(getOsdDrawable(pc, warn, crit));
+        }
+    }
+
+    private Drawable getOsdDrawable(long percent, int warn, int crit) {
+        if (percent > crit) return mContext.getDrawable(resId("progress_bar_red", "drawable"));
+        if (percent > warn) return mContext.getDrawable(resId("progress_bar_yellow", "drawable"));
+        return mContext.getDrawable(resId("progress_bar_blue", "drawable"));
+    }
+
+    private void updateSpectrumChart(SdData data) {
+        BarChart mChart = (BarChart) safeFind("chart1");
+        if (mChart == null) return;
+
+        List<BarEntry> yBarVals = new ArrayList<>();
+        List<Integer> colors = new ArrayList<>();
+
+        for (int i = 0; i < 10; i++) {
+            float val = (data.simpleSpec != null && i < data.simpleSpec.length) ? data.simpleSpec[i] : 0f;
+            yBarVals.add(new BarEntry((float) i, val));
+
+            // Color bars: Red if within alarm frequency range, Gray otherwise
+            if (i < data.alarmFreqMin || i > data.alarmFreqMax) {
+                colors.add(Color.GRAY);
+            } else {
+                colors.add(Color.RED);
+            }
+        }
+
+        BarDataSet barDataSet = new BarDataSet(yBarVals, "Spectrum");
+        barDataSet.setColors(colors);
+        barDataSet.setDrawValues(true);
+        barDataSet.setValueTextColor(Color.WHITE);
+
+        BarData barData = new BarData(barDataSet);
+        barData.setBarWidth(0.8f); // Replacement for setBarSpacePercent
+
+        barData.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float v) {
+                return new DecimalFormat("####").format(v);
+            }
+        });
+
+        mChart.setData(barData);
+
+        // Chart Styling for 3.x
+        Description desc = new Description();
+        desc.setText("");
+        mChart.setDescription(desc);
+        mChart.getLegend().setEnabled(false);
+
+        XAxis xAxis = mChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setTextColor(Color.WHITE);
+        xAxis.setDrawGridLines(false);
+        // Custom labels for X Axis
+        xAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                int i = (int) value;
+                return i + "-" + (i + 1) + "Hz";
+            }
+        });
+
+        YAxis yAxis = mChart.getAxisLeft();
+        yAxis.setAxisMinimum(0f);
+        yAxis.setAxisMaximum(3000f);
+        yAxis.setTextColor(Color.WHITE);
+
+        mChart.getAxisRight().setEnabled(false);
+        mChart.invalidate();
     }
 }
