@@ -1,13 +1,11 @@
-BLE Data Source Specification
-=============================
+BLE Data Source Specification======================
 
 The BLE data source allows the use of devices which provide accelerometer and heart rate data as BLE services.
 
 This document describes the services and characteristics that must be provided for the BLE data source
 to work correclty.
 
-Required Services and Characteristics
-=====================================
+Required Services and Characteristics==============================
 
 | ID                          | UUID                                       | Description                                                                                             |
 |-----------------------------|--------------------------------------------|---------------------------------------------------------------------------------------------------------|

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:versionCode="137"
-    android:versionName="5.0.0f">
-    <!-- android:allowBackup="false" -->
+
+    android:versionCode="143"
+    android:versionName="5.0.0g">
 
     <queries>
         <package android:name="uk.org.openseizuredetector.aw" />
@@ -13,9 +13,13 @@
 
     <uses-permission-sdk-23 android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission-sdk-23 android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
-    <uses-permission android:name="android.permission.BLUETOOTH" />
-    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <!-- android:allowBackup="false" -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <uses-permission android:name="android.permission.BLUETOOTH"
+        android:maxSdkVersion="30" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN"
+        android:maxSdkVersion="30" /><uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
@@ -38,10 +42,13 @@
     <!--<uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
     If needed, uncomment. This line has identification as: most apps don't need this-->
     <uses-permission android:name="uk.org.openseizuredetector.aw.permission.BROADCAST_START" />
-
-    <!-- AD_ID seems to be added automatically as part of google play services.  We don't use ads,
-    so explicitly remove it to keep Google Play store happy.  -->
-    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove"/>
+    <!--
+ AD_ID seems to be added automatically as part of google play services.  We don't use ads,
+    so explicitly remove it to keep Google Play store happy.
+    -->
+    <uses-permission
+        android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove" />
 
     <uses-feature
         android:name="android.hardware.telephony"
@@ -101,9 +108,8 @@
 
         <receiver
             android:name=".BootBroadcastReceiver"
-            android:label="BootBroadcastReceiver"
             android:exported="true"
-            >
+            android:label="BootBroadcastReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>

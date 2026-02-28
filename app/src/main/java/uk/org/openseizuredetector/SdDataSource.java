@@ -71,7 +71,11 @@ interface SdDataReceiver {
  * network data source.
  */
 public abstract class SdDataSource {
-    protected Handler mHandler = new Handler();
+    protected Context mContext;
+    protected Handler mHandler;
+    protected SdDataReceiver mSdDataReceiver;
+    protected String mName;
+    //protected Handler mHandler = new Handler();
     private Timer mStatusTimer;
     private Timer mSettingsTimer;
     private Timer mFaultCheckTimer;
@@ -83,7 +87,6 @@ public abstract class SdDataSource {
     private int mFaultTimerPeriod = 30;  // Fault Timer Period in sec
     private int mSettingsPeriod = 60;  // period between requesting settings in seconds.
     public SdData mSdData;
-    public String mName = "undefined";
     protected OsdUtil mUtil;
     protected SdDataReceiver mSdDataReceiver;
     private String TAG = this.getClass().getName();
@@ -168,6 +171,9 @@ public abstract class SdDataSource {
 
     public SdDataSource(Context context, Handler handler, SdDataReceiver sdDataReceiver) {
         Log.v(TAG, "SdDataSource() Constructor");
+        this.mContext = context;
+        this.mHandler = handler;
+        this.mSdDataReceiver = sdDataReceiver;
         mHandler = handler;
         mSdDataReceiver = sdDataReceiver;
         mUtil = new OsdUtil(useSdServerBinding(), mHandler);
@@ -422,8 +428,12 @@ public abstract class SdDataSource {
         String watchFwVersion;
         String sdVersion;
         String sdName;
+
         accelVals = null;
         accelVals3D = null;
+        boolean have3dData = false;
+        JSONArray accelVals = null;
+        JSONArray accelVals3D = null;
         Log.v(TAG, "updateFromJSON - " + jsonStr);
 
         try {
@@ -484,6 +494,7 @@ public abstract class SdDataSource {
                     // if we get 'null' O2 Saturation (For example if the oxygen sensor is not working)
                     mSdData.mO2Sat = -1;
                 }
+
             if (dataObject.has(Constants.GLOBAL_CONSTANTS.DATA_TYPE)) {
                 dataTypeStr = dataObject.getString(Constants.GLOBAL_CONSTANTS.DATA_TYPE);
                 Log.v(TAG, "updateFromJSON - dataType=" + dataTypeStr);
@@ -608,6 +619,7 @@ public abstract class SdDataSource {
                     mSdData.haveSettings = true;
                     mWatchAppRunningCheck = true;
                     retVal = "OK";
+
                 } else if (dataTypeStr.equals(Constants.GLOBAL_CONSTANTS.DATA_VALUE_HR)) {
 
                 } else if (dataTypeStr.equals("watchConnect")) {
@@ -681,6 +693,7 @@ public abstract class SdDataSource {
         // Update phone battery level - it is done here so it is called for all data sources.
         mSdData.phoneBatteryPc = getPhoneBatteryLevel();
         mSdData.phoneBattBuff.add(mSdData.phoneBatteryPc);
+        mSdData.watchBattBuff.add(mSdData.batteryPc);
         try {
             // FIXME - Use specified sampleFreq, not this hard coded one
             mSampleFreq = Constants.SD_SERVICE_CONSTANTS.defaultSampleRate;
@@ -745,10 +758,17 @@ public abstract class SdDataSource {
             mSdData.roiPower = (long) roiPower / ACCEL_SCALE_FACTOR;
             Time tnow = new Time();
             tnow.setToNow();
+
             // GJ Why was setting dataTime commented out?
             //mSdData.dataTime = new Time(mDataStatusTime); //invalid, need to change to Date
             mSdData.timeDiff = (tnow.toMillis(false)
                     - mSdData.dataTime.toMillis(false))/1000f;
+            if (mSdData.dataTime != null) {
+                mSdData.timeDiff = (tnow.toMillis(false)
+                        - mSdData.dataTime.toMillis(false)) / 1000f;
+            } else {
+                mSdData.timeDiff = 0f;
+            }
             mSdData.dataTime.setToNow();
             Log.d(TAG,"SdDataSource.doAnalysis() - set mSdData.dataTime to "+mSdData.dataTime);
             mSdData.maxVal = 0;   // not used
@@ -822,7 +842,6 @@ public abstract class SdDataSource {
         }
 
     }
-
 
     /****************************************************************
      * checkAlarm() - checks the current accelerometer data and uses
@@ -986,7 +1005,6 @@ public abstract class SdDataSource {
 
     }
 
-
     /****************************************************************
      * Simple threshold analysis to chech for fall.
      * Called from clock_tick_handler()
@@ -1072,12 +1090,14 @@ public abstract class SdDataSource {
             Log.v(TAG, "getStatus() - mWatchAppRunningCheck=" + mWatchAppRunningCheck + " tdiff=" + tdiff);
             Log.v(TAG, "getStatus() - tdiff=" + tdiff + ", mDataUpatePeriod=" + mDataUpdatePeriod + ", mAppRestartTimeout=" + mAppRestartTimeout);
 
+
             if (!((SdServer)mSdDataReceiver).mSdDataSourceName.equals("AndroidWear")) {
                 mSdData.watchConnected = true;  // We can't check connection for passive network connection, so set it to true to avoid errors.
             } else {
                 Log.d(TAG,"getStatus - setting watchConnected to false - datasourceName="+((SdServer)mSdDataReceiver).mSdDataSourceName);
                 mSdData.watchConnected = false;
             }
+            mSdData.watchConnected = true;  // We can't check connection for passive network connection, so set it to true to avoid errors.
             // And is the watch app running?
             // set mWatchAppRunningCheck has been false for more than 10 seconds
             // the app is not talking to us
@@ -1137,7 +1157,6 @@ public abstract class SdDataSource {
             mSdData.specPower = -1;
             mSdDataReceiver.onSdDataFault(mSdData);
         }
-
     }
 
     /**
@@ -1159,6 +1178,12 @@ public abstract class SdDataSource {
                 mAlarmCount = 0;
             }
 
+
+            if (mSdData.mHrAlarmActive && mHrFrozenAlarm) {
+                if (mSdData.mHr != mLastHrValue) {
+                    mLastHrValue = mSdData.mHr;
+                }
+            }
             if (mSdData.mHrAlarmActive && mHrFrozenAlarm) {
                 if (mSdData.mHr != mLastHrValue) {
                     mLastHrValue = mSdData.mHr;
@@ -1187,9 +1212,14 @@ public abstract class SdDataSource {
         //Check the current set of data using the neural network model to look for alarms.
         Log.d(TAG,"nnAnalysis");
         if (mSdData.mCnnAlarmActive) {
-            float pSeizure = mSdAlgNn.getPseizure(mSdData);
-            Log.d(TAG, "nnAnalysis - nnResult=" + pSeizure);
-            mSdData.mPseizure = pSeizure;
+            try {
+                float pSeizure = mSdAlgNn.getPseizure(mSdData);
+                Log.d(TAG, "nnAnalysis - nnResult=" + pSeizure);
+                mSdData.mPseizure = pSeizure;
+            } catch(Exception e) {
+                Log.e(TAG,"nnAnalysis - Error running Analysis - "+e.getMessage());
+            }
+
         } else {
             Log.d(TAG, "nnAnalysis - mCnAlarmActive is false - not analysing");
             mSdData.mPseizure = 0;

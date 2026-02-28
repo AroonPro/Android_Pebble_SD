@@ -1,30 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="fill_parent"
-    android:layout_height="fill_parent"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     tools:context=".FragmentOsdBaseClass">
 
     <androidx.appcompat.widget.LinearLayoutCompat
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/okBackgroundColor"
-        android:orientation="vertical">
-
+        android:orientation="vertical"
+        android:background="@color/okBackgroundColor">
 
         <TextView
             android:id="@+id/fragment_osdalg_tv2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="@color/okTextColor"
-            android:text="@string/osd_algorithm_status" />
+            android:text="OSD Algorithm Status" />
 
         <TextView
             android:id="@+id/powerTv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/okTextColor"
-            android:text="@string/empty_dashes" />
+            android:text="---" />
 
         <ProgressBar
             android:id="@+id/powerProgressBar"
@@ -38,7 +37,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/okTextColor"
-            android:text="@string/empty_dashes" />
+            android:text="---" />
 
         <ProgressBar
             android:id="@+id/spectrumProgressBar"
@@ -60,6 +59,7 @@
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
+
 
         <com.github.mikephil.charting.charts.BarChart
             android:id="@+id/chart1"

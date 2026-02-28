@@ -36,13 +36,13 @@ import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Handler;
-
-import androidx.core.app.ActivityCompat;
-import androidx.preference.PreferenceManager;
-
+import android.preference.PreferenceManager;
 import android.text.format.Time;
 import android.util.Log;
+
+import androidx.core.app.ActivityCompat;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -51,9 +51,12 @@ import org.json.JSONObject;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+
+import co.beeline.android.bluetooth.currenttimeservice.CurrentTimeService;
 
 
 /**
@@ -61,7 +64,7 @@ import java.util.UUID;
  * waits to be notified of data being available.
  */
 public class SdDataSourceBLE extends SdDataSource {
-    private int MAX_RAW_DATA = Constants.SD_SERVICE_CONSTANTS.defaultSampleCount;  // 5 seconds at 25 Hz.
+    private int MAX_RAW_DATA = 125;  // 5 seconds at 25 Hz.
     private String TAG = "SdDataSourceBLE";
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
@@ -103,13 +106,14 @@ public class SdDataSourceBLE extends SdDataSource {
     public static String CHAR_OSD_WATCH_FW = "000085e9-0004-1000-8000-00805f9b34fb";
     public static String CHAR_OSD_ACC_FMT = "000085e9-0005-1000-8000-00805f9b34fb";
     // Valid values are 0: 8 bit vector magnitude scaled so 1g=44
-
     public final static int ACC_FMT_8BIT = 0;
     public final static int ACC_FMT_16BIT = 1;
     public final static int ACC_FMT_3D = 3;
+    public static String CHAR_OSD_STATUS = "000085e9-0006-1000-8000-00805f9b34fb";
 
     public static String SERV_INFINITIME_MOTION = "00030000-78fc-48fe-8e23-433b3a1942d0";
     public static String CHAR_INFINITIME_ACC_DATA = "00030002-78fc-48fe-8e23-433b3a1942d0";
+    public static String CHAR_INFINITIME_OSD_STATUS = "00030078-78fc-48fe-8e23-433b3a1942d0";
 
     public static String CHAR_BATT_DATA = "00002a19-0000-1000-8000-00805f9b34fb";
     public static String SERV_BATT = "0000180f-0000-1000-8000-00805f9b34fb";
@@ -118,15 +122,13 @@ public class SdDataSourceBLE extends SdDataSource {
     // public static String CLIENT_CHARACTERISTIC_CONFIG = "00002902-0000-1000-8000-00805f9b34fb";
     private BluetoothGatt mGatt;
     private BluetoothGattCharacteristic mOsdChar;
+    private BluetoothGattCharacteristic mStatusChar;
 
 
     public SdDataSourceBLE(Context context, Handler handler,
                            SdDataReceiver sdDataReceiver) {
         super(context, handler, sdDataReceiver);
         mName = "BLE";
-        // Set default settings from XML files (mContext is set by super().
-        PreferenceManager.setDefaultValues(useSdServerBinding(),
-                R.xml.network_passive_datasource_prefs, true);
     }
 
 
@@ -135,27 +137,26 @@ public class SdDataSourceBLE extends SdDataSource {
      * make sure any changes to preferences are taken into account.
      */
     public void start() {
-        Log.i(TAG, "start()");
         super.start();
+        Log.i(TAG, "start() - mBleDeviceAddr="+mBleDeviceAddr);
         mUtil.writeToSysLogFile("SdDataSourceBLE.start() - mBleDeviceAddr=" + mBleDeviceAddr);
 
         if (mBleDeviceAddr == "" || mBleDeviceAddr == null) {
-            final Intent intent = new Intent(useSdServerBinding(), BLEScanActivity.class);
+            final Intent intent = new Intent(this.mContext, BLEScanActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            useSdServerBinding().startActivity(intent);
+            mContext.startActivity(intent);
         }
-        Log.i(TAG, "mBLEDevice is " + mBleDeviceName + ", Addr=" + mBleDeviceAddr);
 
-        if (ActivityCompat.checkSelfPermission(useSdServerBinding(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
+        // Note, these values are set in BleScanActivity and written to shared preferences, which
+        // ae read in SdDataSource.java
+        // FIXME:  Read the shared preferences in this class so SdDataSource does not need to know
+        // FIXME:   about BLE details.
+        Log.i(TAG, "mBLEDevice is " + mBleDeviceName + ", Addr=" + mBleDeviceAddr);
+        mSdData.watchSdName = mBleDeviceName;
+        mSdData.watchPartNo = mBleDeviceAddr;
+
+        boolean success = CurrentTimeService.startServer(mContext);
+
         bleConnect();
 
     }
@@ -166,7 +167,7 @@ public class SdDataSourceBLE extends SdDataSource {
         mBluetoothGatt = null;
         mConnectionState = STATE_DISCONNECTED;
         if (mBluetoothManager == null) {
-            mBluetoothManager = (BluetoothManager) useSdServerBinding().getSystemService(Context.BLUETOOTH_SERVICE);
+            mBluetoothManager = (BluetoothManager) mContext.getSystemService(Context.BLUETOOTH_SERVICE);
             if (mBluetoothManager == null) {
                 Log.e(TAG, "bleConnect(): Unable to initialize BluetoothManager.");
                 return;
@@ -188,7 +189,7 @@ public class SdDataSourceBLE extends SdDataSource {
         try {
             device = mBluetoothAdapter.getRemoteDevice(mBleDeviceAddr);
         } catch (Exception e) {
-            Log.w(TAG, "bleConnect(): Error connecting to device address " + mBleDeviceAddr + ".", e);
+            Log.w(TAG, "bleConnect(): Error connecting to device address " + mBleDeviceAddr + ".");
             device = null;
         }
         if (device == null) {
@@ -197,17 +198,7 @@ public class SdDataSourceBLE extends SdDataSource {
         } else {
             // We want to directly connect to the device, so we are setting the autoConnect
             // parameter to false.
-            if (ActivityCompat.checkSelfPermission(useSdServerBinding(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-                // TODO: Consider calling
-                //    ActivityCompat#requestPermissions
-                // here to request the missing permissions, and then overriding
-                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-                //                                          int[] grantResults)
-                // to handle the case where the user grants the permission. See the documentation
-                // for ActivityCompat#requestPermissions for more details.
-                return;
-            }
-            mBluetoothGatt = device.connectGatt(useSdServerBinding(), true, mGattCallback);
+            mBluetoothGatt = device.connectGatt(mContext, true, mGattCallback);
             Log.d(TAG, "bleConnect(): Trying to create a new connection.");
             mBluetoothDeviceAddress = mBleDeviceAddr;
             mConnectionState = STATE_CONNECTING;
@@ -224,16 +215,6 @@ public class SdDataSourceBLE extends SdDataSource {
             setCharacteristicNotification(mOsdChar, false);
         }
 
-        if (ActivityCompat.checkSelfPermission(useSdServerBinding(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
         mBluetoothGatt.disconnect();
         if (mBluetoothGatt == null) {
             return;
@@ -254,6 +235,7 @@ public class SdDataSourceBLE extends SdDataSource {
         mUtil.writeToSysLogFile("SDDataSourceBLE.stop()");
 
         bleDisconnect();
+        CurrentTimeService.stopServer();
         super.stop();
     }
 
@@ -314,22 +296,25 @@ public class SdDataSourceBLE extends SdDataSource {
                         for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
                             String charUuidStr = gattCharacteristic.getUuid().toString();
                             if (charUuidStr.equals(CHAR_OSD_ACC_DATA)) {
-                                Log.v(TAG, "Subscribing to Acceleration Data Change Notifications");
+                                Log.i(TAG, "Subscribing to Acceleration Data Change Notifications");
                                 mOsdChar = gattCharacteristic;
                                 setCharacteristicNotification(gattCharacteristic, true);
+                            } else if (charUuidStr.equals(CHAR_OSD_STATUS)) {
+                                Log.i(TAG, "Found OSD Status Characteristic");
+                                mStatusChar = gattCharacteristic;
                             } else if (charUuidStr.equals(CHAR_OSD_BATT_DATA)) {
-                                Log.v(TAG, "Subscribing to battery change Notifications");
+                                Log.i(TAG, "Subscribing to battery change Notifications");
                                 executeReadCharacteristic(gattCharacteristic);
                                 setCharacteristicNotification(gattCharacteristic, true);
                                 executeReadCharacteristic(gattCharacteristic);
                             } else if (charUuidStr.equals(CHAR_OSD_WATCH_ID)) {
-                                Log.v(TAG, "Reading Watch ID");
+                                Log.i(TAG, "Reading Watch ID");
                                 executeReadCharacteristic(gattCharacteristic);
                             } else if (charUuidStr.equals(CHAR_OSD_WATCH_FW)) {
-                                Log.v(TAG, "Reading Watch Firmware Version");
+                                Log.i(TAG, "Reading Watch Firmware Version");
                                 executeReadCharacteristic(gattCharacteristic);
                             } else if (charUuidStr.equals(CHAR_OSD_ACC_FMT)) {
-                                Log.v(TAG, "Reading Acceleration format code");
+                                Log.i(TAG, "Reading Acceleration format code");
                                 executeReadCharacteristic(gattCharacteristic);
                             }
                         }
@@ -339,21 +324,24 @@ public class SdDataSourceBLE extends SdDataSource {
                         for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
                             String charUuidStr = gattCharacteristic.getUuid().toString();
                             if (charUuidStr.equals(CHAR_INFINITIME_ACC_DATA)) {
-                                Log.v(TAG, "Subscribing to Infinitime Acceleration Data Change Notifications");
+                                Log.i(TAG, "Subscribing to Infinitime Acceleration Data Change Notifications");
                                 mOsdChar = gattCharacteristic;
                                 mAccFmt = ACC_FMT_3D;  // Infinitime presents x, y, z data
                                 setCharacteristicNotification(gattCharacteristic, true);
+                            } else if (charUuidStr.equals(CHAR_INFINITIME_OSD_STATUS)) {
+                                Log.i(TAG, "Found Infinitime OSD Status Characteristic");
+                                mStatusChar = gattCharacteristic;
                             }
                         }
                     } else if (uuidStr.equals(SERV_BATT)) {
                         Log.v(TAG, "Battery Data Service Service Discovered");
                         for (BluetoothGattCharacteristic gattCharacteristic : gattCharacteristics) {
                             String charUuidStr = gattCharacteristic.getUuid().toString();
-                            Log.v(TAG, "batt char=" + charUuidStr);
+                            Log.i(TAG, "batt char=" + charUuidStr);
                             if (charUuidStr.equals(CHAR_BATT_DATA)) {
-                                Log.v(TAG, "Subscribing to Battery Data Change Notifications");
+                                Log.i(TAG, "Subscribing to Battery Data Change Notifications");
                                 setCharacteristicNotification(gattCharacteristic, true);
-                                Log.v(TAG, "Reading battery level");
+                                Log.i(TAG, "Reading battery level");
                                 executeReadCharacteristic(gattCharacteristic);
                             }
                         }
@@ -362,7 +350,7 @@ public class SdDataSourceBLE extends SdDataSource {
                 if (foundOsdService) {
                     mGatt = gatt;
                 } else {
-                    Log.v(TAG, "device is not offering the OSD Gatt Service - re-trying connection");
+                    Log.i(TAG, "device is not offering the OSD Gatt Service - re-trying connection");
                     bleDisconnect();
                     // Wait 1 second to give the server chance to shutdown, then re-start it
                     mHandler.postDelayed(new Runnable() {
@@ -385,6 +373,20 @@ public class SdDataSourceBLE extends SdDataSource {
          * @param gattCharacteristic - the characteristic to be read.
          */
         private void executeReadCharacteristic(BluetoothGattCharacteristic gattCharacteristic) {
+            if (gattCharacteristic == null) {
+                Log.i(TAG, "ExecuteReadCharacteristic() - gatCharacteristic is null, so not doing anything");
+                mUtil.showToast("ERROR: gatCharacteristic is null - this should not happen");
+                mSdDataReceiver.onSdDataFault(mSdData);
+                return;
+            }
+            if (mBluetoothGatt == null) {
+                Log.e(TAG, "executeReadCharacteristic() - mBluetoothGatt is null - Characteristic=" + gattCharacteristic.getUuid().toString());
+                mUtil.showToast("ERROR: mGatCharacteristic is null - this should not happen");
+                mSdDataReceiver.onSdDataFault(mSdData);
+                return;
+            }
+
+            // To get here both gatCharacteristic and mBluetoothGatt must be non-null
             boolean retVal = mBluetoothGatt.readCharacteristic(gattCharacteristic);
             if (retVal) {
                 Log.d(TAG, "executeReadCharacteristic - read initiated successfully");
@@ -399,8 +401,49 @@ public class SdDataSourceBLE extends SdDataSource {
             }
         }
 
+        /**
+         * executeWriteCharacteristic runs the bluetoothGatt writeCharacteristic command to sent the value
+         * of a given characteristic.
+         * Because only one BLE operation can be taking place at a time, it may fail, in which case
+         * the read is re-tried after a 100ms delay.
+         *
+         * @param gattCharacteristic - the characteristic to be read.
+         * @param valBytes[]         - array of bytes to send
+         * @param nBytes             - number of bytes to send.
+         */
+        private void executeWriteCharacteristic(BluetoothGattCharacteristic gattCharacteristic, byte[] valBytes) {
+            if (gattCharacteristic == null) {
+                Log.i(TAG, "ExecuteWriteCharacteristic() - gatCharacteristic is null, so not doing anything");
+                mUtil.showToast("ERROR: gatCharacteristic is null - this should not happen");
+                mSdDataReceiver.onSdDataFault(mSdData);
+                return;
+            }
+            if (mBluetoothGatt == null) {
+                Log.e(TAG, "executeWriteCharacteristic() - mBluetoothGatt is null - Characteristic=" + gattCharacteristic.getUuid().toString());
+                mUtil.showToast("ERROR: mGatCharacteristic is null - this should not happen");
+                mSdDataReceiver.onSdDataFault(mSdData);
+                return;
+            }
+
+            // To get here both gatCharacteristic and mBluetoothGatt must be non-null
+            gattCharacteristic.setValue(valBytes);
+            boolean retVal = mBluetoothGatt.writeCharacteristic(gattCharacteristic);
+            if (retVal) {
+                Log.d(TAG, "executeWriteCharacteristic - write initiated successfully");
+            } else {
+                Log.d(TAG, "executeWriteCharacteristic - write initiation failed - waiting, then re-trying");
+                mHandler.postDelayed(new Runnable() {
+                    public void run() {
+                        Log.w(TAG, "Executing delayed write of characteristic");
+                        executeWriteCharacteristic(gattCharacteristic, valBytes);
+                    }
+                }, 100);
+            }
+        }
+
+
         private boolean permissionsOK() {
-            if (ActivityCompat.checkSelfPermission(useSdServerBinding(), Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
+            if (ActivityCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED) {
                 // TODO: Consider calling
                 //    ActivityCompat#requestPermissions
                 // here to request the missing permissions, and then overriding
@@ -418,7 +461,7 @@ public class SdDataSourceBLE extends SdDataSource {
         }
 
         public void onDataReceived(BluetoothGattCharacteristic characteristic) {
-            /**
+            /*
              * onDataReceived - called whenever a BLE characteristic notifies us that its data has changed.
              * If the data is acceleration data, we add it to a buffer - it is analysed once the buffer is full.
              * Heart rate data is written directly to sdData to be used in future analysis.
@@ -439,9 +482,9 @@ public class SdDataSourceBLE extends SdDataSource {
                 // We normally use -1 for fault indication, but the BLE standard is for one byte for heart
                 // rate services, so we can't send -1, so treat either 0 or 255 as fault.
                 if (heartRate == 255 || heartRate == 0) {
-                    mSdData.mHr = -1;
+                    mSdData.mHR = -1;
                 } else {
-                    mSdData.mHr = (double) heartRate;
+                    mSdData.mHR = (double) heartRate;
                 }
                 Log.d(TAG, String.format("onDataReceived(): CHAR_HEART_RATE_MEASUREMENT: %d", heartRate));
             } else if (characteristic.getUuid().toString().equals(CHAR_OSD_ACC_DATA)
@@ -486,7 +529,6 @@ public class SdDataSourceBLE extends SdDataSource {
 
                     } else {
                         Log.i(TAG, "onDataReceived(): RawData Buffer Full - processing data");
-                        // Re-start collecting raw data.
                         mSdData.watchAppRunning = true;
                         for (i = 0; i < rawData.length; i++) {
                             mSdData.rawData[i] = rawData[i];
@@ -502,6 +544,15 @@ public class SdDataSourceBLE extends SdDataSource {
                         doAnalysis();
                         // Re-start collecting raw data.
                         nRawData = 0;
+                        // Notify the device of the resulting alarm state
+                        if (mStatusChar != null) {
+                            Log.i(TAG,"onDataReceived() - Sending analysis result");
+                            byte[] statusVal = new byte[1];
+                            statusVal[0] = (byte) mSdData.alarmState;
+                            executeWriteCharacteristic(mStatusChar, statusVal);
+                        } else {
+                            Log.i(TAG,"onDataReceived() - mStatusChar is null - not sending result");
+                        }
                     }
                 }
             } else if (characteristic.getUuid().toString().equals(CHAR_OSD_BATT_DATA)) {
@@ -648,5 +699,23 @@ public class SdDataSourceBLE extends SdDataSource {
         return mBluetoothGatt.getServices();
     }
 
+    /**
+     * Install the watch app on the watch.
+     */
+/*    @Override
+    public void installWatchApp() {
+        Log.v(TAG, "installWatchApp");
+        try {
+            String url = "http://www.openseizuredetector.org.uk/?page_id=1207";
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setData(Uri.parse(url));
+            i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            mContext.startActivity(i);
+        } catch (Exception ex) {
+            Log.i(TAG, "exception starting install watch app activity " + ex.toString());
+            showToast("Error Displaying Installation Instructions - try http://www.openseizuredetector.org.uk/?page_id=1207 instead");
+        }
+    }
 
+ */
 }

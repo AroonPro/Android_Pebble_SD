@@ -1,5 +1,4 @@
-Test Cases to be Implemented in Manual or Automated Testing
-===========================================================
+Test Cases to be Implemented in Manual or Automated Testing====================================================
 
 Note:  These tests are primarily for the Garmin Seizure Detector
 - there are some additional things needed for the Pebble version to start up

@@ -1,5 +1,4 @@
-Graham's Development Notes
-==========================
+Graham's Development Notes===================
 
 V2.6
 - We had a V2.6 started, but I can't remember what it did (but it does include

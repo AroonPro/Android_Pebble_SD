@@ -1,6 +1,5 @@
 package uk.org.openseizuredetector;
 
-import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.os.Bundle;
@@ -11,13 +10,10 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-
-import java.util.Objects;
+import android.text.format.Time;
 
 public class FragmentCommon extends FragmentOsdBaseClass {
     String TAG = "FragmentCommon";
-    private boolean localViewCreated;
 
     public FragmentCommon() {
         // Required empty public constructor
@@ -82,14 +78,13 @@ public class FragmentCommon extends FragmentOsdBaseClass {
                 }
             }
         });
-        localViewCreated = true;
     }
 
     @Override
     protected void updateUi() {
-        Log.d(TAG,"updateUi()");
+        //Log.d(TAG,"updateUi()");
         TextView tv;
-        if (Objects.isNull(mRootView)||!isAdded()||!isVisible()) return;
+
         if (mUtil.isServerRunning()) {
             tv = (TextView) mRootView.findViewById(R.id.serverStatusTv);
             if (mConnection.mBound) {
@@ -101,8 +96,12 @@ public class FragmentCommon extends FragmentOsdBaseClass {
                 tv.setTextColor(okTextColour);
 
                 tv = (TextView) mRootView.findViewById(R.id.data_time_tv);
+                Time tnow = new Time(Time.getCurrentTimezone());
+                tnow.setToNow();
+                double tdiff;
+                tdiff = (tnow.toMillis(false) - mConnection.mSdServer.mSdData.dataTime.toMillis(false))/1000.;
                 tv.setText("Time =" + mConnection.mSdServer.mSdData.dataTime.format("%H:%M:%S")
-                        + "  (" + String.format("%.1f s)", mConnection.mSdServer.mSdData.timeDiff));
+                        + "  (" + String.format("%.0f s, %.1f s)",mConnection.mSdServer.mSdData.timeDiff, tdiff));
                 tv.setBackgroundColor(okColour);
                 tv.setTextColor(okTextColour);
 
@@ -137,6 +136,11 @@ public class FragmentCommon extends FragmentOsdBaseClass {
                     tv.setBackgroundColor(alarmColour);
                     tv.setTextColor(alarmTextColour);
                 }
+                if (mConnection.mSdServer.mSdData.alarmState == 4) {
+                    tv.setText(R.string.Fault);
+                    tv.setBackgroundColor(warnColour);
+                    tv.setTextColor(warnTextColour);
+                }
 
 
                 tv = (TextView) mRootView.findViewById(R.id.algsTv);
@@ -167,7 +171,7 @@ public class FragmentCommon extends FragmentOsdBaseClass {
                 }
                 tv = (TextView) mRootView.findViewById(R.id.hrAlgTv);
                 tv.setText("HR ");
-                if (mConnection.mSdServer.mSdData.mHrAlarmActive) {
+                if (mConnection.mSdServer.mSdData.mHRAlarmActive) {
                     tv.setBackgroundColor(okColour);
                     tv.setTextColor(okTextColour);
                     tv.setPaintFlags(tv.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
@@ -187,32 +191,38 @@ public class FragmentCommon extends FragmentOsdBaseClass {
                     tv.setTextColor(Color.GRAY);
                     tv.setPaintFlags(tv.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
                 }
+
                 tv = (TextView) mRootView.findViewById(R.id.dataSourceInfoTv);
+                tv.setBackgroundColor(okColour);
+                tv.setTextColor(okTextColour);
                 if (mConnection.mSdServer.mSdDataSourceName.equals("Phone")) {
                     tv.setText(getString(R.string.DataSource) + " = " + "Phone (Demo Mode)");
                     tv.setBackgroundColor(warnColour);
                     tv.setTextColor(warnTextColour);
+                } else if (mConnection.mSdServer.mSdDataSourceName.equals("BLE")
+                    || mConnection.mSdServer.mSdDataSourceName.equals("BLE2")) {
+                    tv.setText(getString(R.string.DataSource) + " = " + mConnection.mSdServer.mSdDataSourceName
+                            + " ("+ mConnection.mSdServer.mSdData.watchSdName + ", "
+                            + mConnection.mSdServer.mSdData.watchSerNo+")");
                 } else {
                     tv.setText(getString(R.string.DataSource) + " = " + mConnection.mSdServer.mSdDataSourceName);
-                    tv.setBackgroundColor(okColour);
-                    tv.setTextColor(okTextColour);
                 }
-            } else {
-                tv = (TextView) mRootView.findViewById(R.id.serverStatusTv);
-                tv.setText(R.string.ServerStopped);
-                tv.setBackgroundColor(warnColour);
-                tv.setTextColor(warnTextColour);
 
-                /**  FIXME - check this is not needed for this fragment
-                 tv = (TextView) mRootView.findViewById(R.id.serverIpTv);
-                 tv.setText("--");
-                 tv.setBackgroundColor(warnColour);
-                 tv.setTextColor(warnTextColour);
-                 */
             }
+        } else {
+            tv = (TextView) mRootView.findViewById(R.id.serverStatusTv);
+            tv.setText(R.string.ServerStopped);
+            tv.setBackgroundColor(warnColour);
+            tv.setTextColor(warnTextColour);
 
-
+            /**  FIXME - check this is not needed for this fragment
+             tv = (TextView) mRootView.findViewById(R.id.serverIpTv);
+             tv.setText("--");
+             tv.setBackgroundColor(warnColour);
+             tv.setTextColor(warnTextColour);
+             */
         }
+
 
         // deal with latch alarms button
         Button acceptAlarmButton = (Button) mRootView.findViewById(R.id.acceptAlarmButton);
@@ -237,9 +247,9 @@ public class FragmentCommon extends FragmentOsdBaseClass {
                     }
             }
         } else {
-            acceptAlarmButton.setText(getString(R.string.AcceptAlarm));
-            acceptAlarmButton.setBackgroundColor(Color.DKGRAY);
-            acceptAlarmButton.setEnabled(false);
+            // acceptAlarmButton.setText(getString(R.string.AcceptAlarm));
+            // acceptAlarmButton.setBackgroundColor(Color.DKGRAY);
+            // acceptAlarmButton.setEnabled(false);
         }
 
         // Deal with Cancel Audible button
@@ -261,7 +271,6 @@ public class FragmentCommon extends FragmentOsdBaseClass {
                     cancelAudibleButton.setEnabled(false);
                 }
             }
-
 
 
     }

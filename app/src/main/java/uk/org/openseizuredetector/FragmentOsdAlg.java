@@ -1,6 +1,6 @@
 package uk.org.openseizuredetector;
 
-import android.content.Context;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -11,24 +11,16 @@ import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.content.res.AppCompatResources;
-import androidx.core.content.ContextCompat;
-
 import com.github.mikephil.charting.charts.BarChart;
-import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
-import com.github.mikephil.charting.renderer.YAxisRenderer;
 import com.github.mikephil.charting.utils.ValueFormatter;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Objects;
 
 public class FragmentOsdAlg extends FragmentOsdBaseClass {
     String TAG = "FragmentOsdAlg";
@@ -51,26 +43,13 @@ public class FragmentOsdAlg extends FragmentOsdBaseClass {
     }
 
     @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
-        viewCreated = true;
-        super.onViewCreated(view, savedInstanceState);
-    }
-
-    @Override
-    public void onDestroyView() {
-        viewCreated = false;
-        super.onDestroyView();
-    }
-
-    @Override
     protected void updateUi() {
         //Log.d(TAG,"updateUi()");
         TextView tv;
 
-        if (Objects.isNull(mRootView)||!isAdded()||!isVisible()) return;
-        /////////////////////////////////////////////////////
-        // Set ProgressBars to show margin to alarm.
-        if ( Objects.nonNull(mConnection) && mConnection.mBound){
+        if (mConnection.mBound) {
+            /////////////////////////////////////////////////////
+            // Set ProgressBars to show margin to alarm.
             long powerPc;
             if (mConnection.mSdServer.mSdData.alarmThresh != 0)
                 powerPc = mConnection.mSdServer.mSdData.roiPower * 100 /
@@ -93,30 +72,21 @@ public class FragmentOsdAlg extends FragmentOsdBaseClass {
                         mConnection.mSdServer.mSdData.specPower;
             } else
                 specRatio = 0;
-            TextView powerTv =
-            ((TextView) mRootView.findViewById(R.id.powerTv));
-            if (isAdded()){
-                if (Objects.nonNull(powerTv)) powerTv.setText(new StringBuilder()
-                        .append(requireContext().getResources().getString(R.string.PowerEquals))
-                        .append(mConnection.mSdServer.mSdData.roiPower)
-                        .append(" (")
-                        .append(requireContext().getResources().getString(R.string.Threshold))
-                        .append("=")
-                        .append(mConnection.mSdServer.mSdData.alarmThresh)
-                        .append(")")
-                        .toString());
-            }
+
+            ((TextView) mRootView.findViewById(R.id.powerTv)).setText(getString(R.string.PowerEquals) + mConnection.mSdServer.mSdData.roiPower +
+                    " (" + getString(R.string.Threshold) + "=" + mConnection.mSdServer.mSdData.alarmThresh + ")");
 
             ProgressBar pb;
             Drawable pbDrawable;
             pb = ((ProgressBar) mRootView.findViewById(R.id.powerProgressBar));
             pb.setMax(100);
             pb.setProgress((int) powerPc);
-            pbDrawable = ContextCompat.getDrawable(getActivity(), R.drawable.progress_bar_blue);
+            pbDrawable = mContext.getDrawable(R.drawable.progress_bar_blue);
+            //pbDrawable = mRootView.getResources().getDrawable(R.drawable.progress_bar_blue);
             if (powerPc > 75)
-                pbDrawable = ContextCompat.getDrawable(getActivity(), R.drawable.progress_bar_yellow);
+                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_yellow);
             if (powerPc > 100)
-                pbDrawable = ContextCompat.getDrawable(getActivity(), R.drawable.progress_bar_red);
+                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_red);
             pb.setProgressDrawable(pbDrawable);
 
             ((TextView) mRootView.findViewById(R.id.spectrumTv)).setText(getString(R.string.SpectrumRatioEquals) + specRatio +
@@ -125,11 +95,12 @@ public class FragmentOsdAlg extends FragmentOsdBaseClass {
             pb = ((ProgressBar) mRootView.findViewById(R.id.spectrumProgressBar));
             pb.setMax(100);
             pb.setProgress((int) specPc);
-            pbDrawable = ContextCompat.getDrawable(getActivity(), R.drawable.progress_bar_blue);
+            //pbDrawable = mRootView.getResources().getDrawable(R.drawable.progress_bar_blue);
+            pbDrawable = mContext.getDrawable(R.drawable.progress_bar_blue);
             if (specPc > 75)
-                pbDrawable = ContextCompat.getDrawable(getActivity(), R.drawable.progress_bar_yellow);
+                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_yellow);
             if (specPc > 100)
-                pbDrawable = ContextCompat.getDrawable(getActivity(), R.drawable.progress_bar_red);
+                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_red);
             pb.setProgressDrawable(pbDrawable);
 
             ////////////////////////////////////////////////////////////
@@ -142,11 +113,11 @@ public class FragmentOsdAlg extends FragmentOsdBaseClass {
             pb = ((ProgressBar) mRootView.findViewById(R.id.pSeizureProgressBarM2));
             pb.setMax(100);
             pb.setProgress((int) pSeizurePc);
-            pbDrawable = ContextCompat.getDrawable(getActivity(),R.drawable.progress_bar_blue);
+            pbDrawable = mContext.getDrawable(R.drawable.progress_bar_blue);
             if (pSeizurePc > 30)
-                pbDrawable = ContextCompat.getDrawable(getActivity(),R.drawable.progress_bar_yellow);
+                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_yellow);
             if (pSeizurePc > 50)
-                pbDrawable = ContextCompat.getDrawable(getActivity(),R.drawable.progress_bar_red);
+                pbDrawable = mContext.getDrawable(R.drawable.progress_bar_red);
             //pb.getProgressDrawable().setColorFilter(colour, PorterDuff.Mode.SRC_IN);
             pb.setProgressDrawable(pbDrawable);
 
@@ -187,7 +158,6 @@ public class FragmentOsdAlg extends FragmentOsdBaseClass {
             }
             barDataSet.setBarSpacePercent(20f);
             barDataSet.setBarShadowColor(Color.WHITE);
-            barDataSet.setValueTextColor(R.color.okTextColor);
             BarData barData = new BarData(xVals, barDataSet);
             barData.setValueFormatter(new ValueFormatter() {
                 @Override
@@ -197,9 +167,6 @@ public class FragmentOsdAlg extends FragmentOsdBaseClass {
                 }
             });
             mChart.setData(barData);
-            mChart.setDescriptionColor(Color.WHITE);
-            Legend legendOfChart = mChart.getLegend();
-            legendOfChart.setTextColor(Color.WHITE);
 
             // format the axes
             XAxis xAxis = mChart.getXAxis();
@@ -228,7 +195,6 @@ public class FragmentOsdAlg extends FragmentOsdBaseClass {
 
             YAxis yAxis2 = mChart.getAxisRight();
             yAxis2.setDrawGridLines(false);
-            yAxis2.setTextColor(Color.WHITE);
 
             try {
                 mChart.getLegend().setEnabled(false);
@@ -236,11 +202,8 @@ public class FragmentOsdAlg extends FragmentOsdBaseClass {
                 Log.e(TAG, "Null Pointer Exception setting legend");
             }
 
-            if (mConnection.mSdServer.mBound) {
-                mChart.postInvalidate();
-            }
+            mChart.invalidate();
+
         }
-
     }
-
 }

@@ -25,21 +25,18 @@ import java.util.List;
 import java.util.Objects;
 
 
-public class FragmentBatt extends FragmentOsdBaseClass {
-    String TAG = "FragmentBatt";
+public class FragmentWatchSig extends FragmentOsdBaseClass {
+    String TAG = "FragmentWatchSig";
 
     LineChart mLineChart;
     LineData lineData;
     LineDataSet lineDataSet;
-    List<Entry> watchHistory = new ArrayList<>();
-    List<Entry> phoneHistory = new ArrayList<>();
+    List<Entry> sigHistory = new ArrayList<>();
     List<String> hrHistoryStrings = new ArrayList<>();
-    List<String> hrAveragesStrings = new ArrayList<>();
-    private List<Entry> listToDisplay;
-    private List<String> listToDisplayStrings;
 
+    private TextView tvCurrSigStren;
 
-    public FragmentBatt() {
+    public FragmentWatchSig() {
         // Required empty public constructor
     }
 
@@ -47,7 +44,7 @@ public class FragmentBatt extends FragmentOsdBaseClass {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        lineDataSet = new LineDataSet(new ArrayList<Entry>(), "Battery history");
+        lineDataSet = new LineDataSet(new ArrayList<Entry>(), "Watch Signal Strength history");
         //lineDataSet.setColors(ColorTemplate.JOYFUL_COLORS);
         lineDataSet.setValueTextColor(Color.BLACK);
         lineDataSet.setValueTextSize(18f);
@@ -64,7 +61,7 @@ public class FragmentBatt extends FragmentOsdBaseClass {
     @Override
     public void onResume() {
         super.onResume();
-        mLineChart = mRootView.findViewById(R.id.battLineChart);
+        mLineChart = mRootView.findViewById(R.id.sigStrengthLineChart);
         mLineChart.getLegend().setEnabled(false);
         XAxis xAxis = mLineChart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
@@ -76,8 +73,8 @@ public class FragmentBatt extends FragmentOsdBaseClass {
         xAxis.setTextColor(Color.WHITE);
 
         YAxis yAxis = mLineChart.getAxisLeft();
-        yAxis.setAxisMinValue(0f);
-        yAxis.setAxisMaxValue(100f);
+        yAxis.setAxisMaxValue(-50f);
+        yAxis.setAxisMinValue(-100f);
         yAxis.setDrawGridLines(true);
         yAxis.setDrawLabels(true);
         yAxis.setTextColor(Color.WHITE);
@@ -99,40 +96,39 @@ public class FragmentBatt extends FragmentOsdBaseClass {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_batt, container, false);
+        return inflater.inflate(R.layout.fragment_watch_sig, container, false);
     }
 
     @Override
     protected void updateUi() {
         Log.d(TAG, "updateUi()");
+        tvCurrSigStren = (TextView) mRootView.findViewById(R.id.current_sig_strength_tv);
         if (mConnection.mBound) {
-
-            int nWatchBattArr = mConnection.mSdServer.mSdData.watchBattBuff.getNumVals();
-            double watchBattArr[] = mConnection.mSdServer.mSdData.watchBattBuff.getVals();   // This gives us a simple vector of hr values to plot.
-            int nPhoneBattArr = mConnection.mSdServer.mSdData.phoneBattBuff.getNumVals();
-            double phoneBattArr[] = mConnection.mSdServer.mSdData.phoneBattBuff.getVals();
-            Log.i(TAG,"updateUi() - nWatchBattArr="+nWatchBattArr+", nPhoneBattArr="+nPhoneBattArr);
-            if (Objects.nonNull(mConnection.mSdServer.mSdData.watchBattBuff) && nWatchBattArr > 0) {
-                Log.v(TAG, "hrWatchBattBuff.getNumVals=" + nWatchBattArr);
+            if (Objects.nonNull(tvCurrSigStren))
+                tvCurrSigStren.setText(String.valueOf((int) mConnection.mSdServer.mSdData.watchSignalStrength));
+            double histArr[] = mConnection.mSdServer.mSdData.watchSignalStrengthBuff.getVals();
+            int nHist = histArr.length;
+            if (Objects.nonNull(histArr) && nHist > 0) {
+                Log.v(TAG, "nHist=" + nHist);
                 lineDataSet.clear();
-                String xVals[] = new String[nWatchBattArr];
-                for (int i = 0; i < nWatchBattArr; i++) {
+                String xVals[] = new String[nHist];
+                for (int i = 0; i < nHist; i++) {
                     //Log.d(TAG,"i="+i+", HR="+hrHistArr[i]);
                     xVals[i] = String.valueOf(i);
-                    lineDataSet.addEntry(new Entry((float) watchBattArr[i], i));
+                    lineDataSet.addEntry(new Entry((float) histArr[i], i));
                 }
                 Log.d(TAG, "xVals=" + Arrays.toString(xVals) + ", lneDataSet=" + lineDataSet.toSimpleString());
                 lineDataSet.setColors(new int[]{0xffff0000});
-                LineData watchBattHistLineData = new LineData(xVals, lineDataSet);
+                LineData histLineData = new LineData(xVals, lineDataSet);
 
 
-                mLineChart.setData(watchBattHistLineData);
+                mLineChart.setData(histLineData);
                 mLineChart.getData().notifyDataChanged();
                 mLineChart.notifyDataSetChanged();
                 mLineChart.refreshDrawableState();
-                float xSpan = (nWatchBattArr * 5.0f) / 60.0f;   // time in minutes assuming one point every 5 seconds.
-                mLineChart.setDescription(getString(R.string.watch_batt_hist)
-                        + " " + String.format("%.1f", xSpan)
+                float xSpan = (nHist * 5.0f) / 60.0f;   // time in minutes assuming one point every 5 seconds.
+                mLineChart.setDescription("Signal Strength History "
+                        + String.format("%.1f", xSpan)
                         + " " + getString(R.string.minutes));
                 mLineChart.setDescriptionTextSize(12f);
                 mLineChart.invalidate();
@@ -140,6 +136,13 @@ public class FragmentBatt extends FragmentOsdBaseClass {
                 //    lineChart.postInvalidate();
                 //}
             }
+
+        } else {
+            Log.w(TAG,"not Bound to Server");
+            return;
         }
+
+
     }
+
 }

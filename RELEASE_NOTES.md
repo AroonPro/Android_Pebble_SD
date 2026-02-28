@@ -1,5 +1,4 @@
-OpenSeizureDetector Android App - RELEASE NOTES
-==============================================
+OpenSeizureDetector Android App - RELEASE NOTES=======================================
 
 Version 4.0.0
   - Logs all seizure detector data to local database

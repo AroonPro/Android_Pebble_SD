@@ -1,13 +1,10 @@
 package uk.org.openseizuredetector;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.view.MenuCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentContainerView;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -16,31 +13,23 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import androidx.preference.PreferenceManager;
+import android.preference.PreferenceManager;
 import android.util.Log;
-import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
-import android.window.OnBackInvokedDispatcher;
 
 import com.rohitss.uceh.UCEHandler;
 
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.TimeUnit;
 
 public class MainActivity2 extends AppCompatActivity {
     private String TAG = "MainActivity2";
@@ -50,79 +39,34 @@ public class MainActivity2 extends AppCompatActivity {
     private int okTextColour = Color.WHITE;
     private int warnTextColour = Color.WHITE;
     private int alarmTextColour = Color.BLACK;
-    private Bundle mSavedInstanceState;
 
     private ViewPager2 mFragmentPager;
     private FragmentStateAdapter mFragmentStateAdapter;
+    private Context mContext;
     private OsdUtil mUtil;
     private SdServiceConnection mConnection;
     final Handler serverStatusHandler = new Handler();
-    private SharedPreferences SP;
-    private long lastPress;
-    private boolean activateStopByBack;
-    private Toast backpressToast;
+    private Handler mHandler = new Handler();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mSavedInstanceState = savedInstanceState;
         setContentView(R.layout.activity_main2);
-        createMainActivity(savedInstanceState);
-    }
-
-    @Override
-    protected void onPostCreate(@Nullable Bundle savedInstanceState) {
-        WindowManager windowManager = MainActivity2.this.getWindowManager();
-        Display display = windowManager.getDefaultDisplay();
-        Point point = new Point();
-        display.getSize(point);
-        FragmentContainerView fragmentContainerView = findViewById(R.id.fragment_common_container_view);
-        ViewPager2 contentContainer = findViewById(R.id.fragment_pager);
-        ViewGroup.LayoutParams layoutParamsCommonContainer = fragmentContainerView.getLayoutParams();
-        ViewGroup.LayoutParams layoutParams = contentContainer.getLayoutParams();
-        layoutParamsCommonContainer.height = (int) (Math.max(point.y, point.x) * .3);
-        layoutParams.height = (int) (Math.max(point.y, point.x) * .6125);
-        fragmentContainerView.setLayoutParams(layoutParamsCommonContainer);
-        contentContainer.setLayoutParams(layoutParams);
-        fragmentContainerView.requestLayout();
-        contentContainer.requestLayout();
-
-        super.onPostCreate(savedInstanceState);
-
-
-    }
-
-
-    private void createMainActivity(Bundle savedInstanceState) {
 
         Log.i(TAG, "onCreate()");
 
         // Set our custom uncaught exception handler to report issues.
         //Thread.setDefaultUncaughtExceptionHandler(new OsdUncaughtExceptionHandler(MainActivity.this));
-        new UCEHandler.Builder(MainActivity2.this)
+        new UCEHandler.Builder(this)
                 .addCommaSeparatedEmailAddresses("crashreports@openseizuredetector.org.uk,")
                 .build();
 
         //int i = 5/0;  // Force exception to test handler.
-        if (Objects.isNull(mUtil)) mUtil = new OsdUtil(MainActivity2.this, serverStatusHandler);
-        if (Objects.isNull(mConnection)) mConnection = new SdServiceConnection(MainActivity2.this);
-
-        mUtil.writeToSysLogFile("");
-        mUtil.writeToSysLogFile("* MainActivity Started     *");
-        mUtil.writeToSysLogFile("MainActivity.onCreate()");
-
-        /**
-         if (savedInstanceState == null) {
-         // Instantiate a ViewPager2 and a PagerAdapter.
-         mFragmentPager = findViewById(R.id.fragment_pager);
-         mFragmentStateAdapter = new ScreenSlideFragmentPagerAdapter(this);
-         mFragmentPager.setAdapter(mFragmentStateAdapter);
-         getSupportFragmentManager().beginTransaction()
-         .setReorderingAllowed(true)
-         .add(R.id.fragment_common_container_view, FragmentCommon.class, null)
-         .commit();
-         }
-         */
+        mUtil = new OsdUtil(getApplicationContext(), serverStatusHandler);
+        mConnection = new SdServiceConnection(getApplicationContext());
+        mUtil.writeToSysLogFile("MainActivity2.onCreate()");
+        mContext = this;
+        mHandler = new Handler();
     }
 
     /**
@@ -140,17 +84,8 @@ public class MainActivity2 extends AppCompatActivity {
     protected void onStart() {
         super.onStart();
         Log.i(TAG, "onStart()");
-        createMainActivity(null);
-
-        serverStatusHandler.postDelayed(()-> {
-            mUtil.setBound(true, mConnection);
-            setmFragmentPager();
-        },400);
-    }
-
-    private void setmFragmentPager() {
         mUtil.writeToSysLogFile("MainActivity.onStart()");
-        SP = PreferenceManager
+        SharedPreferences SP = PreferenceManager
                 .getDefaultSharedPreferences(getBaseContext());
         boolean audibleAlarm = SP.getBoolean("AudibleAlarm", true);
         Log.v(TAG, "onStart - audibleAlarm = " + audibleAlarm);
@@ -165,31 +100,13 @@ public class MainActivity2 extends AppCompatActivity {
         if (mUtil.isServerRunning()) {
             Log.i(TAG, "MainActivity2.onStart() - Binding to Server");
             mUtil.writeToSysLogFile("MainActivity2.onStart - Binding to Server");
-            if (!mConnection.mBound) mUtil.bindToServer(MainActivity2.this, mConnection);
+            mUtil.bindToServer(getApplicationContext(), mConnection);
         } else {
             Log.i(TAG, "MainActivity2.onStart() - Server Not Running");
             mUtil.writeToSysLogFile("MainActivity2.onStart - Server Not Running");
         }
-        try{
-            if (Objects.isNull(mFragmentStateAdapter)) mFragmentStateAdapter = new ScreenSlideFragmentPagerAdapter(this);
-            {
-                getSupportFragmentManager().beginTransaction()
-                        .setReorderingAllowed(true)
-                        .add(R.id.fragment_common_container_view, FragmentCommon.class, mSavedInstanceState)
-                        .commit();
-            }
-            if (Objects.isNull(mFragmentPager)) mFragmentPager = (ViewPager2) findViewById(R.id.fragment_pager);
-            if (mFragmentPager.getAdapter() != mFragmentStateAdapter) mFragmentPager.setAdapter(mFragmentStateAdapter);
-            mFragmentPager.setId(SP.getInt(Constants.GLOBAL_CONSTANTS.lastPagerId, 0));
-        }catch (Exception e)
-        {
-            if (Objects.nonNull(mUtil)){
-                mUtil.writeToSysLogFile("Error in PostCreate(): " + Arrays.toString(Thread.currentThread().getStackTrace()));
-            }
-            else{
-                Log.e(TAG,"Error in PostCreate()",e);
-            }
-        }
+
+
     }
 
     @Override
@@ -197,8 +114,7 @@ public class MainActivity2 extends AppCompatActivity {
         super.onStop();
         Log.i(TAG, "onStop() - unbinding from server");
         mUtil.writeToSysLogFile("MainActivity.onStop()");
-        mUtil.setBound(false,mConnection);
-        mUtil.unbindFromServer(MainActivity2.this, mConnection);
+        mUtil.unbindFromServer(getApplicationContext(), mConnection);
     }
 
 
@@ -206,32 +122,44 @@ public class MainActivity2 extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
         Log.i(TAG, "onPause()");
-        if (Objects.nonNull(mFragmentPager)){
-            if (Objects.nonNull(SP)){
-                SP.edit().putInt(Constants.GLOBAL_CONSTANTS.lastPagerId,mFragmentPager.getId()).apply();
-            }
-        }
-       mUtil.setBound(false,mConnection);
-
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         Log.i(TAG, "onResume()");
-        if (Objects.isNull(mFragmentPager) || Objects.isNull(SP)) {
-            createMainActivity(null);
-            setmFragmentPager();
-        }
-       serverStatusHandler.postDelayed(()-> {
-            mUtil.setBound(false,mConnection);
-        },400);
         // Instantiate a ViewPager2 and a PagerAdapter.
-        setmFragmentPager();
-        //moved pagerAdapter to on PostCreate()
+        mFragmentPager = findViewById(R.id.fragment_pager);
+        mFragmentStateAdapter = new ScreenSlideFragmentPagerAdapter(this);
+        mFragmentPager.setAdapter(mFragmentStateAdapter);
+        getSupportFragmentManager().beginTransaction()
+                .setReorderingAllowed(true)
+                .add(R.id.fragment_common_container_view, FragmentCommon.class, null)
+                .commit();
+
+        // Check to see if the user has asked for the original user interface to be used instead of this one
+        // and start that if necessary.
+        try {
+            SharedPreferences SP = PreferenceManager
+                    .getDefaultSharedPreferences(getBaseContext());
+            boolean useNewUi = SP.getBoolean("UseNewUi", false);
+            if (!useNewUi) {
+                Log.i(TAG,"onResume() - launching original User Interface");
+                Intent intent = new Intent(
+                        getApplicationContext(),
+                        MainActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                finish();
+            }
+        } catch (Exception ex) {
+            Log.e(TAG, "exception starting main activity " + ex.toString());
+        }
+
+        // Force the screen to stay on when the app is running
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
     }
-
 
 
     @Override
@@ -239,29 +167,7 @@ public class MainActivity2 extends AppCompatActivity {
         if (Objects.isNull(mFragmentPager) || mFragmentPager.getCurrentItem() == 0) {
             // If the user is currently looking at the first step, allow the system to handle the
             // Back button. This calls finish() on this activity and pops the back stack.
-            try {
-                long currentTime = System.currentTimeMillis();
-                if (currentTime - lastPress > 5000) {
-                    backpressToast = Toast.makeText(getBaseContext(), "Press back again to exit", Toast.LENGTH_LONG);
-                    backpressToast.show();
-                    lastPress = currentTime;
-                    activateStopByBack = false;
-                } else {
-                    Log.d(TAG, "onBackPressed: initiating shutdown");
-                    if (backpressToast != null) backpressToast.cancel();
-                    activateStopByBack = true;
-                    if (Objects.nonNull(mConnection))
-                        if (mConnection.mBound)
-                            mUtil.unbindFromServer(MainActivity2.this, mConnection);
-                    if (mUtil.isServerRunning())
-                        mUtil.stopServer();
-                    serverStatusHandler.postDelayed(MainActivity2.this::finishAffinity, 100);
-
-                    super.onBackPressed();
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "onBackPressed() Error thrown while processing.");
-            }
+            super.onBackPressed();
         } else {
             // Otherwise, select the previous step.
             mFragmentPager.setCurrentItem(mFragmentPager.getCurrentItem() - 1);
@@ -288,21 +194,30 @@ public class MainActivity2 extends AppCompatActivity {
                     mConnection.mSdServer.acceptAlarm();
                 }
                 return true;
-            case R.id.action_start_stop:
+            case R.id.action_exit:
                 // Respond to the start/stop server menu item.
-                Log.i(TAG, "action_start_stop");
-                if (mConnection.mBound) {
-                    Log.i(TAG, "Stopping Server");
-                    mUtil.unbindFromServer(MainActivity2.this, mConnection);
-                    stopServer();
-                    //finish();
-                } else {
-                    Log.i(TAG, "Starting Server");
-                    startServer();
-                    // and bind to it so we can see its data
-                    Log.i(TAG, "Binding to Server");
-                    mUtil.bindToServer(MainActivity2.this, mConnection);
-                }
+                Log.i(TAG, "action_exit: Stopping Server");
+                mUtil.unbindFromServer(getApplicationContext(), mConnection);
+                stopServer();
+                // We exit this activity as a crude way of forcing the fragments to disconnect from the server
+                // so that the server exits properly - otherwise we end up with multiple threads running.
+                // FIXME - tell the threads to unbind from the serer before calling stopServer as an alternative.
+                finish();
+                return true;
+            case R.id.action_start_stop:
+                // FIXME: We need to unbind the fragments from the service, or else unbindFromServer does not work!
+                // Disabled this menu option until I work out how to fix it!
+                Log.i(TAG, "action_start_stop: restarting server");
+                mUtil.unbindFromServer(this, mConnection );
+                mUtil.showToast("Stopping Background Service....");
+                mUtil.stopServer();
+                // Wait 1 second to give the server chance to shutdown, then re-start it
+                mHandler.postDelayed(new Runnable() {
+                    public void run() {
+                        mUtil.showToast("NOT Re-Starting Background Service...");
+                        //mUtil.startServer();
+                    }
+                }, 1000);
                 return true;
             case R.id.action_test_alarm_beep:
                 Log.i(TAG, "action_test_alarm_beep");
@@ -331,7 +246,7 @@ public class MainActivity2 extends AppCompatActivity {
                             AuthenticateActivity.class);
                     this.startActivity(i);
                 } catch (Exception ex) {
-                    Log.i(TAG, "exception starting export activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
+                    Log.i(TAG, "exception starting export activity " + ex.toString());
                 }
                 return true;
             case R.id.action_about_datasharing:
@@ -346,7 +261,7 @@ public class MainActivity2 extends AppCompatActivity {
                             LogManagerControlActivity.class);
                     this.startActivity(intent);
                 } catch (Exception ex) {
-                    Log.i(TAG, "exception starting log manager activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
+                    Log.i(TAG, "exception starting log manager activity " + ex.toString());
                 }
                 return true;
             case R.id.action_report_seizure:
@@ -357,7 +272,7 @@ public class MainActivity2 extends AppCompatActivity {
                             ReportSeizureActivity.class);
                     this.startActivity(intent);
                 } catch (Exception ex) {
-                    Log.i(TAG, "exception starting Report Seizure activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
+                    Log.i(TAG, "exception starting Report Seizure activity " + ex.toString());
                 }
                 return true;
             case R.id.action_settings:
@@ -368,7 +283,7 @@ public class MainActivity2 extends AppCompatActivity {
                             PrefActivity.class);
                     this.startActivity(prefsIntent);
                 } catch (Exception ex) {
-                    Log.i(TAG, "exception starting settings activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
+                    Log.i(TAG, "exception starting settings activity " + ex.toString());
                 }
                 return true;
             case R.id.action_about:
@@ -395,19 +310,20 @@ public class MainActivity2 extends AppCompatActivity {
 
         @Override
         public Fragment createFragment(int position) {
+            // Note - the number of positions must match the value returned by getItemCount() below.
             switch (position) {
                 case 0:
                     return new FragmentOsdAlg();
                 case 1:
                     return new FragmentHrAlg();
                 case 2:
-                    return new FragmentBatt();
-                case 3:
                     return new FragmentSystem();
+                case 3:
+                    return new FragmentWatchSig();
                 case 4:
-                    return new FragmentDataSharing();
-                case 5:
-                    return new FragmentMlAlg();
+                    return new FragmentBatt();
+                //case 4:
+                //    return new FragmentDataSharing();
 
                 default:
                     Log.e(TAG, "createFragment() - invalid Position " + position);
@@ -417,7 +333,7 @@ public class MainActivity2 extends AppCompatActivity {
 
         @Override
         public int getItemCount() {
-            return Constants.GLOBAL_CONSTANTS.mTotalSdFragments;
+            return 5;
         }
     }
 
@@ -487,9 +403,9 @@ public class MainActivity2 extends AppCompatActivity {
                     Intent i = new Intent(
                             MainActivity2.this,
                             AuthenticateActivity.class);
-                    MainActivity2.this.startActivity(i);
+                    mContext.startActivity(i);
                 } catch (Exception ex) {
-                    Log.i(TAG, "exception starting activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
+                    Log.i(TAG, "exception starting activity " + ex.toString());
                 }
 
             }

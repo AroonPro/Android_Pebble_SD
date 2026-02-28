@@ -37,41 +37,29 @@ import android.database.DatabaseUtils;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.hardware.SensorManager;
 import android.net.ConnectivityManager;
-import android.net.LinkProperties;
-import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
-import androidx.preference.PreferenceManager;
+import android.preference.PreferenceManager;
 import android.text.format.Time;
 import android.util.Log;
 import android.widget.Toast;
 
-import java.text.DecimalFormatSymbols;
-import java.util.List;
-
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
-//uncommented due to deprication
-//import org.apache.http.conn.util.InetAddressUtils;
 
-import com.github.mikephil.charting.data.LineDataSet;
+import org.apache.http.conn.util.InetAddressUtils;
 
 import java.io.File;
 import java.io.FileWriter;
-//instead of InetAddressUtils use
-import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
+import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -79,9 +67,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
-//use java.Util.Objects as comparetool.
-import java.util.Objects;
-import java.util.concurrent.TimeUnit;
+import java.util.Locale;
 import java.util.function.Consumer;
 
 /**
@@ -99,7 +85,7 @@ public class OsdUtil {
     /**
      * Based on http://stackoverflow.com/questions/7440473/android-how-to-check-if-the-intent-service-is-still-running-or-has-stopped-running
      */
-    private static Context mContext; //Memory leak warning. Cause: static
+    private static Context mContext;
     private Handler mHandler;
     private static String TAG = "OsdUtil";
     private boolean mLogAlarms = true;
@@ -110,12 +96,25 @@ public class OsdUtil {
     private static final String mSysLogTableName = "SysLog";
     //private LogManager mLm;
     static private SQLiteDatabase mSysLogDb = null;   // SQLite Database for data and log entries.
-    private final static Long mMinPruneInterval = TimeUnit.MINUTES.toMillis(5); // minimum time between syslog pruning is 5 minutes
-    private static Long mLastPruneMillis = Long.valueOf(0);   // Record of the last time we pruned the syslog db.
+    private final static Long mMinPruneInterval = new Long(5 * 60 * 1000); // minimum time between syslog pruning is 5 minutes
+    private static Long mLastPruneMillis = new Long(0);   // Record of the last time we pruned the syslog db.
 
     private static int mNbound = 0;
-    //save startId of SdServer
-    private int wearReceiverStartId;
+
+    public final String[] BT_PERMISSIONS_API30 = {
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.BLUETOOTH_SCAN,
+            //Manifest.permission.BLUETOOTH_ADMIN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+    };
+    public final String[] BT_PERMISSIONS_OLD = {
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.BLUETOOTH,
+            Manifest.permission.BLUETOOTH_ADMIN,
+    };
+    public String[] BT_PERMISSIONS;
 
     public OsdUtil(Context context, Handler handler) {
         mContext = context;
@@ -163,7 +162,7 @@ public class OsdUtil {
         int nServers = 0;
         /* Log.v(TAG,"isServerRunning()...."); */
         ActivityManager manager =
-                (ActivityManager) mContext.getSystemService(Context.ACTIVITY_SERVICE);
+                (ActivityManager) mContext.getSystemService(mContext.ACTIVITY_SERVICE);
         for (ActivityManager.RunningServiceInfo service :
                 manager.getRunningServices(Integer.MAX_VALUE)) {
             //Log.v(TAG,"Service: "+service.service.getClassName());
@@ -172,27 +171,23 @@ public class OsdUtil {
                 nServers = nServers + 1;
             }
         }
-
-        //simplify statement:
-        return nServers != 0;
+        if (nServers != 0) {
+            //Log.v(TAG, "isServerRunning() - " + nServers + " instances are running");
+            return true;
+        } else
+            return false;
     }
 
     /**
      * Start the SdServer service
-     * without parameters always sends Uri://Start
      */
-    public void  startServer(){
-        startServer(Constants.GLOBAL_CONSTANTS.mStartUri);
-    }
-    //overload startServer without parameters
-    public void startServer(Uri setData ) {
+    public void startServer() {
         // Start the server
         Log.d(TAG, "OsdUtil.startServer()");
         writeToSysLogFile("startServer() - starting server");
         Intent sdServerIntent;
         sdServerIntent = new Intent(mContext, SdServer.class);
-        sdServerIntent.setData(setData);
-        sdServerIntent.addFlags(Intent.FLAG_FROM_BACKGROUND|Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        sdServerIntent.setData(Uri.parse("Start"));
         if (Build.VERSION.SDK_INT >= 26) {
             Log.i(TAG, "Starting Foreground Service (Android 8 and above)");
             mContext.startForegroundService(sdServerIntent);
@@ -212,41 +207,21 @@ public class OsdUtil {
         // then send an Intent to stop the service.
         Intent sdServerIntent;
         sdServerIntent = new Intent(mContext, SdServer.class);
-        sdServerIntent.setData(Constants.GLOBAL_CONSTANTS.mStopUri);
-        sdServerIntent.setAction(Constants.ACTION.STOPFOREGROUND_ACTION);
-        if (Build.VERSION.SDK_INT >= 26) {
-            Log.i(TAG, "Starting Foreground Service (Android 8 and above)");
-            mContext.startForegroundService( sdServerIntent);
-        } else {
-            Log.i(TAG, "Starting Normal Service (Pre-Android 8)");
-            mContext.startService(sdServerIntent);
-        }
+        sdServerIntent.setData(Uri.parse("Stop"));
+        mContext.stopService(sdServerIntent);
     }
 
-    public void restartServer() {
-        stopServer();
-        // Wait 1 second to give the server chance to shutdown, then re-start it
-        mHandler.postDelayed(() -> {
-                startServer();
-            }
-        , 1000);
-    }
+
     /**
      * bind an activity to to an already running server.
-     *
-     * @return
      */
-    public boolean bindToServer(Context activity, SdServiceConnection sdServiceConnection) {
+    public void bindToServer(Context activity, SdServiceConnection sdServiceConnection) {
         Log.i(TAG, "OsdUtil.bindToServer() - binding to SdServer");
         writeToSysLogFile("bindToServer() - binding to SdServer");
         Intent intent = new Intent(sdServiceConnection.mContext, SdServer.class);
-        intent.setAction(Constants.ACTION.BIND_ACTION);
-        //because @startServer the service is created, we do not need to create the service @bind
-        //Set bind flag as BIND_ADJUST_WITH_ACTIVITY
-        boolean returnValue = activity.bindService(intent, sdServiceConnection, Context.BIND_ADJUST_WITH_ACTIVITY);
+        activity.bindService(intent, sdServiceConnection, Context.BIND_AUTO_CREATE);
         mNbound = mNbound + 1;
         Log.i(TAG, "OsdUtil.bindToServer() - mNbound = " + mNbound);
-        return returnValue;
     }
 
     /**
@@ -254,26 +229,23 @@ public class OsdUtil {
      */
     public void unbindFromServer(Context activity, SdServiceConnection sdServiceConnection) {
         // unbind this activity from the service if it is bound.
-        if (Objects.nonNull(sdServiceConnection)) {
-            if (sdServiceConnection.mBound) {
-                Log.i(TAG, "unbindFromServer() - unbinding");
-                writeToSysLogFile("unbindFromServer() - unbinding");
-                try {
-                    sdServiceConnection.mBound = false;
-                    activity.unbindService(sdServiceConnection);
-                    mNbound = mNbound - 1;
-                    Log.i(TAG, "OsdUtil.unBindFromServer() - mNbound = " + mNbound);
-                    sdServiceConnection.mBound= false;
-                } catch (Exception ex) {
-                    Log.e(TAG, "unbindFromServer() - error unbinding service - " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
-                    writeToSysLogFile("unbindFromServer() - error unbinding service : \n" + ex.getMessage() + "\n" +Arrays.toString(Thread.currentThread().getStackTrace()));
-                    Log.i(TAG, "OsdUtil.unBindFromServer() - mNbound = " + mNbound);
-                }
-            } else {
-                Log.i(TAG, "unbindFromServer() - not bound to server - ignoring");
-                writeToSysLogFile("unbindFromServer() - not bound to server - ignoring");
+        if (sdServiceConnection.mBound) {
+            Log.i(TAG, "unbindFromServer() - unbinding");
+            writeToSysLogFile("unbindFromServer() - unbinding");
+            try {
+                activity.unbindService(sdServiceConnection);
+                sdServiceConnection.mBound = false;
+                mNbound = mNbound - 1;
+                Log.i(TAG, "OsdUtil.unBindFromServer() - mNbound = " + mNbound);
+            } catch (Exception ex) {
+                Log.e(TAG, "unbindFromServer() - error unbinding service - " + ex.toString());
+                writeToSysLogFile("unbindFromServer() - error unbinding service - " + ex.toString());
                 Log.i(TAG, "OsdUtil.unBindFromServer() - mNbound = " + mNbound);
             }
+        } else {
+            Log.i(TAG, "unbindFromServer() - not bound to server - ignoring");
+            writeToSysLogFile("unbindFromServer() - not bound to server - ignoring");
+            Log.i(TAG, "OsdUtil.unBindFromServer() - mNbound = " + mNbound);
         }
     }
 
@@ -310,21 +282,19 @@ public class OsdUtil {
                     //Log.v(TAG,"ip1--:" + inetAddress);
                     //Log.v(TAG,"ip2--:" + inetAddress.getHostAddress());
 
-                    //updated from https://stackoverflow.com/questions/32141785/android-api-23-inetaddressutils-replacement
                     // for getting IPV4 format
                     if (!inetAddress.isLoopbackAddress()
-                            && inetAddress instanceof Inet4Address
-                            && inetAddress.isSiteLocalAddress()
-                    ) {
+                            && InetAddressUtils.isIPv4Address(
+                            inetAddress.getHostAddress())) {
 
-                        String ip = inetAddress.getHostAddress();
+                        String ip = inetAddress.getHostAddress().toString();
                         //Log.v(TAG,"ip---::" + ip);
                         return ip;
                     }
                 }
             }
         } catch (Exception ex) {
-            Log.e("IP Address", ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()));
+            Log.e("IP Address", ex.toString());
         }
         return null;
     }
@@ -332,90 +302,38 @@ public class OsdUtil {
     public boolean isMobileDataActive() {
         // return true if we are using mobile data, otherwise return false
         ConnectivityManager cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm != null) {
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
-                LinkProperties result = cm.getLinkProperties(cm.getActiveNetwork());
-                if (!result.getInterfaceName().contains("wlan"))
-                    return false;
-                NetworkCapabilities capabilities = cm.getNetworkCapabilities(cm.getActiveNetwork());
-                if (capabilities == null) {
-                    return false;
-                }
-
-                if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ) {
-                    return true;
-                }else
-                    return false;
-            }else {
-                /**
-                 * has @Deprecation!
-                 * see https://developer.android.com/reference/android/net/NetworkInfo
-                 * @return
-                 */
-                NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-                if (activeNetwork == null) return false;
-                if (activeNetwork.getType() == ConnectivityManager.TYPE_MOBILE) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        if (activeNetwork == null) return false;
+        if (activeNetwork.getType() == ConnectivityManager.TYPE_MOBILE) {
+            return true;
+        } else {
+            return false;
         }
-        else
-            return  false;
-
     }
 
     public boolean isNetworkConnected() {
         // return true if we have a network connection, otherwise false.
-        // modified because networkInfo is deprecated. Solution:
-        // https://stackoverflow.com/questions/32547006/connectivitymanager-getnetworkinfoint-deprecated
         ConnectivityManager cm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (cm != null) {
-            if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
-
-                NetworkCapabilities capabilities = cm.getNetworkCapabilities(cm.getActiveNetwork());
-                if (capabilities == null) {
-                    return false;
-                }
-
-                if (capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) ||
-                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) ||
-                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_BLUETOOTH) ||
-                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_USB) ||
-                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_LOWPAN) ||
-                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) ||
-                        capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
-                    return true;
-                }else
-                    return false;
-            }else {
-                /**
-                 * has @Deprecation!
-                 * see https://developer.android.com/reference/android/net/NetworkInfo
-                 * @return
-                 */
-                NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-                if (activeNetwork != null) {
-                    return (activeNetwork.isConnected());
-                } else {
-                    return (false);
-                }
-            }
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        if (activeNetwork != null) {
+            return (activeNetwork.isConnected());
+        } else {
+            return (false);
         }
-        else
-            return  false;
     }
 
-    // simplifying text
     /**
      * Display a Toast message on screen.
      *
      * @param msg - message to display.
      */
     public void showToast(final String msg) {
-        runOnUiThread(() -> Toast.makeText(mContext, msg,
-                Toast.LENGTH_LONG).show());
+        runOnUiThread(new Runnable() {
+            public void run() {
+                Toast.makeText(mContext, msg,
+                        Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
 
@@ -458,35 +376,6 @@ public class OsdUtil {
     }
 
 
-    public static double calculateAverage(List<Double> marks) {
-        double sum = 0;
-        if (!marks.isEmpty()) {
-            for (Double mark : marks) {
-                sum += mark;
-            }
-            return sum / marks.size();
-        }
-        return sum;
-    }
-
-    /**
-     * Function to convert sensor acceleration from metres per
-     * second squared to milliGal(mGal)
-     * @param mms value in metres per second squared
-     * @return mms * math.pow(10,5}
-     */
-    public static double convertMetresPerSecondSquaredToMilliG(double mms){
-        return (mms/ SensorManager.GRAVITY_EARTH) *Math.pow(10,5);
-    }
-
-/**
- * Get return average of list of Entries
- */
-    public static int getAverageValueFromListOfEntry(@NonNull LineDataSet listToAverage){
-        return (int) (listToAverage.getYValueSum()/listToAverage.getYVals().size());
-    }
-
-
     /**
      * Write data to SD card - writes to data log file unless alarm=true,
      * in which case writes to alarm log file.
@@ -517,12 +406,11 @@ public class OsdUtil {
                     }
                     of.close();
                 } catch (Exception ex) {
-                    Log.e(TAG, "writeToLogFile - error " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
+                    Log.e(TAG, "writeToLogFile - error " + ex.toString());
                     for (int i = 0; i < (ex.getStackTrace().length); i++) {
                         Log.e(TAG, "writeToLogFile - error " + ex.getStackTrace()[i]);
                     }
-                    showToast(mContext.getString(R.string.ErrorWritingLogFileWarning) + ex.getMessage() + "\n" +
-                            Arrays.toString(Thread.currentThread().getStackTrace()));
+                    showToast(mContext.getString(R.string.ErrorWritingLogFileWarning) + ex.toString());
                 }
             } else {
                 Log.e(TAG, "ERROR - Can not Write to External Folder");
@@ -583,45 +471,21 @@ public class OsdUtil {
     }
 
     /**
-     * convertTimeUnit -- Convert From TimeUnit to TimeUnit in Double format
-     * @param amount Enter in double format value to convert
-     * @param from Enter TimeUnit Origin like TimeUnit.SECONDS
-     * @param to Enter TimeUnit.MICROSECONDS
-     * <p>
-     * if from equals to, the original value returns.
-     *
-     * @return Double converted value.
-     * */
-
-    public static double convertTimeUnit(double amount, TimeUnit from, TimeUnit to) {
-        // if the same unit is passed, avoid the conversion
-        if (from == to) {
-            return amount;
-        }
-        // is from or to the larger unit?
-        if (from.ordinal() < to.ordinal()) { // from is smaller
-            return amount / from.convert(1, to);
-        } else {
-            return amount * to.convert(1, from);
-        }
-    }
-
-
-    /**
      * string2date - returns a Date object represented by string dateStr
      * It first attempts to parse it as a long integer, in which case it is assumed to
      * be a unix timestamp.
      * If that fails it attempts to parse it as yyyy-MM-dd'T'HH:mm:ss'Z' format.
-     * @param dateStr String representing a date
+     *
+     * @param dateStr String reprenting a date
      * @return Date object or null if parsing fails.
      */
     public Date string2date(String dateStr) {
         Date dataTime = null;
         try {
-            long tstamp = Long.parseLong(dateStr);
+            Long tstamp = Long.parseLong(dateStr);
             dataTime = new Date(tstamp);
         } catch (NumberFormatException e) {
-            Log.v(TAG, "remoteEventsAdapter.getView: Error Parsing dataDate as Long: " + e.getLocalizedMessage() + " trying as string",e);
+            Log.v(TAG, "remoteEventsAdapter.getView: Error Parsing dataDate as Long: " + e.getLocalizedMessage() + " trying as string");
             try {
                 SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
                 dataTime = dateFormat.parse(dateStr);
@@ -632,6 +496,7 @@ public class OsdUtil {
         }
         return (dataTime);
     }
+
 
     public final int ALARM_STATUS_WARNING = 1;
     public final int ALARM_STATUS_ALARM = 2;
@@ -674,7 +539,7 @@ public class OsdUtil {
                 Log.d(TAG, "table " + mSysLogTableName + " exists ok");
             }
         } catch (SQLException e) {
-            Log.e(TAG, "Failed to open Database: " + e.toString(), e);
+            Log.e(TAG, "Failed to open Database: " + e.toString());
             return false;
         }
         return true;
@@ -721,7 +586,7 @@ public class OsdUtil {
             pruneSysLogDb();
 
         } catch (SQLException e) {
-            Log.e(TAG, "writeLogEngryToLocalDb(): Error Writing Data: " + e.toString(), e);
+            Log.e(TAG, "writeLogEngryToLocalDb(): Error Writing Data: " + e.toString());
             Log.e(TAG, "SQLStr was " + SQLStr);
         }
 
@@ -747,31 +612,18 @@ public class OsdUtil {
                 while (!cursor.isAfterLast()) {
                     HashMap<String, String> event = new HashMap<>();
                     //event.put("id", cursor.getString(cursor.getColumnIndex("id")));
-                    try {
-                        event.put("dataTime", cursor.getString(cursor.getColumnIndexOrThrow("dataTime")));
-                        String loglevel = cursor.getString(cursor.getColumnIndexOrThrow("logLevel"));
-                        event.put("loglevel", loglevel);
-                        event.put("dataJSON", cursor.getString(cursor.getColumnIndexOrThrow("dataJSON")));
-                        //event.put("dataJSON", cursor.getString(cursor.getColumnIndex("dataJSON")));
-                        eventsList.add(event);
-                    }catch (IllegalArgumentException illegalArgumentException){
-                        Log.e(TAG,"getSysLogList(): Ignoring current event: Result of Cursor.getString: -1");
-                    }
+                    event.put("dataTime", cursor.getString(cursor.getColumnIndex("dataTime")));
+                    String loglevel = cursor.getString(cursor.getColumnIndex("logLevel"));
+                    event.put("loglevel", loglevel);
+                    event.put("dataJSON", cursor.getString(cursor.getColumnIndex("dataJSON")));
+                    //event.put("dataJSON", cursor.getString(cursor.getColumnIndex("dataJSON")));
+                    eventsList.add(event);
                     cursor.moveToNext();
                 }
             }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                callback.accept(eventsList); // .accept requires API_SDK_LEVEL >= ANDROID.VERSION_N
-            }
-            else showToast("Not supported action at this version of Android. Please concider upgrading.");
+            callback.accept(eventsList);
         }).execute();
         return (true);
-    }
-
-    public void setBound(boolean valueToSet, SdServiceConnection sdServiceConnection) {
-        if (Objects.nonNull(sdServiceConnection))
-            if (Objects.nonNull(sdServiceConnection.mSdServer))
-                sdServiceConnection.mSdServer.setBound(valueToSet);
     }
 
     /**
@@ -818,23 +670,18 @@ public class OsdUtil {
                 resultSet.moveToFirst();
                 return (resultSet);
             } catch (SQLException e) {
-                Log.e(TAG, "SelectQueryTask.doInBackground(): Error selecting Data: " + e.toString(), e);
+                Log.e(TAG, "SelectQueryTask.doInBackground(): Error selecting Data: " + e.toString());
                 return (null);
             } catch (IllegalArgumentException e) {
-                Log.e(TAG, "SelectQueryTask.doInBackground(): Illegal Argument Exception: " + e.toString(), e);
+                Log.e(TAG, "SelectQueryTask.doInBackground(): Illegal Argument Exception: " + e.toString());
                 return (null);
             }
         }
 
         @Override
         protected void onPostExecute(final Cursor result) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                mCallback.accept(result);
-            }
-            //next makeText use of mContext causes memory leak, because of declaration mContext requiring static.
-            else Toast.makeText(mContext,"Not supported action at this version of Android. Please concider upgrading.", Toast.LENGTH_SHORT).show();
-            //OsdUtil.showToast call will not be available in this function. Recreate new one.
-        } // .accept requires API_SDK_LEVEL >= ANDROID.VERSION_N
+            mCallback.accept(result);
+        }
     }
 
 
@@ -848,7 +695,7 @@ public class OsdUtil {
         if (currentDateMillis > mLastPruneMillis + mMinPruneInterval) {
             mLastPruneMillis = currentDateMillis;
             // FIXME - change this to something sensible like 7 days after testing
-            long endDateMillis = currentDateMillis - TimeUnit.MINUTES.toMillis(5);
+            long endDateMillis = currentDateMillis - 5 * 60 * 1000;
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             String endDateStr = dateFormat.format(new Date(endDateMillis));
             Log.v(TAG, "pruneSysLogDb - endDateStr=" + endDateStr);
@@ -857,7 +704,7 @@ public class OsdUtil {
                 String[] selectArgs = {endDateStr};
                 retVal = mSysLogDb.delete(mSysLogTableName, selectStr, selectArgs);
             } catch (Exception e) {
-                Log.e(TAG, "Error deleting log entries" + e.toString(), e);
+                Log.e(TAG, "Error deleting log entries" + e.toString());
                 retVal = 0;
             }
             if (retVal > 0) {
@@ -876,7 +723,7 @@ public class OsdUtil {
         public static final String DATABASE_NAME = "OsdSysLog.db";
         private static final String TAG = "LogManager.OsdSysLogHelper";
 
-        public OsdSysLogHelper(Context context) { // OsdSysLogHelper is static. requiring context to be static. Causing memory leak.
+        public OsdSysLogHelper(Context context) {
             super(context, DATABASE_NAME, null, DATABASE_VERSION);
             Log.d(TAG, "OsdSysLogHelper constructor");
         }
@@ -907,41 +754,53 @@ public class OsdUtil {
         }
     }
 
-    public void waitForConnection(SdServiceConnection mConnection) {
-        // We want the UI to update as soon as it is displayed, but it takes a finite time for
-        // the mConnection to bind to the service, so we delay half a second to give it chance
-        // to connect before trying to update the UI for the first time (it happens again periodically using the uiTimer)
-        if (mConnection.mBound) {
-            Log.d(TAG, "waitForConnection - Bound!");
+
+    public String[] getRequiredBtPermissions() {
+        // API 31 is Android 12 - see https://developer.android.com/develop/connectivity/bluetooth/bt-permissions
+        if (Build.VERSION.SDK_INT >= 31) {
+            Log.d(TAG, "getRequiredBtPermissions() - using new Bluetooth Permissions");
+            BT_PERMISSIONS = BT_PERMISSIONS_API30;
         } else {
-            Log.v(TAG, "waitForConnection - waiting...");
-            new Handler().postDelayed(new Runnable() {
-                @Override
-                public void run() {
-                    waitForConnection(mConnection);
-                }
-            }, 100);
+            Log.d(TAG, "getRequiredBtPermissions() - using old Bluetooth Permissions");
+            BT_PERMISSIONS = BT_PERMISSIONS_OLD;
         }
+        return (BT_PERMISSIONS);
+    }
+    public boolean areBtPermissionsOk() {
+        String[] btPermissions = getRequiredBtPermissions();
+        boolean allOk = true;
+        Log.d(TAG, "areBTPermissions OK()");
+        for (int i = 0; i < btPermissions.length; i++) {
+            if (ContextCompat.checkSelfPermission(mContext, btPermissions[i])
+                    != PackageManager.PERMISSION_GRANTED) {
+                Log.i(TAG, btPermissions[i] + " Permission Not Granted");
+                allOk = false;
+            }
+        }
+        return allOk;
     }
 
-    /**
-     *
-     * parseToDouble internal OsdUtil Function to read string user input and safely
-     * use in further programming, without crashing the main program.
-     *
-     * Source: Chat with Bing© AI Sources: StackOverFlow
-     * */
-    public static double parseToDouble(String userInput) {
+    public double parseToDouble(String userInput) {
+        /**
+         * Parse a string to a double value, taking localisation into account.
+         * Using NumberFormat as recommended by https://docs.oracle.com/javase%2F7%2Fdocs%2Fapi%2F%2F/java/lang/Double.html#valueOf(java.lang.String)
+         */
+        double retVal;
         try {
-            // Replace any user-defined decimal separator with the system default (e.g., '.' or ',')
-            String cleanedInput = userInput.replaceFirst(String.valueOf(Constants.GLOBAL_CONSTANTS.CURRENT_USER_DECIMAL_CHARACTER), ".");
-            // Parse the cleaned input to a double
-            double parsedValue = Double.parseDouble(cleanedInput);
-            return parsedValue;
-        } catch (NumberFormatException e) {
+            Locale currentLocale;
+            if (android.os.Build.VERSION.SDK_INT < 24) {
+                currentLocale = mContext.getResources().getConfiguration().locale;
+            } else {
+                currentLocale = mContext.getResources().getConfiguration().getLocales().get(0);
+            }
+            NumberFormat nf = NumberFormat.getInstance(currentLocale);
+            retVal = nf.parse(userInput).doubleValue();
+        } catch (ParseException e) {
             // Handle invalid input (e.g., non-numeric characters)
-            throw new IllegalArgumentException("Invalid input. Please enter a valid numeric value.");
+            showToast("Invalid input. Please enter a valid numeric value.");
+            retVal = 0.0;
         }
+        return(retVal);
     }
 
 }

@@ -35,11 +35,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.text.DateFormat;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
 
 public class ExportDataActivity extends AppCompatActivity
         implements View.OnClickListener {
@@ -198,8 +200,8 @@ public class ExportDataActivity extends AppCompatActivity
         if (view == mExportBtn) {
             mDateTxt.setText(String.format("%02d-%02d-%04d", mDay, mMonth + 1, mYear));
             mTimeTxt.setText(String.format("%02d:%02d:%02d", mHour, mMinute, 00));
-            mDuration = OsdUtil.parseToDouble(mDurationTxt.getText().toString());
 
+            mDuration = mUtil.parseToDouble(mDurationTxt.getText().toString());
             String dateTimeStr = String.format("%04d-%02d-%02dT%02d:%02d:%02dZ", mYear, mMonth + 1, mDay, mHour, mMinute, 00);
             //mUtil.showToast(dateTimeStr);
             mEndDate = mUtil.string2date(dateTimeStr);
@@ -274,90 +276,5 @@ public class ExportDataActivity extends AppCompatActivity
         }
         super.onActivityResult(requestCode, resultCode, resultData);
     }
-
-    private void exportToFile(Uri uri) {
-        Log.v(TAG, "exportToFile(): uri=" + uri.toString());
-        long endDateMillis = mEndDate.getTime();
-        long durationMillis = (long) (mDuration * 3600. * 1000);
-        long startDateMillis = endDateMillis - durationMillis;
-        Log.v(TAG, "exportToFile() - endDateMillis=" + endDateMillis + ", startDateMillis=" + startDateMillis + ", durationMillis=" + durationMillis);
-        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        String sDateStr = dateFormat.format(new Date(startDateMillis));
-        String eDateStr = dateFormat.format(new Date(endDateMillis));
-        Log.v(TAG, "exportToFile() - sDateStr=" + sDateStr + " eDateStr=" + eDateStr);
-        mLm.getDatapointsByDate(
-                sDateStr, eDateStr, (String datapointsJsonStr) -> {
-                    Log.v(TAG, "exportToFile() - datapoints=" + datapointsJsonStr);
-                    // Open file for writing
-                    try {
-                        ParcelFileDescriptor pfd = this.getContentResolver().
-                                openFileDescriptor(uri, "w");
-                        FileOutputStream fileOutputStream =
-                                new FileOutputStream(pfd.getFileDescriptor());
-                        fileOutputStream.write(("# dataTime, alarmState, hr, o2sat, accel*125\n").getBytes());
-                        JSONArray dataObj;
-                        try {
-                            dataObj = new JSONArray(datapointsJsonStr);
-                            Log.v(TAG, "exportToFile() - dataObj length=" + dataObj.length());
-                            for (int i = 0; i < dataObj.length(); i++) {
-                                JSONObject datapointJsonObj = dataObj.getJSONObject(i);
-                                String dataJsonStr = datapointJsonObj.getString("dataJSON");
-                                Log.v(TAG, "exportToFile() - i=" + i + "dataJsonStr=" + dataJsonStr);
-                                JSONObject dataJsonObj = new JSONObject(dataJsonStr);
-                                JSONArray rawDataArr = dataJsonObj.getJSONArray("rawData");
-                                try {
-                                    fileOutputStream.write(dataJsonObj.getString("dataTime").getBytes(StandardCharsets.UTF_8));
-                                    fileOutputStream.write(", ".getBytes(StandardCharsets.UTF_8));
-                                    fileOutputStream.write(dataJsonObj.getString("alarmState").getBytes(StandardCharsets.UTF_8));
-                                    fileOutputStream.write(", ".getBytes(StandardCharsets.UTF_8));
-                                    fileOutputStream.write(dataJsonObj.getString("hr").getBytes(StandardCharsets.UTF_8));
-                                    fileOutputStream.write(", ".getBytes(StandardCharsets.UTF_8));
-                                    fileOutputStream.write(dataJsonObj.getString("o2Sat").getBytes(StandardCharsets.UTF_8));
-                                    for (int j = 0; j < rawDataArr.length(); j++) {
-                                        fileOutputStream.write(", ".getBytes(StandardCharsets.UTF_8));
-                                        fileOutputStream.write(rawDataArr.getString(j).getBytes(StandardCharsets.UTF_8));
-                                    }
-                                    fileOutputStream.write("\n".getBytes(StandardCharsets.UTF_8));
-                                } catch (IOException e) {
-                                    Log.e(TAG, "exportToFile() - ERROR Writing File: " + e.toString(), e);
-                                    //mUtil.showToast("ERROR WRITING FILE");
-                                }
-
-                            }
-                        } catch (JSONException | NullPointerException e) {
-                            Log.v(TAG, "createEventCallback(): Error Creating JSON Object from string " + datapointsJsonStr);
-                            dataObj = null;
-                            mUtil.showToast(getString(R.string.error_exporting_data));
-                            Log.e(TAG, "exportToFile() - JSONException: " + e.toString(), e);
-                        }
-                        // Let the document provider know you're done by closing the stream.
-                        fileOutputStream.close();
-                        pfd.close();
-                        mUtil.showToast(getString(R.string.data_exported_ok));
-
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                        mUtil.showToast(getString(R.string.error_exporting_data));
-                        Log.e(TAG, "exportToFile() - FileNotFoundException: " + e.toString(), e);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        mUtil.showToast(getString(R.string.error_exporting_data));
-                        Log.e(TAG, "exportToFile() - IOException: " + e.toString(), e);
-                    }
-                    runOnUiThread(new Runnable() {
-                        public void run() {
-                            ProgressBar pb = (ProgressBar) findViewById(R.id.exportPb);
-                            pb.setIndeterminate(true);
-                            pb.setVisibility(View.INVISIBLE);
-                            mExportBtn.setEnabled(true);
-                            mExportBtn.setVisibility(View.VISIBLE);
-
-                        }
-                    });
-
-                });
-    }
-
-
 
 }

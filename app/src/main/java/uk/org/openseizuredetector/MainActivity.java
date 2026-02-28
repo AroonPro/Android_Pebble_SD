@@ -37,8 +37,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
-import androidx.preference.PreferenceManager;
-
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -49,11 +48,9 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.content.res.AppCompatResources;
 import androidx.core.view.MenuCompat;
 
 import com.github.mikephil.charting.charts.BarChart;
@@ -67,14 +64,10 @@ import com.github.mikephil.charting.utils.ValueFormatter;
 import com.rohitss.uceh.UCEHandler;
 
 import java.lang.reflect.Field;
-import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Objects;
 import java.util.Timer;
+import java.util.TimerTask;
 
 //MPAndroidChart
 
@@ -92,17 +85,11 @@ public class MainActivity extends AppCompatActivity {
 
     private Intent sdServerIntent;
 
-    // example of placement of changed data
-    private SdData localSdData;
-
     final Handler serverStatusHandler = new Handler();
+    final Handler mHandler = new Handler();
     Messenger messenger = new Messenger(new ResponseHandler());
     Timer mUiTimer;
     private Context mContext;
-
-    private long lastPress;
-    private Toast backpressToast;
-    private boolean activateStopByBack;
 
     /**
      * Called when the activity is first created.
@@ -114,16 +101,17 @@ public class MainActivity extends AppCompatActivity {
 
         // Set our custom uncaught exception handler to report issues.
         //Thread.setDefaultUncaughtExceptionHandler(new OsdUncaughtExceptionHandler(MainActivity.this));
-        new UCEHandler.Builder(MainActivity.this)
+        new UCEHandler.Builder(this)
                 .addCommaSeparatedEmailAddresses("crashreports@openseizuredetector.org.uk,")
                 .build();
 
         //int i = 5/0;  // Force exception to test handler.
-        if (Objects.isNull(mUtil)) mUtil = new OsdUtil(MainActivity.this, serverStatusHandler);
-        if (Objects.isNull(mConnection)) mConnection = new SdServiceConnection(MainActivity.this);
+        mUtil = new OsdUtil(getApplicationContext(), serverStatusHandler);
+        mConnection = new SdServiceConnection(getApplicationContext());
         mUtil.writeToSysLogFile("");
         mUtil.writeToSysLogFile("* MainActivity Started     *");
         mUtil.writeToSysLogFile("MainActivity.onCreate()");
+        mContext = this;
 
         // Initialise the User Interface
         setContentView(R.layout.main);
@@ -131,11 +119,10 @@ public class MainActivity extends AppCompatActivity {
 
         /* Force display of overflow menu - from stackoverflow
          * "how to force use of..."
-         * https://itecnote.com/tecnote/android-how-to-force-use-of-overflow-menu-on-devices-with-menu-button/
          */
         try {
             Log.v(TAG, "trying menubar fiddle...");
-            ViewConfiguration config = ViewConfiguration.get(MainActivity.this);
+            ViewConfiguration config = ViewConfiguration.get(this);
             Field menuKeyField =
                     ViewConfiguration.class.getDeclaredField("sHasPermanentMenuKey");
             if (menuKeyField != null) {
@@ -146,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.v(TAG, "menuKeyField is null - doing nothing...");
             }
         } catch (Exception e) {
-            Log.v(TAG, "menubar fiddle exception: " + e.toString(), e);
+            Log.v(TAG, "menubar fiddle exception: " + e.toString());
         }
 
         // Force the screen to stay on when the app is running
@@ -158,13 +145,11 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Log.v(TAG, "acceptAlarmButton.onClick()");
                 if (mConnection.mBound) {
-                    if (Objects.nonNull(mConnection.mSdServer)) {
-                        if ((mConnection.mSdServer.mSmsTimer != null)
-                                && (mConnection.mSdServer.mSmsTimer.mTimeLeft > 0)) {
-                            Log.i(TAG, "acceptAlarmButton.onClick() - Stopping SMS Timer");
-                            mUtil.showToast(getString(R.string.SMSAlarmCancelledMsg));
-                            mConnection.mSdServer.stopSmsTimer();
-                        }
+                    if ((mConnection.mSdServer.mSmsTimer != null)
+                            && (mConnection.mSdServer.mSmsTimer.mTimeLeft > 0)) {
+                        Log.i(TAG, "acceptAlarmButton.onClick() - Stopping SMS Timer");
+                        mUtil.showToast(getString(R.string.SMSAlarmCancelledMsg));
+                        mConnection.mSdServer.stopSmsTimer();
                     } else {
                         Log.v(TAG, "acceptAlarmButton.onClick() - Accepting Alarm");
                         mConnection.mSdServer.acceptAlarm();
@@ -179,9 +164,7 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 Log.v(TAG, "cancelAudibleButton.onClick()");
                 if (mConnection.mBound) {
-                    if (Objects.nonNull(mConnection.mSdServer)) {
-                        mConnection.mSdServer.cancelAudible();
-                    }
+                    mConnection.mSdServer.cancelAudible();
                 }
             }
         });
@@ -199,9 +182,7 @@ public class MainActivity extends AppCompatActivity {
                 //    @Override
                 //    public void onClick(DialogInterface dialog, int which) {
                 if (mConnection.mBound) {
-                    if (Objects.nonNull(mConnection.mSdServer)) {
-                        mConnection.mSdServer.raiseManualAlarm();
-                    }
+                    mConnection.mSdServer.raiseManualAlarm();
                 }
                 //        dialog.dismiss();
                 //    }
@@ -266,7 +247,6 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "onCreateOptionsMenu()");
         getMenuInflater().inflate(R.menu.main_activity_actions, menu);
         MenuCompat.setGroupDividerEnabled(menu, true);
-        //https://itecnote.com/tecnote/android-how-to-force-use-of-overflow-menu-on-devices-with-menu-button/
         //mOptionsMenu = menu;
         //if (mConnection.mSdServer.mSdDataSourceName != "Pebble") {
         //    Log.v(TAG,"Disabling Pebble Specific Menu Items");
@@ -279,36 +259,45 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         Log.i(TAG, "onOptionsItemSelected() :  " + item.getItemId() + " selected");
-        //since SDK_INT 14 R.id.____ cannot be used in switch-case. Replaced by if else if
-        if (Objects.equals(R.id.action_install_watch_app,item.getItemId())) {
-            Log.i(TAG, "action_install_watch_app");
-            mConnection.mSdServer.mSdDataSource.installWatchApp();
-            return true;
-        }
-        else if (Objects.equals( R.id.action_accept_alarm ,item.getItemId())) {
-            Log.i(TAG, "action_accept_alarm");
-            if (mConnection.mBound) {
-                mConnection.mSdServer.acceptAlarm();
-            }
-            return true;
-        }
-        else if (Objects.equals( R.id.action_start_stop, item.getItemId())) {
-            // Respond to the start/stop server menu item.
-            Log.i(TAG, "action_start_stop");
-            if (mConnection.mBound) {
-                Log.i(TAG, "Stopping Server");
-                mUtil.unbindFromServer(MainActivity.this, mConnection);
+        switch (item.getItemId()) {
+            /*case R.id.action_launch_pebble_app:
+                Log.i(TAG, "action_launch_pebble_app");
+                mConnection.mSdServer.mSdDataSource.startPebbleApp();
+                return true;
+                */
+            case R.id.action_install_watch_app:
+                Log.i(TAG, "action_install_watch_app");
+                mConnection.mSdServer.mSdDataSource.installWatchApp();
+                return true;
+
+            case R.id.action_accept_alarm:
+                Log.i(TAG, "action_accept_alarm");
+                if (mConnection.mBound) {
+                    mConnection.mSdServer.acceptAlarm();
+                }
+                return true;
+            case R.id.action_exit:
+                // Respond to the start/stop server menu item.
+                Log.i(TAG, "action_exit: Stopping Server");
+                mUtil.unbindFromServer(getApplicationContext(), mConnection);
                 stopServer();
-            } else {
-                Log.i(TAG, "Starting Server");
-                startServer();
-                // and bind to it so we can see its data
-                Log.i(TAG, "Binding to Server");
-                if (Objects.nonNull(mConnection))
-                    if (!mConnection.mBound) mUtil.bindToServer(MainActivity.this, mConnection);
-            }
-            return true;
-        }
+                // We exit this activity as a crude way of forcing the fragments to disconnect from the server
+                // so that the server exits properly - otherwise we end up with multiple threads running.
+                // FIXME - tell the threads to unbind from the serer before calling stopServer as an alternative.
+                finish();
+                return true;
+            case R.id.action_start_stop:
+                Log.i(TAG, "action_start_stop: restarting server");
+                mUtil.showToast("Stopping Background Service....");
+                mUtil.stopServer();
+                // Wait 1 second to give the server chance to shutdown, then re-start it
+                mHandler.postDelayed(new Runnable() {
+                    public void run() {
+                        mUtil.showToast("Re-Starting Background Service...");
+                        mUtil.startServer();
+                    }
+                }, 1000);
+                return true;
             /* fault beep test does not work with fault timer, so disable test option.
             case R.id.action_test_fault_beep:
                 Log.i(TAG, "action_test_fault_beep");
@@ -317,33 +306,24 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
                 */
-        else if (Objects.equals( R.id.action_test_alarm_beep, item.getItemId())) {
-            Log.i(TAG, "action_test_alarm_beep");
-            if (mConnection.mBound) {
-                if (Objects.nonNull(mConnection.mSdServer)) {
+            case R.id.action_test_alarm_beep:
+                Log.i(TAG, "action_test_alarm_beep");
+                if (mConnection.mBound) {
                     mConnection.mSdServer.alarmBeep();
                 }
-            }
-            return true;
-        }
-        else if (Objects.equals(R.id.action_test_warning_beep, item.getItemId())){
-            Log.i(TAG, "action_test_warning_beep");
-            if (mConnection.mBound) {
-                if (Objects.nonNull(mConnection.mSdServer)) {
+                return true;
+            case R.id.action_test_warning_beep:
+                Log.i(TAG, "action_test_warning_beep");
+                if (mConnection.mBound) {
                     mConnection.mSdServer.warningBeep();
                 }
-            }
-            return true;
-        }
-        else if (Objects.equals( R.id.action_test_sms_alarm, item.getItemId())) {
-            Log.i(TAG, "action_test_sms_alarm");
-            if (mConnection.mBound) {
-                if (Objects.nonNull(mConnection.mSdServer)) {
+                return true;
+            case R.id.action_test_sms_alarm:
+                Log.i(TAG, "action_test_sms_alarm");
+                if (mConnection.mBound) {
                     mConnection.mSdServer.sendSMSAlarm();
                 }
-            }
-            return true;
-        }
+                return true;
 
             /*case R.id.action_test_phone_alarm:
                 Log.i(TAG, "action_test_phone_alarm");
@@ -353,23 +333,21 @@ public class MainActivity extends AppCompatActivity {
                 return true;
                 */
 
-        else if ( Objects.equals(R.id.action_authenticate_api,item.getItemId()) ) {
-            Log.i(TAG, "action_autheticate_api");
-            try {
-                Intent i = new Intent(
-                        MainActivity.this,
-                        AuthenticateActivity.class);
-                this.startActivity(i);
-            } catch (Exception ex) {
-                Log.i(TAG, "exception starting export activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
-            }
-            return true;
-        }
-        else if (Objects.equals( R.id.action_about_datasharing, item.getItemId())) {
-            Log.i(TAG, "action_about_datasharing");
-            showDataSharingDialog();
-            return true;
-        }
+            case R.id.action_authenticate_api:
+                Log.i(TAG, "action_autheticate_api");
+                try {
+                    Intent i = new Intent(
+                            MainActivity.this,
+                            AuthenticateActivity.class);
+                    this.startActivity(i);
+                } catch (Exception ex) {
+                    Log.i(TAG, "exception starting export activity " + ex.toString());
+                }
+                return true;
+            case R.id.action_about_datasharing:
+                Log.i(TAG, "action_about_datasharing");
+                showDataSharingDialog();
+                return true;
             /*
             case R.id.action_export:
                 Log.i(TAG, "action_export");
@@ -379,7 +357,7 @@ public class MainActivity extends AppCompatActivity {
                             ExportDataActivity.class);
                     this.startActivity(i);
                 } catch (Exception ex) {
-                    Log.i(TAG, "exception starting export activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
+                    Log.i(TAG, "exception starting export activity " + ex.toString());
                 }
                 return true;
              */
@@ -397,54 +375,50 @@ public class MainActivity extends AppCompatActivity {
                     //        LogManagerActivity.class);
                     //this.startActivity(prefsIntent);
                 } catch (Exception ex) {
-                    Log.i(TAG, "exception starting log manager activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
+                    Log.i(TAG, "exception starting log manager activity " + ex.toString());
                 }
                 return true;
              */
-        else if (Objects.equals(R.id.action_logmanager, item.getItemId())) {
-            Log.i(TAG, "action_logmanager");
-            try {
-                Intent intent = new Intent(
-                        MainActivity.this,
-                        LogManagerControlActivity.class);
-                this.startActivity(intent);
-            } catch (Exception ex) {
-                Log.i(TAG, "exception starting log manager activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
-            }
-            return true;
-        }
-        else if (Objects.equals(R.id.action_report_seizure, item.getItemId())) {
-            Log.i(TAG, "action_report_seizure");
-            try {
-                Intent intent = new Intent(
-                        MainActivity.this,
-                        ReportSeizureActivity.class);
-                this.startActivity(intent);
-            } catch (Exception ex) {
-                Log.i(TAG, "exception starting Report Seizure activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
-            }
-            return true;
-        }
-        else if (Objects.equals( R.id.action_settings, item.getItemId())) {
-            Log.i(TAG, "action_settings");
-            try {
-                Intent prefsIntent = new Intent(
-                        MainActivity.this,
-                        PrefActivity.class);
-                MainActivity.this.startActivity(prefsIntent);
-            } catch (Exception ex) {
-                Log.i(TAG, "exception starting settings activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
-            }
-            return true;
-        }
-        else if (Objects.equals( R.id.action_about, item.getItemId())) {
-            Log.i(TAG, "action_about");
-            showAbout();
-            return true;
-        }
+            case R.id.action_logmanager:
+                Log.i(TAG, "action_logmanager");
+                try {
+                    Intent intent = new Intent(
+                            MainActivity.this,
+                            LogManagerControlActivity.class);
+                    this.startActivity(intent);
+                } catch (Exception ex) {
+                    Log.i(TAG, "exception starting log manager activity " + ex.toString());
+                }
+                return true;
+            case R.id.action_report_seizure:
+                Log.i(TAG, "action_report_seizure");
+                try {
+                    Intent intent = new Intent(
+                            MainActivity.this,
+                            ReportSeizureActivity.class);
+                    this.startActivity(intent);
+                } catch (Exception ex) {
+                    Log.i(TAG, "exception starting Report Seizure activity " + ex.toString());
+                }
+                return true;
+            case R.id.action_settings:
+                Log.i(TAG, "action_settings");
+                try {
+                    Intent prefsIntent = new Intent(
+                            MainActivity.this,
+                            PrefActivity.class);
+                    this.startActivity(prefsIntent);
+                } catch (Exception ex) {
+                    Log.i(TAG, "exception starting settings activity " + ex.toString());
+                }
+                return true;
+            case R.id.action_about:
+                Log.i(TAG, "action_about");
+                showAbout();
+                return true;
 
-        else {
-            return super.onOptionsItemSelected(item);
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 
@@ -465,22 +439,13 @@ public class MainActivity extends AppCompatActivity {
         tv.setBackgroundColor(okColour);
         tv.setTextColor(okTextColour);
 
-        serverStatusRunnable.run();
-
         if (mUtil.isServerRunning()) {
             mUtil.writeToSysLogFile("MainActivity.onStart - Binding to Server");
-            if (Objects.nonNull(mConnection)) {
-                if (!mConnection.mBound) mUtil.bindToServer(MainActivity.this, mConnection);
-                mUtil.waitForConnection(mConnection);
-                connectUiLiveDataRunner();
-
-            }
+            mUtil.bindToServer(getApplicationContext(), mConnection);
         } else {
             Log.i(TAG, "onStart() - Server Not Running");
             mUtil.writeToSysLogFile("MainActivity.onStart - Server Not Running");
         }
-
-        /* temporary commented
         // start timer to refresh user interface every second.
         mUiTimer = new Timer();
         mUiTimer.schedule(new TimerTask() {
@@ -489,22 +454,8 @@ public class MainActivity extends AppCompatActivity {
                 updateServerStatus();
             }
         }, 0, 1000);
-*/
-
-    }
 
 
-    void connectUiLiveDataRunner(){
-        if (mConnection.mBound && Objects.nonNull(mConnection.mSdServer))
-        {
-            if (!mConnection.mSdServer.uiLiveData.isListeningInContext(this)) {
-                mConnection.mSdServer.uiLiveData.observe(this, this::onChangedObserver);
-                mConnection.mSdServer.uiLiveData.observeForever(this::onChangedObserver);
-                mConnection.mSdServer.uiLiveData.addToListening(this);
-            }
-        }else {
-            serverStatusHandler.postDelayed(this::connectUiLiveDataRunner,100);
-        }
     }
 
     @Override
@@ -512,17 +463,8 @@ public class MainActivity extends AppCompatActivity {
         super.onStop();
         Log.i(TAG, "onStop() - unbinding from server");
         mUtil.writeToSysLogFile("MainActivity.onStop()");
-        if (Objects.nonNull(mConnection)) {
-            if (Objects.nonNull(mConnection.mSdServer)){
-                if (mConnection.mSdServer.uiLiveData.isListeningInContext(this)){
-                    mConnection.mSdServer.uiLiveData.removeFromListening(this);
-                    mConnection.mSdServer.uiLiveData.removeObserver(this::onChangedObserver);
-                }
-            }
-            if (mConnection.mBound)
-                mUtil.unbindFromServer(MainActivity.this, mConnection);
-        }
-        //mUiTimer.cancel();
+        mUtil.unbindFromServer(getApplicationContext(), mConnection);
+        mUiTimer.cancel();
     }
 
 
@@ -583,17 +525,16 @@ public class MainActivity extends AppCompatActivity {
                 if (mConnection.mBound) {
                     if (mConnection.mSdServer.mSdDataSourceName.equals("Phone")) {
                         if (mConnection.mSdServer.mLogNDA)
-                            tv.setText(getString(R.string.ServerRunningOK) + getString(R.string.DataSource) + " = " + "Phone" + "\n" + "(Demo Mode)" + "\nNDA Logging");
+                            tv.setText(getString(R.string.ServerRunningOK) + "\n" + getString(R.string.DataSource) + " = " + "Phone" + "\n" + "(Demo Mode)" + "\nNDA Logging");
                         else
-                            tv.setText(getString(R.string.ServerRunningOK) + getString(R.string.DataSource) + " = " + "Phone" + "\n" + "(Demo Mode)");
+                            tv.setText(getString(R.string.ServerRunningOK) + "\n" + getString(R.string.DataSource) + " = " + "Phone" + "\n" + "(Demo Mode)");
                         tv.setBackgroundColor(warnColour);
                         tv.setTextColor(warnTextColour);
                     } else {
                         if (mConnection.mSdServer.mLogNDA)
-                            tv.setText(getString(R.string.ServerRunningOK) + getString(R.string.DataSource) + " = " + mConnection.mSdServer.mSdDataSourceName + "\nNDA Logging");
+                            tv.setText(getString(R.string.ServerRunningOK) + "\n" + getString(R.string.DataSource) + " = " + mConnection.mSdServer.mSdDataSourceName + "\nNDA Logging");
                         else
-                            tv.setText(getString(R.string.ServerRunningOK) + getString(R.string.DataSource) + " = " + mConnection.mSdServer.mSdDataSourceName +
-                                    (Objects.nonNull(mConnection.mSdServer.mSdData.alarmPhrase) ? "\n"+"(last/current Alarm Phase:\n" + mConnection.mSdServer.mSdData.alarmPhrase:"" ));
+                            tv.setText(getString(R.string.ServerRunningOK) + "\n" + getString(R.string.DataSource) + " = " + mConnection.mSdServer.mSdDataSourceName);
                         tv.setBackgroundColor(okColour);
                         tv.setTextColor(okTextColour);
                     }
@@ -625,7 +566,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     tv = (TextView) findViewById(R.id.hrAlgTv);
                     tv.setText("HR ");
-                    if (mConnection.mSdServer.mSdData.mHrAlarmActive) {
+                    if (mConnection.mSdServer.mSdData.mHRAlarmActive) {
                         tv.setBackgroundColor(okColour);
                         tv.setTextColor(okTextColour);
                         tv.setPaintFlags(tv.getPaintFlags() & ~Paint.STRIKE_THRU_TEXT_FLAG);
@@ -716,28 +657,27 @@ public class MainActivity extends AppCompatActivity {
 
                     // Pebble Connected Phrase - use for HR if active instead.
                     tv = (TextView) findViewById(R.id.pebbleTv);
-                    //if (mConnection.mSdServer.mSdData.mHrAlarmActive) {
-
+                    //if (mConnection.mSdServer.mSdData.mHRAlarmActive) {
                     if (mConnection.mSdServer.mSdData.mO2Sat > 0) {
-                        tv.setText(getString(R.string.HR_Equals) + " " + Math.round(mConnection.mSdServer.mSdData.mHr) + " bpm\n"
+                        tv.setText(getString(R.string.HR_Equals) + " " + Math.round(mConnection.mSdServer.mSdData.mHR) + " bpm\n"
                                 + "(av = "
                                 + Math.round(mConnection.mSdServer.mSdData.mAdaptiveHrAverage) + ", "
                                 + Math.round(mConnection.mSdServer.mSdData.mAverageHrAverage) + " bpm)\n"
                                 + getString(R.string.SpO2) + " = " + Math.round(mConnection.mSdServer.mSdData.mO2Sat) + "%");
                     } else {
-                        tv.setText(getString(R.string.HR_Equals) + " " + Math.round(mConnection.mSdServer.mSdData.mHr) + " bpm\n"
+                        tv.setText(getString(R.string.HR_Equals) + " " + Math.round(mConnection.mSdServer.mSdData.mHR) + " bpm\n"
                                 + "(av = "
                                 + Math.round(mConnection.mSdServer.mSdData.mAdaptiveHrAverage) + ", "
                                 + Math.round(mConnection.mSdServer.mSdData.mAverageHrAverage) + " bpm)\n"
                                 + getString(R.string.SpO2) + " = ---%");
                     }
-                    if (mConnection.mSdServer.mSdData.mHrAlarmStanding
+                    if (mConnection.mSdServer.mSdData.mHRAlarmStanding
                             || mConnection.mSdServer.mSdData.mAdaptiveHrAlarmStanding
                             || mConnection.mSdServer.mSdData.mAverageHrAlarmStanding
                             || mConnection.mSdServer.mSdData.mO2SatAlarmStanding) {
                         tv.setBackgroundColor(alarmColour);
                         tv.setTextColor(alarmTextColour);
-                    } else if (mConnection.mSdServer.mSdData.mHrFaultStanding || mConnection.mSdServer.mSdData.mO2SatFaultStanding) {
+                    } else if (mConnection.mSdServer.mSdData.mHRFaultStanding || mConnection.mSdServer.mSdData.mO2SatFaultStanding) {
                         tv.setBackgroundColor(warnColour);
                         tv.setTextColor(warnTextColour);
                     } else {
@@ -896,11 +836,11 @@ public class MainActivity extends AppCompatActivity {
                     pb = ((ProgressBar) findViewById(R.id.powerProgressBar));
                     pb.setMax(100);
                     pb.setProgress((int) powerPc);
-                    pbDrawable = AppCompatResources.getDrawable(MainActivity.this,R.drawable.progress_bar_blue);
+                    pbDrawable = getResources().getDrawable(R.drawable.progress_bar_blue);
                     if (powerPc > 75)
-                        pbDrawable = AppCompatResources.getDrawable(MainActivity.this,R.drawable.progress_bar_yellow);
+                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_yellow);
                     if (powerPc > 100)
-                        pbDrawable = AppCompatResources.getDrawable(MainActivity.this,R.drawable.progress_bar_red);
+                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_red);
 
                     //pb.getProgressDrawable().setColorFilter(colour, PorterDuff.Mode.SRC_IN);
 
@@ -909,22 +849,22 @@ public class MainActivity extends AppCompatActivity {
                     pb = ((ProgressBar) findViewById(R.id.spectrumProgressBar));
                     pb.setMax(100);
                     pb.setProgress((int) specPc);
-                    pbDrawable = AppCompatResources.getDrawable(MainActivity.this,R.drawable.progress_bar_blue);
+                    pbDrawable = getResources().getDrawable(R.drawable.progress_bar_blue);
                     if (specPc > 75)
-                        pbDrawable = AppCompatResources.getDrawable(MainActivity.this,R.drawable.progress_bar_yellow);
+                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_yellow);
                     if (specPc > 100)
-                        pbDrawable = AppCompatResources.getDrawable(MainActivity.this,R.drawable.progress_bar_red);
+                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_red);
                     //pb.getProgressDrawable().setColorFilter(colour, PorterDuff.Mode.SRC_IN);
                     pb.setProgressDrawable(pbDrawable);
 
                     pb = ((ProgressBar) findViewById(R.id.pSeizureProgressBar));
                     pb.setMax(100);
                     pb.setProgress((int) pSeizurePc);
-                    pbDrawable = AppCompatResources.getDrawable(MainActivity.this,R.drawable.progress_bar_blue);
+                    pbDrawable = getResources().getDrawable(R.drawable.progress_bar_blue);
                     if (pSeizurePc > 30)
-                        pbDrawable = AppCompatResources.getDrawable(MainActivity.this,R.drawable.progress_bar_yellow);
+                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_yellow);
                     if (pSeizurePc > 50)
-                        pbDrawable = AppCompatResources.getDrawable(MainActivity.this,R.drawable.progress_bar_red);
+                        pbDrawable = getResources().getDrawable(R.drawable.progress_bar_red);
                     //pb.getProgressDrawable().setColorFilter(colour, PorterDuff.Mode.SRC_IN);
                     pb.setProgressDrawable(pbDrawable);
 
@@ -975,7 +915,7 @@ public class MainActivity extends AppCompatActivity {
                     tv.setBackgroundColor(warnColour);
                     tv.setTextColor(warnTextColour);
                     tv = (TextView) findViewById(R.id.data_time_tv);
-                    tv.setText(Calendar.getInstance().getTime().toString());
+                    tv.setText(mConnection.mSdServer.mSdData.dataTime.format("%H:%M:%S"));
                     tv.setBackgroundColor(okColour);
                     tv.setTextColor(okTextColour);
 
@@ -1155,6 +1095,25 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         Log.i(TAG, "onResume()");
         mUtil.writeToSysLogFile("MainActivity.onResume()");
+
+        // Check to see if the user has asked for the new user interface to be used instead of this one
+        // and start that if necessary.
+        try {
+            SharedPreferences SP = PreferenceManager
+                    .getDefaultSharedPreferences(getBaseContext());
+            boolean useNewUi = SP.getBoolean("UseNewUi", false);
+            if (useNewUi) {
+                Log.i(TAG,"onResume() - launching new User Interface");
+                Intent intent = new Intent(
+                        getApplicationContext(),
+                        MainActivity2.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                startActivity(intent);
+                finish();
+            }
+        } catch (Exception ex) {
+            Log.e(TAG, "exception starting main activity " + ex.toString());
+        }
     }
 
 
@@ -1211,9 +1170,9 @@ public class MainActivity extends AppCompatActivity {
                     Intent i = new Intent(
                             MainActivity.this,
                             AuthenticateActivity.class);
-                    MainActivity.this.startActivity(i);
+                    mContext.startActivity(i);
                 } catch (Exception ex) {
-                    Log.i(TAG, "exception starting activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
+                    Log.i(TAG, "exception starting activity " + ex.toString());
                 }
 
             }
@@ -1223,59 +1182,6 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
-    /**
-     * onChangedObserver is responsible for handling LiveData changed event
-     * (this.postValue(mSdData)
-     * result here is (SdData) from Object o.
-     * Source event line: AWSdService:ServiceLiveData:signalChangedData()
-     */
-    private void onChangedObserver(Object o) {
-        try {
-            if (Constants.ACTION.STOP_WEAR_SD_ACTION.equals(((SdData)o).mDataType))
-                if (Objects.nonNull(mConnection))
-                    if (mConnection.mBound) {
-                        if (Objects.nonNull(mConnection.mSdServer)) {
-                            if (mConnection.mSdServer.uiLiveData.isListeningInContext(MainActivity.this)) {
-                                mConnection.mSdServer.uiLiveData.removeFromListening(MainActivity.this);
-                                mConnection.mSdServer.uiLiveData.removeObserver(MainActivity.this::onChangedObserver);
-                            }
-                            mUtil.unbindFromServer(MainActivity.this, mConnection);
-                            mConnection = null;
-                            mUtil.stopServer();
-                        }
-                        return;
-                    }
-            localSdData = (SdData) o;
-            serverStatusRunnable.run();
-        } catch (Exception e) {
-            Log.e(getClass().getName(), "onChangedObserver: error: ", e);
-        }
-    }
-
-    @Override
-    public void onBackPressed() {
-        try {
-            long currentTime = System.currentTimeMillis();
-            if (currentTime - lastPress > 5000) {
-                backpressToast = Toast.makeText(getBaseContext(), "Press back again to exit", Toast.LENGTH_LONG);
-                backpressToast.show();
-                lastPress = currentTime;
-            } else {
-                Log.d(TAG, "onBackPressed: initiating shutdown");
-                if (backpressToast != null) backpressToast.cancel();
-                activateStopByBack = true;
-                if (Objects.nonNull(mConnection))
-                    if (mConnection.mBound)
-                        mUtil.unbindFromServer(MainActivity.this, mConnection);
-                if (mUtil.isServerRunning())
-                    mUtil.stopServer();
-                serverStatusHandler.postDelayed(MainActivity.this::finishAffinity, 100);
-                super.onBackPressed();
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "onBackPressed() Error thrown while processing.");
-        }
-    }
 
     static class ResponseHandler extends Handler {
         @Override

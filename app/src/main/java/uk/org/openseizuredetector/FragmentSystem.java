@@ -1,31 +1,18 @@
 package uk.org.openseizuredetector;
 
-import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.widget.LinearLayoutCompat;
-import androidx.appcompat.widget.SwitchCompat;
-
-import com.github.mikephil.charting.charts.LineChart;
-import com.github.mikephil.charting.components.Legend;
-import com.github.mikephil.charting.components.YAxis;
-
-import java.util.Arrays;
-import java.util.Objects;
 
 public class FragmentSystem extends FragmentOsdBaseClass {
     String TAG = "FragmentSystem";
-    private SwitchCompat switchWatchGraphToPhoneGraph;
-    private LineChart lineChartPowerLevel;
 
     public FragmentSystem() {
         // Required empty public constructor
@@ -35,13 +22,6 @@ public class FragmentSystem extends FragmentOsdBaseClass {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (Objects.nonNull(mConnection)) {
-            if (!mConnection.mBound)
-                mUtil.bindToServer(mContext,
-                        mConnection);
-            mUtil.waitForConnection(mConnection);
-            connectUiLiveDataRunner();
-        }
     }
 
     @Override
@@ -64,38 +44,19 @@ public class FragmentSystem extends FragmentOsdBaseClass {
                             PrefActivity.class);
                     mContext.startActivity(prefsIntent);
                 } catch (Exception ex) {
-                    Log.i(TAG, "exception starting settings activity " + ex.toString() + " " + Arrays.toString(Thread.currentThread().getStackTrace()), ex);
+                    Log.i(TAG, "exception starting settings activity " + ex.toString());
                 }
 
             }
         });
     }
 
-    void connectUiLiveDataRunner() {
-        if (mConnection.mBound && Objects.nonNull(mConnection.mSdServer)) {
-            switchWatchGraphToPhoneGraph = mRootView.findViewById(R.id.switchToPowerGraph);
-            if (!mConnection.mSdServer.uiLiveData.isListeningInContext(this)) {
-                mConnection.mSdServer.uiLiveData.observe(this, this::onChangedObserver);
-                mConnection.mSdServer.uiLiveData.observeForever(this::onChangedObserver);
-                mConnection.mSdServer.uiLiveData.addToListening(this);
-                mUtil.runOnUiThread(this::updateUi);
-            }
-        } else {
-            updateUiHandler.postDelayed(this::connectUiLiveDataRunner, 100);
-        }
-    }
-
-
-    private void onChangedObserver(Object o) {
-        mUtil.runOnUiThread(this::updateUi);
-    }
 
     @Override
     protected void updateUi() {
         //Log.d(TAG,"updateUi()");
         TextView tv;
 
-        if (Objects.isNull(mRootView)||!isAdded()||!isVisible()) return;
         tv = (TextView) mRootView.findViewById(R.id.fragment_bound_to_server_tv);
         if (mConnection.mBound) {
             tv.setText("Bound to Server");
@@ -113,30 +74,25 @@ public class FragmentSystem extends FragmentOsdBaseClass {
             if (mConnection.mBound) {
                 if (mConnection.mSdServer.mSdDataSourceName.equals("Phone")) {
                     if (mConnection.mSdServer.mLogNDA)
-                        tv.setText(new StringBuilder().append(getString(R.string.ServerRunningOK)).append(getString(R.string.DataSource)).append(" = ").append("Phone").append("\n").append("(Demo Mode)").append("\nNDA Logging").toString());
+                        tv.setText(getString(R.string.ServerRunningOK) + " " + getString(R.string.DataSource) + " = " + "Phone" + " " + "(Demo Mode)" + "\nNDA Logging");
                     else
-                        tv.setText(new StringBuilder().append(getString(R.string.ServerRunningOK)).append(getString(R.string.DataSource)).append(" = ").append("Phone").append("\n").append("(Demo Mode)").toString());
+                        tv.setText(getString(R.string.ServerRunningOK) + " " + getString(R.string.DataSource) + " = " + "Phone" + " " + "(Demo Mode)");
                     tv.setBackgroundColor(warnColour);
                     tv.setTextColor(warnTextColour);
                 } else {
                     if (mConnection.mSdServer.mLogNDA)
-                        tv.setText(new StringBuilder().append(getString(R.string.ServerRunningOK)).append(getString(R.string.DataSource)).append(" = ").append(mConnection.mSdServer.mSdDataSourceName).append("\nNDA Logging").toString());
+                        tv.setText(getString(R.string.ServerRunningOK) + " " + getString(R.string.DataSource) + " = " + mConnection.mSdServer.mSdDataSourceName + ": NDA Logging");
                     else
-                        tv.setText(new StringBuilder().append(getString(R.string.ServerRunningOK)).append(getString(R.string.DataSource)).append(" = ").append(mConnection.mSdServer.mSdDataSourceName).toString());
+                        tv.setText(getString(R.string.ServerRunningOK) + " " + getString(R.string.DataSource) + " = " + mConnection.mSdServer.mSdDataSourceName);
                     tv.setBackgroundColor(okColour);
                     tv.setTextColor(okTextColour);
                 }
             }
             //Log.v(TAG,"UpdateUi() - displaying server IP address");
             tv = (TextView) mRootView.findViewById(R.id.serverIpTv);
-            String ipServerUrl = !mUtil.isMobileDataActive()?
-                    new StringBuilder().append(getString(R.string.AccessServerAt))
-                            .append(" http://")
-                            .append(mUtil.getLocalIpAddress())
-                            .append(":8080")
-                            .toString():
-                    getString(R.string.server_Mobile_localhost);
-            tv.setText(ipServerUrl);
+            tv.setText(getString(R.string.AccessServerAt) + " http://"
+                    + mUtil.getLocalIpAddress()
+                    + ":8080");
             tv.setBackgroundColor(okColour);
             tv.setTextColor(okTextColour);
         } else {
@@ -203,7 +159,9 @@ public class FragmentSystem extends FragmentOsdBaseClass {
                     tv.setTextColor(warnTextColour);
                 }
                 tv = (TextView) mRootView.findViewById(R.id.battTv);
-                tv.setText(getString(R.string.WatchBatteryEquals) + String.valueOf(mConnection.mSdServer.mSdData.batteryPc) + "%");
+                tv.setText(getString(R.string.WatchBatteryEquals)
+                        + String.valueOf(mConnection.mSdServer.mSdData.batteryPc) + "% / "
+                        + String.valueOf(mConnection.mSdServer.mSdData.phoneBatteryPc) + "%");
                 if (mConnection.mSdServer.mSdData.batteryPc <= 10) {
                     tv.setBackgroundColor(alarmColour);
                     tv.setTextColor(alarmTextColour);
@@ -216,28 +174,24 @@ public class FragmentSystem extends FragmentOsdBaseClass {
                     tv.setBackgroundColor(okColour);
                     tv.setTextColor(okTextColour);
                 }
-
-
+                tv = (TextView) mRootView.findViewById(R.id.watch_manuf_tv);
+                tv.setText(mConnection.mSdServer.mSdData.watchManuf);
+                tv = (TextView) mRootView.findViewById(R.id.watch_partno_tv);
+                tv.setText(mConnection.mSdServer.mSdData.watchPartNo);
+                tv = (TextView) mRootView.findViewById(R.id.watch_fwver_tv);
+                tv.setText(mConnection.mSdServer.mSdData.watchFwVersion);
+                tv = (TextView) mRootView.findViewById(R.id.watch_sdname_tv);
+                tv.setText(mConnection.mSdServer.mSdData.watchSdName);
+                tv = (TextView) mRootView.findViewById(R.id.watch_sdver_tv);
+                tv.setText(mConnection.mSdServer.mSdData.watchSdVersion);
+                tv = (TextView) mRootView.findViewById(R.id.watch_batt_tv);
+                tv.setText(mConnection.mSdServer.mSdData.batteryPc+" %");
+                tv = (TextView) mRootView.findViewById(R.id.watch_signal_tv);
+                tv.setText(String.format("%.0f dB", mConnection.mSdServer.mSdData.watchSignalStrength));
             }
         } catch (Exception e) {
-        Log.e(TAG, "UpdateUi: Exception - ",e);
-        e.printStackTrace();
-    }
-    }@Override
-    public void onAttach(@NonNull Context context) {
-        super.onAttach(context);
-        if (Objects.nonNull(mConnection)&&Objects.nonNull(mUtil)) {
-            connectUiLiveDataRunner();
-            mUtil.setBound(true, mConnection);
-            if (viewCreated) updateUi();
+            Log.e(TAG, "UpdateUi: Exception - ");
+            e.printStackTrace();
         }
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-
-        if (Objects.nonNull(mConnection)&&Objects.nonNull(mUtil))
-            mUtil.setBound(false,mConnection);
     }
 }

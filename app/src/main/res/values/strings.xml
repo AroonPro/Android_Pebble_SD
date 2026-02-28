@@ -3,7 +3,10 @@
     <string name="app_name">OpenSeizureDetector</string>
     <string name="changelog">
         "\n
-        \nV4.2.1 - Added Machine Learning Model Manager so models can be updated easily.
+        \nV4.2   - Added support for PineTime and BangleJS Watches using Bluetooth data source.
+        \n       - Added support for Version 2 of the Garmin watch app, which reduces battery drain
+        \n       - Added new, swipeable user interface to simplify the main screen.
+        \n       - various bug fixes and stability improvements
           "</string>
     <string name="UpgradeMsg">
         Please enable the new &lt;b>Data Sharing&lt;/b> feature to help improve OpenSeizureDetector!&lt;br/>
@@ -44,7 +47,7 @@
     <string name="WaitingForSeizureDetectorSettings">Waiting for Seizure Detector Settings...</string>
     <string name="DataSource">DataSource</string>
     <string name="AppTitleText">OpenSeizureDetector Android App Version </string>
-    <string name="ServerRunningOK">Server Running OK\n</string>
+    <string name="ServerRunningOK">Server Running OK</string>
     <string name="AccessServerAt">Access Server at </string>
     <string name="ServerStopped">Server Stopped</string>
     <string name="Warning">WARNING</string>
@@ -112,7 +115,7 @@
     <string name="BasicPrefTitle">Basic</string>
     <string name="BasicPrefSummary">Basic Preferences</string>
     <string name="accept_alarm">Accept Alarm</string>
-    <string name="start_stop_server">Start/Stop Server</string>
+    <string name="start_stop_server">Exit</string>
     <string name="install_watch_app">Install Watch App</string>
     <string name="test_alarm_beep">Test Alarm Beep</string>
     <string name="test_warning_beep">Test Warning Beep</string>
@@ -455,7 +458,7 @@
     <string name="NDATimeRemaining">"NDA Logging Time Remaining (hours): "</string>
     <string name="stop_nda_menu_title">Stop NDA</string>
     <string name="start_nda_menu_title">Start NDA</string>
-    <string name="seizure_probability">Seizure Probability (%)</string>
+    <string name="seizure_probability">Seizure Probability (from CNN) (%)</string>
     <string name="eventid">EventId</string>
     <string name="event_date">Event Date</string>
     <string name="alarm_state">Alarm State</string>
@@ -568,11 +571,9 @@
     <string name="algorithms">"Algorithms: "</string>
     <string name="battery_history">Battery History</string>
     <string name="watch_batt_hist">Watch Battery History (%)</string>
-    <string name="select_phone_power_graph">Switch on to display phone power graph \nor off for watch</string>
-    <string name="server_Mobile_localhost">Mobile data is active: webserver interface is http://localhost:8080</string>
-    <string name="fragment_osdalg">Fragment_OsdAlg</string>
-    <string name="osd_algorithm_status">OSD Algorithm Status</string>
-    <string name="empty_dashes">---</string>
-    <string name="openseizuredetector_common_components_status">OpenSeizureDetector Common Components Status</string>
-    <string name="fragment_system">Fragment_System</string>
+    <string name="ble_connected_warning_text">NOTE: Devices will not appear on this list if they are already connected - disconnect device from GadgetBridge etc. to allow it to be selected here</string>
+    <string name="BTPermissionWarning">Bluetooth Permissions Not Granted</string>
+    <string name="BTpermissions_required">Bluetooth Permissions Required</string>
+    <string name="BT_permissions_rationale">Bluetooth permissions are required to communicate with the bluetooth (BLE) data source</string>
+    <string name="restart_server">Restart Server</string>
 </resources>

@@ -27,10 +27,11 @@ Development
 Git Branches
 ------------
   - The version which is currently published on Play Store is the 'master' branch.
-  - The development version which will be the next major release is the V4.2.x branch.
-  - The V4.3.x branch by user @aroonpro addresses deprecation warnings and a more modern coding style - this will become the development version once we have it working reliably.
+  - The development version which will be the next major release is the Beta branch - this is released on play store for beta testers.
+  - The current working development version is the Alpha branch - this is released on play store for alpha testers.
+  - The V5.x branch by user @aroonpro addresses deprecation warnings and a more modern coding style - this will become the development version once we have it working reliably.
 
-So new developers wishing to implement features should use the V4.2.x branch
+So new developers wishing to implement features should create a fork of the Alpha branch and create a pull request agains that.
 
 Compilation
 -----------
@@ -80,8 +81,7 @@ The following libraries are used:
 * (jBeep)[http://www.ultraduz.com.br]
 * (Chartjs)[http://www.chartjs.org]
 * (MPAndroidChart)[https://github.com/PhilJay/MPAndroidChart]
-* (TestCase) [https://alvinalexander.com/java/jwarehouse/android/test-runner/src/android/test/ServiceTestCase.java.shtml]
-* Request permission integers: [https://github.com/vanyasem/Godot-AndroidPermissions]
+* (CurrentTimeService)[https://github.com/RideBeeline/android-bluetooth-current-time-service]
 
 Logo based on ["Star of life2" by Verdy p - Own work. Licensed under Public Domain via Wikimedia Commons](http://commons.wikimedia.org/wiki/File:Star_of_life2.svg#mediaviewer/File:Star_of_life2.svg).
 

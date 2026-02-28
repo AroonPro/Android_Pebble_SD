@@ -2,24 +2,17 @@ package uk.org.openseizuredetector;
 
 import android.content.Context;
 import android.graphics.Color;
-import android.graphics.Point;
 import android.os.Bundle;
 
-import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
 import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
-import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.WindowManager;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -30,8 +23,6 @@ public class FragmentOsdBaseClass extends Fragment {
     OsdUtil mUtil;
     SdServiceConnection mConnection;
     final Handler updateUiHandler = new Handler();
-
-    protected boolean viewCreated;
     Timer mUiTimer;
     protected View mRootView;
 
@@ -53,9 +44,9 @@ public class FragmentOsdBaseClass extends Fragment {
 
         super.onCreate(savedInstanceState);
         Log.i(TAG, "onCreate()");
-        if (Objects.isNull(mContext)) mContext = getContext();
-        if (Objects.isNull(mUtil)) mUtil = new OsdUtil(mContext, updateUiHandler);
-        if (Objects.isNull(mConnection)) mConnection = new SdServiceConnection(mContext);
+        mContext = getContext();
+        mUtil = new OsdUtil(mContext, updateUiHandler);
+        mConnection = new SdServiceConnection(mContext);
 
 
     }
@@ -64,7 +55,6 @@ public class FragmentOsdBaseClass extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-
         return inflater.inflate(R.layout.fragment_sd_data_viewer, container, false);
     }
 
@@ -78,29 +68,23 @@ public class FragmentOsdBaseClass extends Fragment {
     public void onStart() {
         super.onStart();
         Log.i(TAG, "onStart()");
-        if (mUtil.isServerRunning()) {
-            Log.i(TAG, "onStart() - Binding to Server");
-            if (Objects.nonNull(mUtil))
-                if (Objects.nonNull(mConnection))
-                    if (!mConnection.mBound)
-                        mUtil.bindToServer(mContext, mConnection);
-        } else {
-            Log.i(TAG, "onStart() - Server Not Running");
-        }
     }
 
     @Override
     public void onResume() {
         super.onResume();
         Log.i(TAG, "onResume()");
+        if (mUtil.isServerRunning()) {
+            Log.i(TAG, "onResume() - Binding to Server");
+            mUtil.bindToServer(mContext, mConnection);
+        } else {
+            Log.i(TAG, "onResume() - Server Not Running");
+        }
         mUiTimer = new Timer();
         mUiTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                if (Objects.nonNull(mConnection))
-                    if (Objects.nonNull(mConnection.mSdServer))
-                        if (mConnection.mBound)
-                            updateUiOnUiThread();
+                updateUiOnUiThread();
             }
         }, 0, 1000);
     }
@@ -110,15 +94,14 @@ public class FragmentOsdBaseClass extends Fragment {
         super.onPause();
         Log.i(TAG, "onPause()");
         mUiTimer.cancel();
+        mUtil.unbindFromServer(mContext, mConnection);
     }
 
     @Override
     public void onStop() {
         super.onStop();
         Log.i(TAG, "onStop()");
-        mUtil.unbindFromServer(mContext, mConnection);
     }
-
 
     /**
      * If we don't use this .post() trick, we get errors about the wrong thread trying to
@@ -128,7 +111,16 @@ public class FragmentOsdBaseClass extends Fragment {
         updateUiHandler.post(new Runnable() {
             @Override
             public void run() {
-                updateUi();
+                // Check for context being null is an attempt to stop the crashes reported in Issue No 176
+                if (mContext != null) {
+                    try {
+                        updateUi();
+                    } catch (Exception e) {
+                        Log.e(TAG,"upateUiOnUiThread() - exception updating UI - "+e.getMessage());
+                    }
+                } else {
+                    Log.e(TAG,"updateUionUiThread() - mContext is null??  Can't show a Toast message because context is null....");
+                }
             }
         });
     }
@@ -146,25 +138,6 @@ public class FragmentOsdBaseClass extends Fragment {
             tv.setText("****NOT BOUND TO SERVER***");
         }
 
-    }
-
-    @Override
-    public void onAttach(@NonNull Context context) {
-        super.onAttach(context);
-        if (Objects.nonNull(mConnection))
-            if (Objects.nonNull(mConnection.mSdServer))
-               mUtil.setBound(true,mConnection);
-        updateUiHandler.post(this::updateUi);
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-
-        if (Objects.nonNull(mConnection))
-            if (Objects.nonNull(mConnection.mSdServer))
-               mUtil.setBound(false,mConnection);
-        updateUiHandler.post(this::updateUi);
     }
 
 }
